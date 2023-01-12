@@ -10,12 +10,12 @@
 CC = g++
 .PHONY = livsdiary run clean remove-user-files install uninstall
 
-livsdiary:
+compile:
 	@echo "Compiling src/main.cpp..."
 	@${CC} src/main.cpp -o livsdiary
 	@stat livsdiary
 
-run: livsdiary
+run: compile
 	@./livsdiary
 
 clean:
