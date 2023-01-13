@@ -1,6 +1,7 @@
 /* (C) 2022 Olivia May GPLv3+ */
 
-#include "page.hpp"
+#include <iostream>
+#include <string.h>
 
 static Page working_page;
 
@@ -16,7 +17,7 @@ void no_arg()
 
 void version()
 {
-	printf("LIVSDiary v1.0.0 - (LI)ghtweight (V)irtual (S)imple Diary\n");
+	printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", PROGRAM_VERSION);
 	printf("Copyright (C) 2022 Olivia May.\n");
 	printf("License GPLv3+, this is free software.\n\n");
 	printf("Written in C/C++ by Olivia May.\n");
@@ -59,11 +60,14 @@ void edit(char * page_num)
 
 void command_logic(int argc, char *argv[]) 	
 {
-	char * page_count = get_page_count();
-	
+	// puts most recent page number in `file_contents` 
+	strcat(working_dir, "info/page_counter");
+	copy_file_to_memory();	
+	working_dir[strlen(working_dir) - 17] = '\0';
+
 	if (argc == 1) 
 	{
-		edit(page_count);
+		edit(file_contents);
 	}
 	else
 	{
@@ -84,13 +88,13 @@ void command_logic(int argc, char *argv[])
 		{
 			if (argc == 2)
 			{
-				edit(page_count);
+				edit(file_contents);
 			}
 			else
 			{
 				if (check_input_is_int(argv[2]) == true)
 				{
-					if (convert_to_int(argv[2]) <= convert_to_int(get_page_count()))
+					if (convert_to_int(argv[2]) <= convert_to_int(file_contents))
 					{ edit(argv[2]); }
 					else
 					{ invalid(argv[2]); }

@@ -5,9 +5,6 @@ using std::cout;
 using std::cin;
 using std::endl;
 
-#include "filesystem.h"
-
-
 class Page
 {
 	private:
@@ -16,8 +13,6 @@ class Page
 		char page_storage[PAGE_BUFFER];
 		char ch;
 		FILE *page_file;
-		int i;
-		int j;
 		char * page_time;
 		bool save_input;
 		bool stop_loop_here;
@@ -39,12 +34,12 @@ class Page
 
 void Page::get_contents()
 {
-	page_file = fopen(working_dir, "r");
+	working_file = fopen(working_dir, "r");
 
 	i = 0;
 	while (true)
 	{
-		ch = fgetc(page_file);
+		ch = fgetc(working_file);
 		
 		// not sure if this is safe, oh well
 		if (ch == -1)
@@ -56,6 +51,7 @@ void Page::get_contents()
 		page_storage[i] = ch;
 		i++;
 	}
+	fclose(working_file);
 }
 
 void Page::save_input_to_memory()
@@ -110,7 +106,6 @@ void Page::write()
 
 bool check_input_is_int(char * input)
 {
-	int i;
 	for (i = 0; i < strlen(input); i++)
 	{				
 		if (input[i] == '0' ||
@@ -156,13 +151,13 @@ void Page::edit()
 {
 	while (true)
 	{	
-		cout << working_dir << endl;
 		is_making_new_page = false;
 		is_opening_page = false;
 
+		strcat(working_dir, "info/times");	
 		page_time = get_page_time(page_num);
-		strcat(strcat(working_dir, "/.livsdiary/pages/"), page_num);
-		cout << working_dir << endl;
+		working_dir[strlen(working_dir) - 10] = '\0';
+		strcat(strcat(working_dir, "pages/"), page_num);
 		get_contents();
 	
 		cout << "** Page " << page_num << " **" << endl;
@@ -217,8 +212,7 @@ void Page::edit()
 			}
 		}
 
-		working_dir[strlen(working_dir) - 18 - strlen(page_num)] = '\0';
-		cout << working_dir << endl;
+		working_dir[strlen(working_dir) - 6 - strlen(page_num)] = '\0';
 		fclose(page_file);
 
 		if (is_making_new_page == true)
@@ -228,11 +222,13 @@ void Page::edit()
 		else if (is_opening_page == true)
 		{
 			get_input_for_opening_pages();
+			/*
 			cout << "input check 1 = " << input << endl;
 			if (check_input_is_int(input) == true)
 			{
 				cout << "is an integer" << endl;
 				cout << "strlen(input) = " << strlen(input) << endl;
+				strcat(working_dir, "info/page_counter");
 				if (convert_to_int(input) <=
 				convert_to_int(get_page_count()))
 				{
@@ -245,11 +241,13 @@ void Page::edit()
 					cout << "error: no page with number '" << input <<
 					"'" << endl;
 				}
+				working_dir[strlen(working_dir) - 17] = '\0';
 			}	
 			else
 			{
 				cout << "error: '" << input << "' is not an integer" << endl;
 			}
+			*/
 		}
 		else
 		{

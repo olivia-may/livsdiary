@@ -22,24 +22,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "command_line.hpp"
-
-/*
+#include "livsdiary.h"
+#include "converters.h"
+#include "time.h"
 #include "filesystem.h"
 #include "page.hpp"
 #include "command_line.hpp"
-*/
 
 int main(int argc, char *argv[])
 {
 	check_dirs_and_files(); 
 	command_logic(argc, argv);
 	
-	//decrement_page_count();
-	//increment_page_count();
-	
-	//make_new_page();
-	//remove_most_recent_page();
-
 	return 0;
 }

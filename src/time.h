@@ -1,12 +1,7 @@
 /* (C) 2022 Olivia May GPLv3+ */
 
-#include <time.h>
 #include <stdio.h>
-
-#include "variables.h"
-#include "converters.h"
-
-#define TIMES_STORAGE_BUFFER 64
+#include <time.h>
 
 char * get_current_time()
 {
@@ -17,18 +12,14 @@ char * get_current_time()
 
 char * get_page_time(char * page_num)
 {
-	int page_num_int = convert_to_int(page_num);
-	strcat(working_dir, "/.livsdiary/info/times");
-	FILE * times_storage_file = fopen(working_dir, "r");
+	working_file = fopen(working_dir, "r");
 	static char page_time[TIMES_STORAGE_BUFFER];
 
-	int i = 0;
 	int num_of_new_lines = 0;
-	char ch;
-
+	i = 0;
 	while (true)
 	{
-		ch = fgetc(times_storage_file);
+		ch = fgetc(working_file);
 		if (ch == -1) { break; }		
 		page_time[i] = ch;
 		i++;
@@ -36,14 +27,11 @@ char * get_page_time(char * page_num)
 		if (ch == '\n')
 		{
 			num_of_new_lines++;
-			if (num_of_new_lines == page_num_int) { break; }
+			if (num_of_new_lines == convert_to_int(page_num)) { break; }
 			else { i = 0; }
 		}
 	}
-
 	page_time[i] = '\0';
 
-	working_dir[strlen(working_dir) - 22] = '\0';
-	
 	return page_time;
 }
