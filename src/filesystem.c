@@ -11,18 +11,16 @@ int main()
 	
 	// `working_dir` should always be '~/.livsdiary'
 
-	check_dirs_and_files();
-	printf("check_dirs_and_files() %s\n", working_dir);
-
-	strcat(working_dir, "info/page_counter");
+	init();
 	
-	copy_file_to_memory();
-	copy_file_to_memory();
-	copy_file_to_memory();
-	copy_file_to_memory();
-	copy_file_to_memory();
-	copy_file_to_memory();
-	copy_file_to_memory();
+	printf("%s\n", PAGE_COUNT_DIR);
+	printf("%s\n", CURRENT_PAGE_DIR);
+	printf("%s\n", DUMMY_FILE_DIR);
+	printf("%s\n", PAGE_TIMES_DIR);
+	
+	check_dirs_and_files();
+	copy_file_to_memory(PAGE_COUNT_DIR);
+	copy_file_to_memory(PAGE_TIMES_DIR);
 
 	// check page counter file
 	printf("increment_page_count\n");
@@ -33,20 +31,12 @@ int main()
 	decrement_page_count();	
 	decrement_page_count();	
 
-	working_dir[strlen(working_dir) - 17] = '\0';
-	printf("%s\n", working_dir);
-
 	make_new_page();
-	printf("make_new_page() %s\n", working_dir);
 	make_new_page();
-	printf("make_new_page() %s\n", working_dir);
 	make_new_page();
-	printf("make_new_page() %s\n", working_dir);
 	make_new_page();
-	printf("make_new_page() %s\n", working_dir);
 
 	remove_most_recent_page();
-	printf("remove_most_recent_page() %s\n", working_dir);
 
 	return 0;
 }

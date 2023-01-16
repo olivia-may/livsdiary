@@ -4,11 +4,10 @@
 #include <unistd.h>
 
 // to `file_contents`
-void copy_file_to_memory()
+void copy_file_to_memory(char * dir)
 {
-	working_file = fopen(working_dir, "r");
+	working_file = fopen(dir, "r");
 	i = 0;
-	char ch;
 	while (true)
 	{
 		ch = fgetc(working_file);
@@ -23,55 +22,47 @@ void copy_file_to_memory()
 // checks if ~/.livsdiary/info/dummy exists
 bool is_run_first_time()
 {
-	if (access(working_dir, F_OK) == 0)
+	if (access(DUMMY_FILE_DIR, F_OK) == 0)
 	{
-		// '~/.livsdiary/'
-		working_dir[strlen(working_dir) - 10] = '\0';
 		return false;
 	}
 	else
 	{	
-		// goes to `make_needed_dirs()`
-		working_dir[strlen(working_dir) - 11] = '\0';
 		return true;	
 	}
 }
 
 void make_needed_dirs()
 {	
+	char * working_dir = getenv("HOME");
+	strcat(working_dir, "/.livsdiary");
 	mkdir(working_dir, 0777);
-	strcat(working_dir, "/pages"); mkdir(working_dir, 0777);
-	strcat(working_dir, "info"); mkdir(working_dir, 0777);	
+	strcat(working_dir, "/pages");
+	mkdir(CURRENT_PAGE_DIR, 0777);
+	working_dir[strlen(working_dir) - 5] = '\0';
+	strcat(working_dir, "info");
+	mkdir(working_dir, 0777);	
 }
 
 void make_needed_files()
 {
-	strcat(working_dir, "/page_counter");
-	working_file = fopen(working_dir, "w");
+	working_file = fopen(PAGE_COUNT_DIR, "w");
 	fprintf(working_file, "0\0");
-	working_dir[strlen(working_dir) - 12] = '\0';
 	fclose(working_file);
 	
-	strcat(working_dir, "times");
-	working_file = fopen(working_dir, "w");
-	working_dir[strlen(working_dir) - 5] = '\0';
+	working_file = fopen(PAGE_TIMES_DIR, "w");
 	fclose(working_file);
 
 	// always do last
-	strncat(working_dir, "dummy", 7);
-	working_file = fopen(working_dir, "w");
+	working_file = fopen(DUMMY_FILE_DIR, "w");
 	fclose(working_file);
-
-	// working_dir should be '~/.livsdiary/' when function is done using it
-	// No spaghetti code!
-	working_dir[strlen(working_dir) - 10] = '\0';
 }
 
 // this feels kinda dumb but oh well
 void increment_page_count()
 {
-	copy_file_to_memory();
-	working_file = fopen(working_dir, "w");
+	copy_file_to_memory(PAGE_COUNT_DIR);
+	working_file = fopen(PAGE_COUNT_DIR, "w");
 	fprintf
 	(
 		working_file, 
@@ -85,26 +76,21 @@ void increment_page_count()
 
 void make_new_page()
 {
-	strcat(working_dir, "info/page_counter");
 	increment_page_count();
-	copy_file_to_memory();
 	
-	working_dir[strlen(working_dir) - 12] = '\0';
-	strcat(working_dir, "times");
-	working_file = fopen(working_dir, "a");
+	working_file = fopen(PAGE_TIMES_DIR, "a");
 	fprintf(working_file, get_current_time());
 	fclose(working_file);
 	
-	working_dir[strlen(working_dir) - 10] = '\0';
-	strcat(strcat(working_dir, "pages/"), file_contents);
-	working_file = fopen(working_dir, "w");
-	working_dir[strlen(working_dir) - 6 - strlen(file_contents)] = '\0';
+	copy_file_to_memory(PAGE_COUNT_DIR);
+	strcat(CURRENT_PAGE_DIR, file_contents);
+	working_file = fopen(CURRENT_PAGE_DIR, "w");
+	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(file_contents)] = '\0';
 	fclose(working_file);
 }
 
 void check_dirs_and_files()
 {
-	strcat(working_dir, "/.livsdiary/info/dummy");
 	if (is_run_first_time() == true)
 	{
 		make_needed_dirs();
@@ -115,8 +101,8 @@ void check_dirs_and_files()
 
 void decrement_page_count()
 {
-	copy_file_to_memory();
-	working_file = fopen(working_dir, "w");
+	copy_file_to_memory(PAGE_COUNT_DIR);
+	working_file = fopen(PAGE_COUNT_DIR, "w");
 	fprintf
 	(
 		working_file, 
@@ -130,21 +116,16 @@ void decrement_page_count()
 
 void remove_most_recent_page()
 {	
-	strcat(working_dir, "info/page_counter");
-	copy_file_to_memory();
-	decrement_page_count();
+	copy_file_to_memory(PAGE_COUNT_DIR);
 	
-	working_dir[strlen(working_dir) - 17] = '\0';
-	strcat(strcat(working_dir, "pages/"), file_contents);
-	remove(working_dir); // remove file
+	decrement_page_count();
+	strcat(CURRENT_PAGE_DIR, file_contents);
+	remove(CURRENT_PAGE_DIR); // remove file
+	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR)- strlen(file_contents)] = '\0';
 	
 	// remove 1 line from the 'times' file
-	working_dir[strlen(working_dir) - 6 - strlen(file_contents)] = '\0';
-	strcat(working_dir, "info/times");
-	copy_file_to_memory();
+	copy_file_to_memory(PAGE_TIMES_DIR);
 	file_contents[strlen(file_contents) - 25] = '\0';
-	working_file = fopen(working_dir, "w");
+	working_file = fopen(PAGE_TIMES_DIR, "w");
 	fprintf(working_file, file_contents);
-	
-	working_dir[strlen(working_dir) - 10] = '\0';
 }

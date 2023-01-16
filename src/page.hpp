@@ -10,9 +10,6 @@ class Page
 	private:
 		char input[INPUT_BUFFER];
 		int input_len = 0;
-		char page_storage[PAGE_BUFFER];
-		char ch;
-		FILE *page_file;
 		char * page_time;
 		bool save_input;
 		bool stop_loop_here;
@@ -23,54 +20,28 @@ class Page
 		void input_commands();
 		void save_input_to_memory();
 		void output();
-		void get_contents();
 		void write();
 		void get_input_for_opening_pages();
+		void process_input();
 	public:
-		char * page_num;
+		char page_num[PAGE_COUNT_BUFFER];
 
 		void edit();
 };
 
-void Page::get_contents()
-{
-	working_file = fopen(working_dir, "r");
-
-	i = 0;
-	while (true)
-	{
-		ch = fgetc(working_file);
-		
-		// not sure if this is safe, oh well
-		if (ch == -1)
-		{ 
-			page_storage[i] = '\0';
-			break;
-		}
-		
-		page_storage[i] = ch;
-		i++;
-	}
-	fclose(working_file);
-}
-
 void Page::save_input_to_memory()
 {	
 	save_input = true;
-	
 	if (input_len > 0)
 	{
 		if (input[0] == '`')
 		{
 			save_input = false;
-		
-			//page_storage[strlen(page_storage) - 1] = '\0';
-		
 			for (i = 0; i < input_len; i++)
 			{
 				if (input[i] == '`')
 				{
-					page_storage[strlen(page_storage) - 1] = '\0';
+					file_contents[strlen(file_contents) - 1] = '\0';
 				}
 			}
 		}
@@ -80,7 +51,7 @@ void Page::save_input_to_memory()
 	{
 		input[input_len] = '\n';
 		input[input_len + 1] = '\0';
-		strcat(page_storage, input);
+		strcat(file_contents, input);
 	}
 }
 
@@ -90,17 +61,17 @@ void Page::output()
 	cout << "\x1b[1A"; cout << "\x1b[2K";
 	cout << "** Page " << page_num << " **" << endl;
 	cout << page_time << "---" << endl;
-	cout << page_storage << "<" << endl;
+	cout << file_contents << "<" << endl;
 	cout << "\x1b[2L";
 }
 
 void Page::write()
 {
-	page_file = fopen(working_dir, "w");
-	fprintf(page_file, page_storage);
+	working_file = fopen(CURRENT_PAGE_DIR, "w");
+	fprintf(working_file, file_contents);
 	cout << "** Page " << page_num << " **" << endl;
 	cout << page_time << "---" << endl;
-	cout << page_storage << "<" << endl;
+	cout << file_contents << "<" << endl;
 	cout << "\"~/.livsdiary/pages/" << page_num << "\" written" << endl;
 }
 
@@ -147,6 +118,57 @@ void Page::get_input_for_opening_pages()
 	cout << "input test 0 " << input << endl;
 }
 
+void Page::process_input()
+{
+	while (true)
+	{
+		stop_loop_here = false;
+
+		cin.getline(input, INPUT_BUFFER);
+		input_len = strlen(input);
+		
+		if (input[0] == ':')
+		{
+			if (input_len == 3)
+			{
+				if (input[1] == 'w' && input[2] == 'q')
+				{
+					write(); 
+					break;
+				}
+			}
+			if (input_len >= 2)
+			{
+				if ( input[1] == 'q' )
+				{
+					break;
+				}
+				if ( input[1] == 'w' )
+				{
+					write();
+					stop_loop_here = true;
+				}
+				if ( input[1] == 'n' )
+				{
+					is_making_new_page = true;
+					break;
+				}
+				if ( input[1] == 'e' )
+				{
+					is_opening_page = true;
+					break;
+				}
+			}
+		}
+
+		if (stop_loop_here == false)
+		{
+			save_input_to_memory();
+			output();
+		}
+	}
+}
+
 void Page::edit()
 {
 	while (true)
@@ -154,85 +176,38 @@ void Page::edit()
 		is_making_new_page = false;
 		is_opening_page = false;
 
-		strcat(working_dir, "info/times");	
 		page_time = get_page_time(page_num);
-		working_dir[strlen(working_dir) - 10] = '\0';
-		strcat(strcat(working_dir, "pages/"), page_num);
-		get_contents();
-	
+		strcat(CURRENT_PAGE_DIR, page_num);
+		copy_file_to_memory(CURRENT_PAGE_DIR);
+		
 		cout << "** Page " << page_num << " **" << endl;
 		cout << page_time << "---" << endl;
-		cout << page_storage << "<" << endl;
+		cout << file_contents << "<" << endl;
 	
-		while (true)
-		{
-			stop_loop_here = false;
-	
-			cin.getline(input, INPUT_BUFFER);
-			input_len = strlen(input);
-			
-			if (input[0] == ':')
-			{
-				if (input_len == 3)
-				{
-					if (input[1] == 'w' && input[2] == 'q')
-					{
-						write(); 
-						break;
-					}
-				}
-				if (input_len >= 2)
-				{
-					if ( input[1] == 'q' )
-					{
-						break;
-					}
-					if ( input[1] == 'w' )
-					{
-						write();
-						stop_loop_here = true;
-					}
-					if ( input[1] == 'n' )
-					{
-						is_making_new_page = true;
-						break;
-					}
-					if ( input[1] == 'e' )
-					{
-						is_opening_page = true;
-						break;
-					}
-				}
-			}
-
-			if (stop_loop_here == false)
-			{
-				save_input_to_memory();
-				output();
-			}
-		}
-
-		working_dir[strlen(working_dir) - 6 - strlen(page_num)] = '\0';
-		fclose(page_file);
-
+		process_input();
+		
 		if (is_making_new_page == true)
 		{
 			make_new_page();
+			copy_file_to_memory(PAGE_COUNT_DIR);
+			strcpy(page_num, file_contents); // switch to new page in cli
+			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)];
 		}
 		else if (is_opening_page == true)
 		{
 			get_input_for_opening_pages();
-			/*
 			cout << "input check 1 = " << input << endl;
 			if (check_input_is_int(input) == true)
 			{
 				cout << "is an integer" << endl;
 				cout << "strlen(input) = " << strlen(input) << endl;
-				strcat(working_dir, "info/page_counter");
+				copy_file_to_memory(PAGE_COUNT_DIR);
+
+				// check if that page exists
 				if (convert_to_int(input) <=
-				convert_to_int(get_page_count()))
+				convert_to_int(file_contents))
 				{
-					strcpy(page_num, input);
+					strcpy(page_num, input); // phew, open this page
 					cout << page_num << endl;
 					continue;
 				}
@@ -241,13 +216,11 @@ void Page::edit()
 					cout << "error: no page with number '" << input <<
 					"'" << endl;
 				}
-				working_dir[strlen(working_dir) - 17] = '\0';
 			}	
 			else
 			{
 				cout << "error: '" << input << "' is not an integer" << endl;
 			}
-			*/
 		}
 		else
 		{

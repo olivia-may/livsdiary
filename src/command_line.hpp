@@ -36,7 +36,7 @@ void help()
 	printf("-r			--remove	removes most recent page\n");
 }
 
-void edit(char * page_num)
+void edit(char page_num[])
 {
 	printf("** LIVSDiary **\n");
 	printf("Use:\n");
@@ -53,17 +53,14 @@ void edit(char * page_num)
 	printf("Start typing!\n");
 	printf("\n");
 
-	working_page.page_num = page_num;
+	strcpy(working_page.page_num, page_num);
 	working_page.edit();
 }
-
 
 void command_logic(int argc, char *argv[]) 	
 {
 	// puts most recent page number in `file_contents` 
-	strcat(working_dir, "info/page_counter");
-	copy_file_to_memory();	
-	working_dir[strlen(working_dir) - 17] = '\0';
+	copy_file_to_memory(PAGE_COUNT_DIR);
 
 	if (argc == 1) 
 	{
@@ -97,7 +94,9 @@ void command_logic(int argc, char *argv[])
 					if (convert_to_int(argv[2]) <= convert_to_int(file_contents))
 					{ edit(argv[2]); }
 					else
-					{ invalid(argv[2]); }
+					{
+						printf("error: found no page with number '%s'\n", argv[2]);
+					}
 				}
 				else
 				{

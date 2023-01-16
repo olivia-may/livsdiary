@@ -10,7 +10,12 @@ int main()
 {
 	printf("** page.cpp **\n");
 
+	check_dirs_and_files();
+	
+	printf("%s\n", working_dir);
 	Page test;
 	test.page_num = "1";
+	printf("%s\n", test.page_num);
 	test.edit();
+	printf("%s\n", working_dir);
 }

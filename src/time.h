@@ -12,7 +12,7 @@ char * get_current_time()
 
 char * get_page_time(char * page_num)
 {
-	working_file = fopen(working_dir, "r");
+	working_file = fopen(PAGE_TIMES_DIR, "r");
 	static char page_time[TIMES_STORAGE_BUFFER];
 
 	int num_of_new_lines = 0;

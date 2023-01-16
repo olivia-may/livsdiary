@@ -31,6 +31,7 @@
 
 int main(int argc, char *argv[])
 {
+	init();
 	check_dirs_and_files(); 
 	command_logic(argc, argv);
 	

@@ -11,6 +11,8 @@ int main()
 {
 	printf("** command_line.cpp **\n");
 
+	check_dirs_and_files();
+	
 	char * array[2];
 	array[0] = "test1";
 	array[1] = "-n";
@@ -26,7 +28,7 @@ int main()
 	printf("%b\n", check_input_is_int("123"));
 	check_input_is_int("1");
 
-	edit("1");
+	//edit("1");
 
 	return 0;
 }
