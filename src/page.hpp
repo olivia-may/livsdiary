@@ -15,6 +15,7 @@ class Page
 		bool stop_loop_here;
 		bool is_making_new_page;
 		bool is_opening_page;
+		bool is_removing_page;
 		
 		void get_file_location();
 		void input_commands();
@@ -26,6 +27,7 @@ class Page
 	public:
 		char page_num[PAGE_COUNT_BUFFER];
 
+		void print_help();
 		void edit();
 };
 
@@ -57,7 +59,7 @@ void Page::save_input_to_memory()
 
 void Page::output()
 {
-	// removes 'cin''s output with ANSI escape codes. and also my debug 'cout's haha 
+	// removes `cin`'s output with ANSI escape codes. and also my debug `cout`s haha 
 	cout << "\x1b[1A"; cout << "\x1b[2K";
 	cout << "** Page " << page_num << " **" << endl;
 	cout << page_time << "---" << endl;
@@ -69,10 +71,8 @@ void Page::write()
 {
 	working_file = fopen(CURRENT_PAGE_DIR, "w");
 	fprintf(working_file, file_contents);
-	cout << "** Page " << page_num << " **" << endl;
-	cout << page_time << "---" << endl;
-	cout << file_contents << "<" << endl;
-	cout << "\"~/.livsdiary/pages/" << page_num << "\" written" << endl;
+	fclose(working_file);
+	cout << "\"~/.livsdiary/pages/" << page_num << "\" written" << endl << endl;
 }
 
 bool check_input_is_int(char * input)
@@ -104,18 +104,32 @@ void Page::get_input_for_opening_pages()
 	{
 		if (input[i] == ' ')
 		{
-			cout << "found a space\n";
 		}
 		else
 		{
-			cout << "input i = " << input[i] << endl;
 			input[j] = input[i];
 			j++;
 		}
 	}
-	cout << "input i - 3 = " << input[i] << endl;
 	input[i - 3] = '\0';
-	cout << "input test 0 " << input << endl;
+}
+
+void Page::print_help()
+{
+	printf("** LIVSDiary **\n");
+	printf("Use:\n");
+	printf(":q		quit\n");
+	printf(":w		write to page file\n");
+	printf(":wq		write and quit\n");
+	printf(":h		show this menu\n");
+	printf(":n		make new page and switch to it\n");
+	printf(":e NUMBER	open NUMBER page\n");
+	printf(":r		remove most recent page, be careful\n");
+	printf("\n");
+	printf("'<' is where you are writing.\n");
+	printf("Use '`' to backspace. You can use multiple like this \"```\".\n");
+	printf("Start typing!\n");
+	printf("\n");
 }
 
 void Page::process_input()
@@ -139,24 +153,37 @@ void Page::process_input()
 			}
 			if (input_len >= 2)
 			{
-				if ( input[1] == 'q' )
+				if (input[1] == 'q')
 				{
 					break;
 				}
-				if ( input[1] == 'w' )
+				if (input[1] == 'w')
 				{
 					write();
+					output();
 					stop_loop_here = true;
 				}
-				if ( input[1] == 'n' )
+				if (input[1] == 'n')
 				{
 					is_making_new_page = true;
 					break;
 				}
-				if ( input[1] == 'e' )
+				if (input[1] == 'e')
 				{
 					is_opening_page = true;
 					break;
+				}
+				if (input[1] == 'r')
+				{
+					is_removing_page = true;
+					break;
+				}
+				if (input[1] == 'h')
+				{
+					print_help();
+					cout << endl;
+					output();
+					stop_loop_here = true;
 				}
 			}
 		}
@@ -175,11 +202,12 @@ void Page::edit()
 	{	
 		is_making_new_page = false;
 		is_opening_page = false;
+		is_removing_page = false;
 
 		page_time = get_page_time(page_num);
 		strcat(CURRENT_PAGE_DIR, page_num);
 		copy_file_to_memory(CURRENT_PAGE_DIR);
-		
+
 		cout << "** Page " << page_num << " **" << endl;
 		cout << page_time << "---" << endl;
 		cout << file_contents << "<" << endl;
@@ -188,28 +216,57 @@ void Page::edit()
 		
 		if (is_making_new_page == true)
 		{
+			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
 			make_new_page();
 			copy_file_to_memory(PAGE_COUNT_DIR);
 			strcpy(page_num, file_contents); // switch to new page in cli
-			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)];
+		}
+		else if (is_removing_page == true)
+		{
+			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
+			copy_file_to_memory(PAGE_COUNT_DIR);
+			int page_count_int = convert_to_int(file_contents);
+
+			stop_loop_here = false;
+			if (page_count_int == 1)
+			{
+				cout << "Cannot remove first page!" << endl;
+				stop_loop_here = true;
+			}
+
+			if (stop_loop_here == false)
+			{
+				cout << "Page " << file_contents << " removed" << endl;
+			
+				// change to older page if you deleted the current 
+				// working page
+				if (convert_to_int(page_num) == page_count_int)
+				{
+					strcpy
+					(
+					 	page_num,
+						convert_to_char_array(page_count_int - 1)
+					);
+				}
+
+				remove_most_recent_page();
+			}
 		}
 		else if (is_opening_page == true)
-		{
+		{	
+			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
 			get_input_for_opening_pages();
-			cout << "input check 1 = " << input << endl;
 			if (check_input_is_int(input) == true)
 			{
-				cout << "is an integer" << endl;
-				cout << "strlen(input) = " << strlen(input) << endl;
 				copy_file_to_memory(PAGE_COUNT_DIR);
 
+				int input_int = convert_to_int(input);
 				// check if that page exists
-				if (convert_to_int(input) <=
-				convert_to_int(file_contents))
+				if (input_int <= convert_to_int(file_contents)
+				&& input_int > 0)
 				{
 					strcpy(page_num, input); // phew, open this page
 					cout << page_num << endl;
-					continue;
 				}
 				else
 				{
@@ -219,12 +276,14 @@ void Page::edit()
 			}	
 			else
 			{
-				cout << "error: '" << input << "' is not an integer" << endl;
+				cout << "error: '" << input << "' is invalid" << endl;
 			}
 		}
 		else
 		{
 			break;
 		}
+
+
 	}
 }

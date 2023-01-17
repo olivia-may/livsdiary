@@ -38,21 +38,7 @@ void help()
 
 void edit(char page_num[])
 {
-	printf("** LIVSDiary **\n");
-	printf("Use:\n");
-	printf(":q		quit\n");
-	printf(":w		write to page file\n");
-	printf(":wq		write and quit\n");
-	printf(":n		make new page and edit\n");
-	printf("-- WIP --\n");
-	printf(":e NUMBER	open NUMBER page\n");
-	printf(":r		remove most recent page, be careful\n");
-	printf("\n");
-	printf("'<' is where you are writing.\n");
-	printf("Use '`' to backspace. You can use multiple like this \"```\".\n");
-	printf("Start typing!\n");
-	printf("\n");
-
+	working_page.print_help();
 	strcpy(working_page.page_num, page_num);
 	working_page.edit();
 }
@@ -91,7 +77,9 @@ void command_logic(int argc, char *argv[])
 			{
 				if (check_input_is_int(argv[2]) == true)
 				{
-					if (convert_to_int(argv[2]) <= convert_to_int(file_contents))
+					int argv2_int = convert_to_int(argv[2]);
+					if (argv2_int <= convert_to_int(file_contents)
+					&& argv2_int > 0)
 					{ edit(argv[2]); }
 					else
 					{

@@ -119,6 +119,7 @@ void remove_most_recent_page()
 	copy_file_to_memory(PAGE_COUNT_DIR);
 	
 	decrement_page_count();
+	
 	strcat(CURRENT_PAGE_DIR, file_contents);
 	remove(CURRENT_PAGE_DIR); // remove file
 	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR)- strlen(file_contents)] = '\0';
@@ -128,4 +129,5 @@ void remove_most_recent_page()
 	file_contents[strlen(file_contents) - 25] = '\0';
 	working_file = fopen(PAGE_TIMES_DIR, "w");
 	fprintf(working_file, file_contents);
+	fclose(working_file);
 }
