@@ -116,7 +116,6 @@ void Page::get_input_for_opening_pages()
 
 void Page::print_help()
 {
-	printf("** LIVSDiary **\n");
 	printf("Use:\n");
 	printf(":q		quit\n");
 	printf(":w		write to page file\n");

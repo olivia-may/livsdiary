@@ -38,6 +38,11 @@ void help()
 
 void edit(char page_num[])
 {
+	printf("** LIVSDiary **\n");
+	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
+	printf("This is free software, and you are welcome to\n");
+	printf("redistribute it under certain conditions.\n\n");
+
 	working_page.print_help();
 	strcpy(working_page.page_num, page_num);
 	working_page.edit();
