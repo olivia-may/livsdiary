@@ -263,10 +263,9 @@ void Page::edit()
 				int input_int = convert_to_int(input);
 				// check if that page exists
 				if (input_int <= convert_to_int(file_contents)
-				&& input_int > 0)
+				&& input_int >= 0)
 				{
 					strcpy(page_num, input); // phew, open this page
-					cout << page_num << endl;
 				}
 				else
 				{

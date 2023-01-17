@@ -41,7 +41,7 @@ void make_needed_dirs()
 	mkdir(CURRENT_PAGE_DIR, 0777);
 	working_dir[strlen(working_dir) - 5] = '\0';
 	strcat(working_dir, "info");
-	mkdir(working_dir, 0777);	
+	mkdir(working_dir, 0777);
 }
 
 void make_needed_files()
@@ -51,11 +51,26 @@ void make_needed_files()
 	fclose(working_file);
 	
 	working_file = fopen(PAGE_TIMES_DIR, "w");
+	fprintf(working_file, "Table of Contents\n");
 	fclose(working_file);
 
 	// always do last
 	working_file = fopen(DUMMY_FILE_DIR, "w");
 	fclose(working_file);
+}
+
+void make_toc_page()
+{
+	strcat(CURRENT_PAGE_DIR, "0");
+	working_file = fopen(CURRENT_PAGE_DIR, "w");
+
+	fprintf(working_file, "This page cannot be removed.\n");
+	fprintf(working_file, "Feel free remove this message and\n");
+	fprintf(working_file, "write anything you want here!\n");
+	fprintf(working_file, "Type and enter ':n' to make a new diary entry.\n");
+
+	fclose(working_file);
+	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - 1] = '\0';
 }
 
 // this feels kinda dumb but oh well
@@ -95,7 +110,7 @@ void check_dirs_and_files()
 	{
 		make_needed_dirs();
 		make_needed_files();
-		make_new_page();
+		make_toc_page();
 	}
 }
 

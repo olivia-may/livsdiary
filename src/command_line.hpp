@@ -79,7 +79,7 @@ void command_logic(int argc, char *argv[])
 				{
 					int argv2_int = convert_to_int(argv[2]);
 					if (argv2_int <= convert_to_int(file_contents)
-					&& argv2_int > 0)
+					&& argv2_int >= 0)
 					{ edit(argv[2]); }
 					else
 					{

@@ -26,9 +26,9 @@ char * get_page_time(char * page_num)
 
 		if (ch == '\n')
 		{
-			num_of_new_lines++;
 			if (num_of_new_lines == convert_to_int(page_num)) { break; }
 			else { i = 0; }
+			num_of_new_lines++;
 		}
 	}
 	page_time[i] = '\0';
