@@ -8,7 +8,7 @@
 # make uninstall		Remove from /usr/local/bin.
 
 CC = g++
-.PHONY = livsdiary run clean remove-user-files install uninstall
+.PHONY = compile run clean remove-user-files install uninstall
 
 compile:
 	@echo "Compiling src/main.cpp..."
