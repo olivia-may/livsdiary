@@ -7,7 +7,7 @@
 void copy_file_to_memory(char * dir)
 {
 	working_file = fopen(dir, "r");
-	i = 0;
+	int i = 0;
 	while (true)
 	{
 		ch = fgetc(working_file);
@@ -78,13 +78,11 @@ void increment_page_count()
 {
 	copy_file_to_memory(PAGE_COUNT_DIR);
 	working_file = fopen(PAGE_COUNT_DIR, "w");
+	convert_to_char_array(convert_to_int(file_contents) + 1);
 	fprintf
 	(
-		working_file, 
-		convert_to_char_array
-		(
-			convert_to_int(file_contents) + 1
-		)
+		working_file,
+		converted_int
 	);
 	fclose(working_file);
 }
@@ -118,13 +116,11 @@ void decrement_page_count()
 {
 	copy_file_to_memory(PAGE_COUNT_DIR);
 	working_file = fopen(PAGE_COUNT_DIR, "w");
+	convert_to_char_array(convert_to_int(file_contents) - 1);
 	fprintf
 	(
 		working_file, 
-		convert_to_char_array
-		(
-			convert_to_int(file_contents) - 1
-		)
+		converted_int
 	);
 	fclose(working_file);
 }

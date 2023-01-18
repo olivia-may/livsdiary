@@ -39,7 +39,7 @@ void Page::save_input_to_memory()
 		if (input[0] == '`')
 		{
 			save_input = false;
-			for (i = 0; i < input_len; i++)
+			for (int i = 0; i < input_len; i++)
 			{
 				if (input[i] == '`')
 				{
@@ -77,7 +77,7 @@ void Page::write()
 
 bool check_input_is_int(char * input)
 {
-	for (i = 0; i < strlen(input); i++)
+	for (int i = 0; i < strlen(input); i++)
 	{				
 		if (input[i] == '0' ||
 		input[i] == '1' ||
@@ -99,7 +99,8 @@ bool check_input_is_int(char * input)
 
 void Page::get_input_for_opening_pages()
 {
-	j = 0;
+	int j = 0;
+	int i;
 	for (i = 2; i < input_len; i++)
 	{
 		if (input[i] == ' ')
@@ -227,24 +228,23 @@ void Page::edit()
 			int page_count_int = convert_to_int(file_contents);
 
 			stop_loop_here = false;
-			if (page_count_int == 1)
+			if (page_count_int == 0)
 			{
-				cout << "Cannot remove first page!" << endl;
+				cout << "error: cannot remove Table of Contents!" << endl;
 				stop_loop_here = true;
 			}
 
 			if (stop_loop_here == false)
 			{
-				cout << "Page " << file_contents << " removed" << endl;
-			
 				// change to older page if you deleted the current 
 				// working page
 				if (convert_to_int(page_num) == page_count_int)
 				{
+					convert_to_char_array(page_count_int - 1);
 					strcpy
 					(
 					 	page_num,
-						convert_to_char_array(page_count_int - 1)
+						converted_int
 					);
 				}
 
@@ -281,7 +281,5 @@ void Page::edit()
 		{
 			break;
 		}
-
-
 	}
 }

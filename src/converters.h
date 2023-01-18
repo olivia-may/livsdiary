@@ -6,58 +6,54 @@
 #define NUMBER_BUFFER 8
 
 // i tried, and it feels weird doing this, but i cant find anything for this, so i dont know what else to do
-char * convert_to_char_array(int number) 
+static char converted_int[NUMBER_BUFFER];
+void convert_to_char_array(int number) 
 {
-	static char array[NUMBER_BUFFER];	
-	
 	if (number == 0)
 	{
-		array[0] = '0';
-		array[1] = 0;
-		return array;
+		converted_int[0] = '0';
+		converted_int[1] = '\0';
+		return;
 	}
 	
-	char storage[NUMBER_BUFFER];
 	int i = 0;
-	int j;
-
 	while (true)
 	{
 		if (number == 0) { break; }
+		else { i++; }
 
-		if (number % 10 == 0) { storage[i] = '0'; }
-		if (number % 10 == 1) { storage[i] = '1'; }
-		if (number % 10 == 2) { storage[i] = '2'; }
-		if (number % 10 == 3) { storage[i] = '3'; }
-		if (number % 10 == 4) { storage[i] = '4'; }
-		if (number % 10 == 5) { storage[i] = '5'; }
-		if (number % 10 == 6) { storage[i] = '6'; }
-		if (number % 10 == 7) { storage[i] = '7'; }
-		if (number % 10 == 8) { storage[i] = '8'; }
-		if (number % 10 == 9) { storage[i] = '9'; }
+		if (number % 10 == 0) { converted_int[i] = '0'; }
+		if (number % 10 == 1) { converted_int[i] = '1'; }
+		if (number % 10 == 2) { converted_int[i] = '2'; }
+		if (number % 10 == 3) { converted_int[i] = '3'; }
+		if (number % 10 == 4) { converted_int[i] = '4'; }
+		if (number % 10 == 5) { converted_int[i] = '5'; }
+		if (number % 10 == 6) { converted_int[i] = '6'; }
+		if (number % 10 == 7) { converted_int[i] = '7'; }
+		if (number % 10 == 8) { converted_int[i] = '8'; }
+		if (number % 10 == 9) { converted_int[i] = '9'; }
 		
 		number = number / 10;
-		
-		i++;
 	}
 	
-	for (j = 0; j < i; j++)
+	// reverse array
+	int halfway_point = i/ 2;
+	for (int j = 0; j <= halfway_point; j++)
 	{
-		array[j] = storage[i - j - 1];
-
+		ch = converted_int[j];
+		int last = i - j;
+		converted_int[j] = converted_int[last];
+		converted_int[last] = ch;
 	}
-	array[i] = 0;
-
-	return array;
+	converted_int[i] = '\0';
 }
 
 // warning: will break for long numbers (int digit_slot overflows), like '12343678912'
 int convert_to_int(char *str)
 {
-	int i;
 	int number = 0;
 	int len = strlen(str);
-	for (i = 0; i < len; i++)
+	for (int i = 0; i < len; i++)
 	{
 		int digit_slot = pow(10, len - i - 1);
 

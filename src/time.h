@@ -16,7 +16,7 @@ char * get_page_time(char * page_num)
 	static char page_time[TIMES_STORAGE_BUFFER];
 
 	int num_of_new_lines = 0;
-	i = 0;
+	int i = 0;
 	while (true)
 	{
 		ch = fgetc(working_file);

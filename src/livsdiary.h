@@ -20,8 +20,6 @@ static char PAGE_TIMES_DIR[DIR_BUFFER];
 static FILE * working_file;
 static char file_contents[FILE_BUFFER];
 static char page_count[PAGE_COUNT_BUFFER];
-static int i;
-static int j;
 static char ch;
 
 // set up the dirs in memory instead of changing the length of working_dir all the time
