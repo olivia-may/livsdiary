@@ -1,6 +1,6 @@
 /* (C) 2022 Olivia May GPLv3+ */
 
-#define PROGRAM_VERSION "v1.0.0"
+#define PROGRAM_VERSION "v1.1.0"
 
 #define INPUT_BUFFER 128
 #define PAGE_COUNT_BUFFER 8
