@@ -1,3 +1,5 @@
+/* (C) 2022 Olivia May GPLv3+ */
+
 #include <stdio.h>
 
 #include "livsdiary.h"
