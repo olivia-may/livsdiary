@@ -77,6 +77,10 @@ void Page::write()
 
 bool check_input_is_int(char * input)
 {
+	if (input[0] == '\0')
+	{
+		return false;
+	}
 	for (int i = 0; i < strlen(input); i++)
 	{				
 		if (input[i] == '0' ||
