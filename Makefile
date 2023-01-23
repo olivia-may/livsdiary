@@ -27,7 +27,7 @@ remove-user-files:
 	@rm -rf ~/.livsdiary
 
 # Must be root user for the following
-install: livsdiary
+install: compile
 	@echo "Installing to /usr/local/bin..."
 	@cp livsdiary /usr/local/bin
 
