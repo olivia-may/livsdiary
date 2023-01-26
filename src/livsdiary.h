@@ -1,12 +1,10 @@
 /* (C) 2022 Olivia May GPLv3+ */
 
-#define PROGRAM_VERSION "v1.1.1"
-
 #define INPUT_BUFFER 128
 #define PAGE_COUNT_BUFFER 8
 #define TIMES_STORAGE_BUFFER 64
 #define FILE_BUFFER 4096
-// linux max file name size is 255 chars
+// linux max file name size is 255 chars, cant figure out how to do this more efficiently im sorry ;-;
 #define DIR_BUFFER 320
 
 #include <stdio.h>

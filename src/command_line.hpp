@@ -3,11 +3,13 @@
 #include <iostream>
 #include <string.h>
 
+#include "version.h"
+
 static Page working_page;
 
 void invalid(char *argv)
 {
-	printf("Invalid argument: '%s'\n", argv);
+	printf("Invalid argument: '%s', try '--help'\n", argv);
 }
 
 void no_arg()
@@ -37,7 +39,7 @@ void help()
 
 void edit(char page_num[])
 {
-	printf("** LIVSDiary **\n");
+	printf("** LIVSDiary %s **\n", PROGRAM_VERSION);
 	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
 	printf("This is free software, and you are welcome to\n");
 	printf("redistribute it under certain conditions.\n\n");

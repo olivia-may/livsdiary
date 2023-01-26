@@ -122,13 +122,14 @@ void Page::get_input_for_opening_pages()
 void Page::print_help()
 {
 	printf("Use:\n");
-	printf(":q		quit\n");
-	printf(":w		write to page file\n");
-	printf(":wq		write and quit\n");
+	printf(":e NUMBER	open NUMBER page\n");
 	printf(":h		show this menu\n");
 	printf(":n		make new page and switch to it\n");
-	printf(":e NUMBER	open NUMBER page\n");
+	printf(":q		quit\n");
 	printf(":r		remove most recent page, be careful\n");
+	printf(":t TIME		WIP change the time to something else\n");
+	printf(":w		write to page file\n");
+	printf(":wq		write and quit\n");
 	printf("\n");
 	printf("'<' is where you are writing.\n");
 	printf("Use '`' to backspace. You can use multiple like this \"```\".\n");
