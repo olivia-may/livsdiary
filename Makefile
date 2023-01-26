@@ -7,7 +7,7 @@
 # make install			Install to /usr/local/bin. Use from command line.
 # make uninstall		Remove from /usr/local/bin.
 
-PROGRAM_VERSION = "v1.1.1"
+PROGRAM_VERSION = "v1.1.2"
 
 CC = g++
 .PHONY = compile run clean remove-user-files install uninstall
