@@ -7,34 +7,27 @@
 # make install			Install to /usr/local/bin. Use from command line.
 # make uninstall		Remove from /usr/local/bin.
 
-PROGRAM_VERSION = "v1.1.2"
+CC=g++
+LINKERFLAGS=
 
-CC = g++
-.PHONY = compile run clean remove-user-files install uninstall
+.PHONY=compile run clean remove-user-files install uninstall
 
 compile:
-	@echo "Compiling src/main.cpp..."
-	@rm -f src/version.h
-	@printf '/* (C) 2022 Olivia May GPLv3+ */\n\n#define PROGRAM_VERSION ${PROGRAM_VERSION}\n' >> src/version.h
-	@${CC} src/main.cpp -o livsdiary
-	@stat livsdiary
+	${CC} ${LINKERFLAGS} src/main.cpp -o livsdiary.o
+	stat livsdiary.o
 
 run: compile
-	@./livsdiary
+	./livsdiary.o
 
 clean:
-	@echo "Cleaning up..."
-	@rm -f livsdiary
+	rm -f livsdiary.o
 
 remove-user-files:
-	@echo "Removing ~/.livsdiary"
-	@rm -rf ~/.livsdiary
+	rm -rf ~/.livsdiary
 
 # Must be root user for the following
 install: compile
-	@echo "Installing to /usr/local/bin..."
-	@cp livsdiary /usr/local/bin
+	cp livsdiary.o /usr/local/bin/livsdiary
 
 uninstall:
-	@echo "Uninstalling from /usr/local/bin..."
-	@rm -f /usr/local/bin/livsdiary
+	rm -f /usr/local/bin/livsdiary

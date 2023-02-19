@@ -1,4 +1,20 @@
-/* (C) 2022 Olivia May GPLv3+ */
+/*
+ * LIVSDiary - (LI)ghtweight (V)irtual (S)imple Diary
+ * Copyright (C) 2022 Olivia May - olmay@tuta.io
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -17,60 +33,6 @@ void copy_file_to_memory(char * dir)
 	}
 	file_contents[i] = '\0';
 	fclose(working_file);
-}
-
-// checks if ~/.livsdiary/info/dummy exists
-bool is_run_first_time()
-{
-	if (access(DUMMY_FILE_DIR, F_OK) == 0)
-	{
-		return false;
-	}
-	else
-	{	
-		return true;	
-	}
-}
-
-void make_needed_dirs()
-{	
-	char * working_dir = getenv("HOME");
-	strcat(working_dir, "/.livsdiary");
-	mkdir(working_dir, 0777);
-	strcat(working_dir, "/pages");
-	mkdir(CURRENT_PAGE_DIR, 0777);
-	working_dir[strlen(working_dir) - 5] = '\0';
-	strcat(working_dir, "info");
-	mkdir(working_dir, 0777);
-}
-
-void make_needed_files()
-{
-	working_file = fopen(PAGE_COUNT_DIR, "w");
-	fprintf(working_file, "0\0");
-	fclose(working_file);
-	
-	working_file = fopen(PAGE_TIMES_DIR, "w");
-	fprintf(working_file, "Table of Contents\n");
-	fclose(working_file);
-
-	// always do last
-	working_file = fopen(DUMMY_FILE_DIR, "w");
-	fclose(working_file);
-}
-
-void make_toc_page()
-{
-	strcat(CURRENT_PAGE_DIR, "0");
-	working_file = fopen(CURRENT_PAGE_DIR, "w");
-
-	fprintf(working_file, "This page cannot be removed.\n");
-	fprintf(working_file, "Feel free remove this message and\n");
-	fprintf(working_file, "write anything you want here!\n");
-	fprintf(working_file, "Type and enter ':n' to make a new diary entry.\n");
-
-	fclose(working_file);
-	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - 1] = '\0';
 }
 
 // this feels kinda dumb but oh well
@@ -102,15 +64,7 @@ void make_new_page()
 	fclose(working_file);
 }
 
-void check_dirs_and_files()
-{
-	if (is_run_first_time() == true)
-	{
-		make_needed_dirs();
-		make_needed_files();
-		make_toc_page();
-	}
-}
+
 
 void decrement_page_count()
 {

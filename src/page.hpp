@@ -1,9 +1,49 @@
-/* (C) 2022 Olivia May GPLv3+ */ 
+/*
+ * LIVSDiary - (LI)ghtweight (V)irtual (S)imple Diary
+ * Copyright (C) 2022 Olivia May - olmay@tuta.io
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <iostream>
 using std::cout;
 using std::cin;
 using std::endl;
+
+bool check_input_is_int(char * input)
+{
+	if (input[0] == '\0')
+	{ return false; }
+	for (int i = 0; i < strlen(input); i++)
+	{				
+		if (input[i] == '0' ||
+		input[i] == '1' ||
+		input[i] == '2' ||
+		input[i] == '3' ||
+		input[i] == '4' ||
+		input[i] == '5' ||
+		input[i] == '6' ||
+		input[i] == '7' ||
+		input[i] == '8' ||
+		input[i] == '9')
+		{ continue; }
+		else
+		{ return false; }
+	}
+
+	return true;
+}
 
 class Page
 {
@@ -42,9 +82,7 @@ void Page::save_input_to_memory()
 			for (int i = 0; i < input_len; i++)
 			{
 				if (input[i] == '`')
-				{
-					file_contents[strlen(file_contents) - 1] = '\0';
-				}
+				{ file_contents[strlen(file_contents) - 1] = '\0'; }
 			}
 		}
 	}
@@ -75,31 +113,6 @@ void Page::write()
 	cout << "\"~/.livsdiary/pages/" << page_num << "\" written" << endl << endl;
 }
 
-bool check_input_is_int(char * input)
-{
-	if (input[0] == '\0')
-	{
-		return false;
-	}
-	for (int i = 0; i < strlen(input); i++)
-	{				
-		if (input[i] == '0' ||
-		input[i] == '1' ||
-		input[i] == '2' ||
-		input[i] == '3' ||
-		input[i] == '4' ||
-		input[i] == '5' ||
-		input[i] == '6' ||
-		input[i] == '7' ||
-		input[i] == '8' ||
-		input[i] == '9')
-		{ continue; }
-		else
-		{ return false; }
-	}
-
-	return true;
-}
 
 void Page::get_input_for_opening_pages()
 {
@@ -107,9 +120,7 @@ void Page::get_input_for_opening_pages()
 	int i;
 	for (i = 2; i < input_len; i++)
 	{
-		if (input[i] == ' ')
-		{
-		}
+		if (input[i] == ' ') {}
 		else
 		{
 			input[j] = input[i];
@@ -151,17 +162,12 @@ void Page::process_input()
 			if (input_len == 3)
 			{
 				if (input[1] == 'w' && input[2] == 'q')
-				{
-					write(); 
-					break;
-				}
+				{ write(); break; }
 			}
 			if (input_len >= 2)
 			{
 				if (input[1] == 'q')
-				{
-					break;
-				}
+				{ break; }
 				if (input[1] == 'w')
 				{
 					write();
@@ -169,20 +175,11 @@ void Page::process_input()
 					stop_loop_here = true;
 				}
 				if (input[1] == 'n')
-				{
-					is_making_new_page = true;
-					break;
-				}
+				{ is_making_new_page = true; break; }
 				if (input[1] == 'e')
-				{
-					is_opening_page = true;
-					break;
-				}
+				{ is_opening_page = true; break; }
 				if (input[1] == 'r')
-				{
-					is_removing_page = true;
-					break;
-				}
+				{ is_removing_page = true; break; }
 				if (input[1] == 'h')
 				{
 					print_help();
@@ -194,10 +191,7 @@ void Page::process_input()
 		}
 
 		if (stop_loop_here == false)
-		{
-			save_input_to_memory();
-			output();
-		}
+		{ save_input_to_memory(); output(); }
 	}
 }
 
@@ -246,11 +240,7 @@ void Page::edit()
 				if (convert_to_int(page_num) == page_count_int)
 				{
 					convert_to_char_array(page_count_int - 1);
-					strcpy
-					(
-					 	page_num,
-						converted_int
-					);
+					strcpy(page_num, converted_int);
 				}
 
 				remove_most_recent_page();
@@ -272,19 +262,12 @@ void Page::edit()
 					strcpy(page_num, input); // phew, open this page
 				}
 				else
-				{
-					cout << "error: no page with number '" << input <<
-					"'" << endl;
-				}
+				{ cout << "error: no page with number '" << input << "'" << endl; }
 			}	
 			else
-			{
-				cout << "error: '" << input << "' is invalid" << endl;
-			}
+			{ cout << "error: '" << input << "' is invalid" << endl; }
 		}
 		else
-		{
-			break;
-		}
+		{ break; }
 	}
 }
