@@ -1,6 +1,6 @@
-/* LIVSDiary
- * (C) 2022 Olivia May GPLv3+ 
- * Contact me: olmay@tuta.io
+/* 
+ * LIVSDiary
+ * (C) 2022 Olivia May - olmay@tuta.io GPLv3+
  *
  * (LI)ghtweight (V)irtual (S)imple Diary
  *
@@ -23,6 +23,7 @@
  */
 
 #define PROGRAM_VERSION "v1.1.2"
+#define PROGRAM_DIR "/.livsdiary/"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,13 +35,13 @@
 #define PAGE_COUNT_BUFFER 8
 #define TIMES_STORAGE_BUFFER 64
 #define FILE_BUFFER 4096
-// linux max file name size is 255 chars, cant figure out how to do this more efficiently im sorry ;-;
-#define DIR_BUFFER 320
+#define DIR_BUFFER 48
 
-static char PAGE_COUNT_DIR[DIR_BUFFER];
-static char CURRENT_PAGE_DIR[DIR_BUFFER];
-static char DUMMY_FILE_DIR[DIR_BUFFER];
-static char PAGE_TIMES_DIR[DIR_BUFFER];
+static char * HOME_DIR = getenv("HOME");
+static char * PAGE_COUNT_DIR = NULL;
+static char * CURRENT_PAGE_DIR = NULL;
+static char * DUMMY_FILE_DIR = NULL;
+static char * PAGE_TIMES_DIR = NULL;
 static FILE * working_file;
 static char file_contents[FILE_BUFFER];
 static char page_count[PAGE_COUNT_BUFFER];
@@ -52,19 +53,22 @@ static char ch;
 #include "page.hpp"
 #include "command_line.hpp"
 
+char * init_dir(char * dir)
+{
+	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
+	strcpy(dir, HOME_DIR);
+	strcat(dir, PROGRAM_DIR);
 
-int main(int argc, char *argv[])
+	return dir;
+}
+
+int main(int argc, char * argv[])
 {	
-	// set up the dirs in memory instead of changing the length of working_dir all the time
-	strcpy(PAGE_COUNT_DIR, getenv("HOME"));
-	strcat(PAGE_COUNT_DIR, "/.livsdiary/info/page_counter");
-	strcpy(CURRENT_PAGE_DIR, getenv("HOME"));
-	strcat(CURRENT_PAGE_DIR, "/.livsdiary/pages/");
-	strcpy(DUMMY_FILE_DIR, getenv("HOME"));
-	strcat(DUMMY_FILE_DIR, "/.livsdiary/info/dummy");
-	strcpy(PAGE_TIMES_DIR, getenv("HOME"));
-	strcat(PAGE_TIMES_DIR, "/.livsdiary/info/times");
-		
+	PAGE_COUNT_DIR = init_dir(PAGE_COUNT_DIR); strcat(PAGE_COUNT_DIR, "info/page_counter");
+	CURRENT_PAGE_DIR = init_dir(CURRENT_PAGE_DIR); strcat(CURRENT_PAGE_DIR, "pages/");
+	DUMMY_FILE_DIR = init_dir(DUMMY_FILE_DIR); strcat(DUMMY_FILE_DIR, "info/dummy");
+	PAGE_TIMES_DIR = init_dir(PAGE_TIMES_DIR); strcat(PAGE_TIMES_DIR, "info/times");
+	
 	// check if ~/.livsdiary/info/dummy does not exist
 	if (access(DUMMY_FILE_DIR, F_OK) != 0)
 	{
