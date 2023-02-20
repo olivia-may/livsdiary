@@ -19,6 +19,8 @@
 #include <iostream>
 #include <string.h>
 
+#include "page.hpp"
+
 static Page working_page;
 
 void invalid(char *argv)
@@ -48,7 +50,7 @@ void help()
 	printf("-v [page number],	--view=NUMBER	view page\n");
 	printf("-V			--version	show version\n");
 }
-void edit(char page_num[])
+void edit(char * page_num)
 {
 	printf("** LIVSDiary %s **\n", PROGRAM_VERSION);
 	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
@@ -56,7 +58,7 @@ void edit(char page_num[])
 	printf("redistribute it under certain conditions.\n\n");
 	
 	working_page.print_help();
-	strcpy(working_page.page_num, page_num);
+	working_page.page_num = page_num;
 	working_page.edit();
 }
 
@@ -64,26 +66,24 @@ void view(char input[])
 {
 	char page_num[PAGE_COUNT_BUFFER]; strcpy(page_num, input);
 	strcat(CURRENT_PAGE_DIR, page_num);
-	copy_file_to_memory(CURRENT_PAGE_DIR);
+	printf("** Page %s **\n%s\n%s\n", page_num, get_page_time(page_num), copy_file_to_memory(CURRENT_PAGE_DIR));
 	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
-
-	printf("** Page %s **\n%s\n%s\n", page_num, get_page_time(page_num), file_contents);
 }
 
 void list_pages()
 {
-	int page_num_int = convert_to_int(file_contents);
+	char * last_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
+	int page_num_int = convert_to_int(last_page_num);
 	for (int i = 0; i <= page_num_int; i++)
-	{ convert_to_char_array(i); view(converted_int); }
+	{ view(convert_to_char_array(i)); }
 }
 
 void command_logic(int argc, char *argv[]) 	
 {
-	// puts most recent page number in `file_contents` 
-	copy_file_to_memory(PAGE_COUNT_DIR);
+	char * last_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
 
 	if (argc == 1) 
-	{ edit(file_contents); }
+	{ edit(last_page_num); }
 	else
 	{
 		if (strncmp(argv[1], "-h", 3) == 0 ||
@@ -95,13 +95,13 @@ void command_logic(int argc, char *argv[])
 		else if (strncmp(argv[1], "-e", 3) == 0)
 		{
 			if (argc == 2)
-			{ edit(file_contents); }
+			{ edit(last_page_num); }
 			else
 			{
 				if (check_input_is_int(argv[2]) == true)
 				{
 					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= convert_to_int(file_contents)
+					if (argv2_int <= convert_to_int(last_page_num)
 					&& argv2_int >= 0)
 					{ edit(argv[2]); }
 					else
@@ -114,13 +114,13 @@ void command_logic(int argc, char *argv[])
 		else if (strncmp(argv[1], "-v", 3) == 0)
 		{
 			if (argc == 2)
-			{ view(file_contents); }
+			{ view(last_page_num); }
 			else
 			{
 				if (check_input_is_int(argv[2]) == true)
 				{
 					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= convert_to_int(file_contents)
+					if (argv2_int <= convert_to_int(last_page_num)
 					&& argv2_int >= 0)
 					{ view(argv[2]); }
 					else
@@ -145,7 +145,7 @@ void command_logic(int argc, char *argv[])
 			else if (check_input_is_int(argv[1]) == true)
 			{
 				int argv2_int = convert_to_int(argv[1]);
-				if (argv2_int <= convert_to_int(file_contents)
+				if (argv2_int <= convert_to_int(last_page_num)
 				&& argv2_int >= 0)
 				{ edit(argv[1]); }
 				else
@@ -167,7 +167,7 @@ void command_logic(int argc, char *argv[])
 			else if (check_input_is_int(argv[1]) == true)
 			{
 				int argv2_int = convert_to_int(argv[1]);
-				if (argv2_int <= convert_to_int(file_contents)
+				if (argv2_int <= convert_to_int(last_page_num)
 				&& argv2_int >= 0)
 				{ view(argv[1]); }
 				else
@@ -183,7 +183,7 @@ void command_logic(int argc, char *argv[])
 		else if (strncmp(argv[1], "-r", 3) == 0 ||
 		strncmp(argv[1], "--remove", 9) == 0)
 		{
-			if (file_contents[0] == '0' && file_contents[1] == '\0') 
+			if (last_page_num[0] == '0' && last_page_num[1] == '\0') 
 			{ printf("error: refusing to remove Table of Contents!\n"); }
 			else
 			{ remove_most_recent_page(); }

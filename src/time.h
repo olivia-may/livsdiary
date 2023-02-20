@@ -17,6 +17,9 @@
  */
 
 #include <time.h>
+#include <stdio.h>
+
+#define TIMES_STORAGE_BUFFER 64
 
 char * get_current_time()
 {
@@ -27,14 +30,15 @@ char * get_current_time()
 
 char * get_page_time(char * page_num)
 {
-	working_file = fopen(PAGE_TIMES_DIR, "r");
+	FILE * page_time_file = fopen(PAGE_TIMES_DIR, "r");
 	static char page_time[TIMES_STORAGE_BUFFER];
 
 	int num_of_new_lines = 0;
 	int i = 0;
+	int ch;
 	while (true)
 	{
-		ch = fgetc(working_file);
+		ch = fgetc(page_time_file);
 		if (ch == -1) { break; }		
 		page_time[i] = ch;
 		i++;
@@ -47,6 +51,7 @@ char * get_page_time(char * page_num)
 		}
 	}
 	page_time[i] = '\0';
+	fclose(page_time_file);
 
 	return page_time;
 }

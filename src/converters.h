@@ -19,17 +19,17 @@
 #include <math.h>
 #include <string.h>
 
-#define NUMBER_BUFFER 8
-
 // i tried, and it feels weird doing this, but i cant find anything for this, so i dont know what else to do
-static char converted_int[NUMBER_BUFFER];
-void convert_to_char_array(int number) 
+char * convert_to_char_array(int number) 
 {
+	char * converted_int = NULL;
+	converted_int = (char *)malloc(2 * sizeof(converted_int));
+
 	if (number == 0)
 	{
 		converted_int[0] = '0';
 		converted_int[1] = '\0';
-		return;
+		return converted_int;
 	}
 	
 	int i = 0;
@@ -49,11 +49,13 @@ void convert_to_char_array(int number)
 		if (number % 10 == 8) { converted_int[i] = '8'; }
 		if (number % 10 == 9) { converted_int[i] = '9'; }
 		
+		converted_int = (char *)realloc(converted_int, (i + 2) * sizeof(converted_int));
 		number = number / 10;
 	}
 	
 	// reverse array
 	int halfway_point = i/ 2;
+	char ch;
 	for (int j = 0; j <= halfway_point; j++)
 	{
 		ch = converted_int[j];
@@ -62,10 +64,12 @@ void convert_to_char_array(int number)
 		converted_int[last] = ch;
 	}
 	converted_int[i] = '\0';
+
+	return converted_int;
 }
 
 // warning: will break for long numbers (int digit_slot overflows), like '12343678912'
-int convert_to_int(char *str)
+int convert_to_int(char * str)
 {
 	int number = 0;
 	int len = strlen(str);

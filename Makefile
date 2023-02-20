@@ -20,7 +20,7 @@ run: compile
 	./livsdiary.o
 
 clean:
-	rm -f livsdiary.o
+	rm -f livsdiary.o src/{*.out,*.o}
 
 remove-user-files:
 	rm -rf ~/.livsdiary
