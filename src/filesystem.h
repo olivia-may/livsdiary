@@ -100,10 +100,7 @@ char * copy_file_to_memory(char * dir)
 	while (true)
 	{
 		ch = fgetc(file);
-		printf("i = %d\n", i);
-		printf("ch = %d\n", ch);
 		if (ch < 0) { break; }
-		//printf("i = %d\n", i);
 		file_contents[i] = ch;
 		i++;
 		file_contents = (char *)realloc(file_contents, (i + 2) * sizeof(file_contents));
