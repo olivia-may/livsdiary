@@ -224,7 +224,6 @@ void Page::edit()
 			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
 			make_new_page();
 			page_num = copy_file_to_memory(PAGE_COUNT_DIR); // switch to new page in cli
-			printf("ok here");
 		}
 		else if (is_removing_page == true)
 		{

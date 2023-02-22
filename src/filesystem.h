@@ -111,11 +111,9 @@ char * copy_file_to_memory(char * dir)
 	return file_contents;
 }
 
-// this feels kinda dumb but oh well
-void increment_page_count()
+void make_new_page()
 {
-	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");
-	
+	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");	
 	char * temp = convert_to_char_array(convert_to_int(copy_file_to_memory(PAGE_COUNT_DIR)) + 1);
 	fclose(page_count_file);
 	page_count_file = fopen(PAGE_COUNT_DIR, "w");
@@ -123,28 +121,26 @@ void increment_page_count()
 	fprintf(page_count_file, "\0");
 	free(temp);
 	fclose(page_count_file);
-}
-
-void make_new_page()
-{
-	increment_page_count();
 	
-	FILE * working_file = fopen(PAGE_TIMES_DIR, "a");
-	fprintf(working_file, get_current_time());
-	fclose(working_file);
+	FILE * page_times_file = fopen(PAGE_TIMES_DIR, "a");
+	fprintf(page_times_file, get_current_time());
+	fclose(page_times_file);
 	
 	char * latest_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
-	printf("latest_page_num = %s\n", latest_page_num);
 	strcat(CURRENT_PAGE_DIR, latest_page_num);
 	FILE * current_page_file = fopen(CURRENT_PAGE_DIR, "w");
 	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(latest_page_num)] = '\0';
 	fclose(current_page_file);
 }
 
-void decrement_page_count()
-{
-	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");
+void remove_most_recent_page()
+{	
+	char * most_recent_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
+	strcat(CURRENT_PAGE_DIR, most_recent_page_num);
+	remove(CURRENT_PAGE_DIR); // remove file
+	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(most_recent_page_num)] = '\0';
 	
+	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");	
 	char * temp = convert_to_char_array(convert_to_int(copy_file_to_memory(PAGE_COUNT_DIR)) - 1);
 	fclose(page_count_file);
 	page_count_file = fopen(PAGE_COUNT_DIR, "w");
@@ -152,17 +148,6 @@ void decrement_page_count()
 	fprintf(page_count_file, "\0");
 	free(temp);
 	fclose(page_count_file);
-}
-
-void remove_most_recent_page()
-{	
-	char * latest_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
-	
-	decrement_page_count();
-	
-	strcat(CURRENT_PAGE_DIR, latest_page_num);
-	remove(CURRENT_PAGE_DIR); // remove file
-	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(latest_page_num)] = '\0';
 	
 	// remove 1 line from the 'times' file
 	char * page_times_list = copy_file_to_memory(PAGE_TIMES_DIR);
