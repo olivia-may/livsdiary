@@ -29,7 +29,6 @@
 static char * HOME_DIR = getenv("HOME");
 static char * PAGE_COUNT_DIR = NULL;
 static char * CURRENT_PAGE_DIR = NULL;
-static char * DUMMY_FILE_DIR = NULL;
 
 #include "converters.h"
 #include "time.h"
