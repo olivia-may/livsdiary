@@ -56,14 +56,12 @@ class Page
 		char * page_mem_storage = NULL;
 		char input[INPUT_BUFFER];
 		int input_len = 0;
-		char * page_time;
 		bool save_input;
 		bool stop_loop_here;
 		bool is_making_new_page;
 		bool is_opening_page;
 		bool is_removing_page;
 		
-		void get_file_location();
 		void input_commands();
 		void save_input_to_memory();
 		void output();
@@ -105,8 +103,6 @@ void Page::output()
 {
 	// removes `cin`'s output with ANSI escape codes. and also my debug `cout`s haha 
 	cout << "\x1b[1A"; cout << "\x1b[2K";
-	cout << "** Page " << page_num << " **" << endl;
-	cout << page_time << "---" << endl;
 	cout << page_mem_storage << "<" << endl;
 	cout << "\x1b[2L";
 }
@@ -144,7 +140,6 @@ void Page::print_help()
 	printf(":n		make new page and switch to it\n");
 	printf(":q		quit\n");
 	printf(":r		remove most recent page, be careful\n");
-	printf(":t TIME		WIP change the time to something else\n");
 	printf(":w		write to page file\n");
 	printf(":wq		write and quit\n");
 	printf("\n");
@@ -209,12 +204,9 @@ void Page::edit()
 		is_opening_page = false;
 		is_removing_page = false;
 
-		page_time = get_page_time(page_num);
 		strcat(CURRENT_PAGE_DIR, page_num);
 		page_mem_storage = copy_file_to_memory(CURRENT_PAGE_DIR);
 
-		cout << "** Page " << page_num << " **" << endl;
-		cout << page_time << "---" << endl;
 		cout << page_mem_storage << "<" << endl;
 
 		process_input();

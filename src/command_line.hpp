@@ -66,7 +66,7 @@ void view(char input[])
 {
 	char page_num[PAGE_COUNT_BUFFER]; strcpy(page_num, input);
 	strcat(CURRENT_PAGE_DIR, page_num);
-	printf("** Page %s **\n%s\n%s\n", page_num, get_page_time(page_num), copy_file_to_memory(CURRENT_PAGE_DIR));
+	printf("%s\n", copy_file_to_memory(CURRENT_PAGE_DIR));
 	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
 }
 

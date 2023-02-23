@@ -17,41 +17,15 @@
  */
 
 #include <time.h>
-#include <stdio.h>
-
-#define TIMES_STORAGE_BUFFER 64
+#include <string.h>
 
 char * get_current_time()
 {
 	time_t now = time(0);
-	char * dt = ctime(&now);
-	return dt;
-}
-
-char * get_page_time(char * page_num)
-{
-	FILE * page_time_file = fopen(PAGE_TIMES_DIR, "r");
-	static char page_time[TIMES_STORAGE_BUFFER];
-
-	int num_of_new_lines = 0;
-	int i = 0;
-	int ch;
-	while (true)
-	{
-		ch = fgetc(page_time_file);
-		if (ch == -1) { break; }		
-		page_time[i] = ch;
-		i++;
-
-		if (ch == '\n')
-		{
-			if (num_of_new_lines == convert_to_int(page_num)) { break; }
-			else { i = 0; }
-			num_of_new_lines++;
-		}
-	}
-	page_time[i] = '\0';
-	fclose(page_time_file);
-
-	return page_time;
+	tm * lt = localtime(&now);
+	char * current_time = asctime(lt);
+	current_time[strlen(current_time) - 1] = ' ';
+	strcat(current_time, lt->tm_zone);
+	
+	return current_time;
 }

@@ -30,7 +30,6 @@ static char * HOME_DIR = getenv("HOME");
 static char * PAGE_COUNT_DIR = NULL;
 static char * CURRENT_PAGE_DIR = NULL;
 static char * DUMMY_FILE_DIR = NULL;
-static char * PAGE_TIMES_DIR = NULL;
 
 #include "converters.h"
 #include "time.h"
@@ -46,40 +45,24 @@ char * init_dir(char * dir)
 
 void init()
 {
-	PAGE_COUNT_DIR = init_dir(PAGE_COUNT_DIR); strcat(PAGE_COUNT_DIR, "info/page_counter");
-	CURRENT_PAGE_DIR = init_dir(CURRENT_PAGE_DIR); strcat(CURRENT_PAGE_DIR, "pages/");
-	DUMMY_FILE_DIR = init_dir(DUMMY_FILE_DIR); strcat(DUMMY_FILE_DIR, "info/dummy");
-	PAGE_TIMES_DIR = init_dir(PAGE_TIMES_DIR); strcat(PAGE_TIMES_DIR, "info/times");
+	PAGE_COUNT_DIR = init_dir(PAGE_COUNT_DIR); strcat(PAGE_COUNT_DIR, "page_counter");
+	CURRENT_PAGE_DIR = init_dir(CURRENT_PAGE_DIR);
 
-	// check if ~/.livsdiary/info/dummy does not exist
-	if (access(DUMMY_FILE_DIR, F_OK) != 0)
+	// check if PAGE_COUNT_DIR does not exist
+	if (access(PAGE_COUNT_DIR, F_OK) != 0)
 	{
 		// make needed dirs
-		char * working_dir = getenv("HOME");
-		strcat(working_dir, "/.livsdiary");
-		mkdir(working_dir, 0777);
-		strcat(working_dir, "/pages");
 		mkdir(CURRENT_PAGE_DIR, 0777);
-		working_dir[strlen(working_dir) - 5] = '\0';
-		strcat(working_dir, "info");
-		mkdir(working_dir, 0777);
-
-		// make needed files
+		
+		// make page counter
 		FILE * working_file = fopen(PAGE_COUNT_DIR, "w");
-		fprintf(working_file, "0\0");
-		fclose(working_file);
-	
-		working_file = fopen(PAGE_TIMES_DIR, "w");
-		fprintf(working_file, "Table of Contents\n");
-		fclose(working_file);
-
-		// make dummy file last
-		working_file = fopen(DUMMY_FILE_DIR, "w");
+		fprintf(working_file, "0");
 		fclose(working_file);
 
 		// make toc page
 		strcat(CURRENT_PAGE_DIR, "0");
 		working_file = fopen(CURRENT_PAGE_DIR, "w");
+		fprintf(working_file, "** Table of Contents **\n");
 		fprintf(working_file, "This page cannot be removed.\n");
 		fprintf(working_file, "Feel free remove this message and\n");
 		fprintf(working_file, "write anything you want here!\n");
@@ -122,13 +105,11 @@ void make_new_page()
 	free(temp);
 	fclose(page_count_file);
 	
-	FILE * page_times_file = fopen(PAGE_TIMES_DIR, "a");
-	fprintf(page_times_file, get_current_time());
-	fclose(page_times_file);
-	
 	char * latest_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
 	strcat(CURRENT_PAGE_DIR, latest_page_num);
 	FILE * current_page_file = fopen(CURRENT_PAGE_DIR, "w");
+	fprintf(current_page_file, "** Page %s **\n", latest_page_num);
+	fprintf(current_page_file, "%s\n", get_current_time());
 	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(latest_page_num)] = '\0';
 	fclose(current_page_file);
 }
@@ -148,11 +129,4 @@ void remove_most_recent_page()
 	fprintf(page_count_file, "\0");
 	free(temp);
 	fclose(page_count_file);
-	
-	// remove 1 line from the 'times' file
-	char * page_times_list = copy_file_to_memory(PAGE_TIMES_DIR);
-	page_times_list[strlen(page_times_list) - 25] = '\0';
-	FILE * page_times_file = fopen(PAGE_TIMES_DIR, "w");
-	fprintf(page_times_file, page_times_list);
-	fclose(page_times_file);
 }
