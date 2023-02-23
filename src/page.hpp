@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define PROGRAM_VERSION "v1.1.3"
+#define PROGRAM_VERSION "v1.1.4"
 
 #include <iostream>
 using std::cout;

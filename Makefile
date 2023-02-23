@@ -29,7 +29,7 @@ LINKERFLAGS=
 
 compile:
 	${CC} ${LINKERFLAGS} src/main.cpp -o livsdiary.o
-	stat livsdiary.o
+	du -b livsdiary.o
 
 run: compile
 	./livsdiary.o
