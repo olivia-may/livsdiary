@@ -1,0 +1,5 @@
+-- Mostly just ideas that I didn't want to forget --
+* Use something to encrypt diary files
+	* OpenSSL
+* Use ncurses and parts of vim source code to make a better editor
+* Use git somehow to be able to transfer diary across computers
