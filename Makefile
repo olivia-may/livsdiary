@@ -16,33 +16,68 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # Usage:
-# make				Compile LIVSDiary.
-# make run			Compile and execute LIVSDiary.
+# make				Compile 'livsdiary.o'.
+# make run			Make objects if none were compiled. Link object files into 'livsdiary.o'.
+# 				Then run 'livsdiary.o'.
+# make livsdiary		Link object files into 'livsdiary.o'
+# make SOURCE CODE FILE		Make the object for that source code file. Ex: 'make command_line'.
+# make clean			Remove all binary files
 # make remove-user-files	Remove livsdiary files in home directory.
-# make install			Install to /usr/local/bin. Use from command line.
+# make install			Install to /usr/local/bin.
 # make uninstall		Remove from /usr/local/bin.
 
 CC=g++
 LINKERFLAGS=
 
-.PHONY=compile run clean remove-user-files install uninstall
+PROGRAM_NAME=livsdiary
 
-compile:
-	${CC} ${LINKERFLAGS} src/main.cpp -o livsdiary.o
-	du -b livsdiary.o
+SRCS_DIR=src/
+OBJS_DIR=obj/
 
-run: compile
-	./livsdiary.o
+SRCS_C=converters \
+       filesystem \
+       time
+SRCS_CPP=main \
+	 page
+OBJS=converters.o \
+     filesystem.o \
+     main.o \
+     page.o \
+     time.o
+
+.PHONY=all run clean remove-user-files install uninstall
+.ONESHELL:
+
+all: $(SRCS_C) ${SRCS_CPP} $(PROGRAM_NAME)
+
+$(OBJS_DIR):	
+	@mkdir -p $(OBJS_DIR)
+
+${SRCS_C}: $(OBJS_DIR) 
+	$(CC) -c $(SRCS_DIR)$@.c -o $(OBJS_DIR)$@.o
+
+$(SRCS_CPP): $(OBJS_DIR)
+	$(CC) -c $(SRCS_DIR)$@.cpp -o $(OBJS_DIR)$@.o
+
+$(PROGRAM_NAME): $(OBJS_DIR) 
+	cd $(OBJS_DIR)
+	$(CC) $(LINKERFLAGS) $(OBJS) -o ../$(PROGRAM_NAME).o 
+	cd ..
+	du -b $(PROGRAM_NAME).o
+
+run: $(PROGRAM_NAME)
+	./$(PROGRAM_NAME).o
 
 clean:
-	rm -f livsdiary.o src/{*.out,*.o}
+	rm -f ./{*.out,*.o} $(SRCS_DIR){*.out,*.o}
+	rm -rf $(OBJS_DIR)
 
 remove-user-files:
 	rm -rf ~/.livsdiary
 
-# Must be root user for the following
-install: compile
-	cp livsdiary.o /usr/local/bin/livsdiary
+# Must be root user for both
+install: $(PROGRAM_NAME)
+	install -D $(PROGRAM_NAME).o /usr/local/bin/$(PROGRAM_NAME)
 
 uninstall:
-	rm -f /usr/local/bin/livsdiary
+	rm -f /usr/local/bin/$(PROGRAM_NAME)

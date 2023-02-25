@@ -16,16 +16,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <time.h>
-#include <string.h>
+#define PROGRAM_NAME "livsdiary"
+#define PROGRAM_VERSION "v1.1.4"
+#define PROGRAM_DIR "/.livsdiary/"
 
-char * get_current_time()
-{
-	time_t now = time(0);
-	tm * lt = localtime(&now);
-	char * current_time = asctime(lt);
-	current_time[strlen(current_time) - 1] = ' ';
-	strcat(current_time, lt->tm_zone);
-	
-	return current_time;
-}
+#define INPUT_BUFFER 128
+#define DIR_BUFFER 48
+#define PAGE_COUNT_BUFFER 8
+
+static char * HOME_DIR = getenv("HOME");
+static char * PAGE_COUNT_DIR = NULL;
+static char * CURRENT_PAGE_DIR = NULL;
+static char page_count[PAGE_COUNT_BUFFER];

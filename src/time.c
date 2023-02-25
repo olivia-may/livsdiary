@@ -16,15 +16,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+#include <time.h>
+#include <string.h>
 
-#include "time.h"
-
-int main()
+char * get_current_time()
 {
-	printf("** time.c **\n");
-
-	printf("get_current_time = %s\n", get_current_time());
+	time_t now = time(0);
+	tm * lt = localtime(&now);
+	char * current_time = asctime(lt);
+	current_time[strlen(current_time) - 1] = ' ';
+	strcat(current_time, lt->tm_zone);
 	
-	return 0;
+	return current_time;
 }

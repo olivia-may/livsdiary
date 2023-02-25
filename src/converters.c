@@ -16,49 +16,79 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
 
-#include "livsdiary.h"
-#include "converters.h"
-
-int main()
+// i tried, and it feels weird doing this, but i cant find anything for this, so i dont know what else to do
+char * convert_to_char_array(int number) 
 {
-	convert_to_char_array(3);
-	printf("%s\n", converted_int);
-	convert_to_char_array(2);
-	printf("%s\n", converted_int);
-	convert_to_char_array(1);
-	printf("%s\n", converted_int);
-	convert_to_char_array(0);
-	printf("%s\n", converted_int);
-	convert_to_char_array(42);
-	printf("%s\n", converted_int);
-	convert_to_char_array(512);
-	printf("%s\n", converted_int);
-	convert_to_char_array(1231);
-	printf("%s\n", converted_int);
+	char * converted_int = NULL;
+	converted_int = (char *)malloc(2 * sizeof(converted_int));
 
-	char test_string[8];
-	convert_to_char_array(3);
-	strcpy(test_string, converted_int);
-	printf("test string = %s\n", test_string);
-	convert_to_char_array(0);
-	strcpy(test_string, converted_int);
-	printf("test string = %s\n", test_string);
-	convert_to_char_array(12);
-	strcpy(test_string, converted_int);
-	printf("test string = %s\n", test_string);
-	convert_to_char_array(535);
-	strcpy(test_string, converted_int);
-	printf("test string = %s\n", test_string);
-	convert_to_char_array(1235);
-	strcpy(test_string, converted_int);
-	printf("test string = %s\n", test_string);
+	if (number == 0)
+	{
+		converted_int[0] = '0';
+		converted_int[1] = '\0';
+		return converted_int;
+	}
 	
-	printf("%d\n", convert_to_int("3"));
-	printf("%d\n", convert_to_int("2"));
-	printf("%d\n", convert_to_int("1"));
-	printf("%d\n", convert_to_int("0"));
+	int i = 0;
+	while (true)
+	{
+		if (number == 0) { break; }
+		else { i++; }
 
-	return 0;
+		if (number % 10 == 0) { converted_int[i] = '0'; }
+		if (number % 10 == 1) { converted_int[i] = '1'; }
+		if (number % 10 == 2) { converted_int[i] = '2'; }
+		if (number % 10 == 3) { converted_int[i] = '3'; }
+		if (number % 10 == 4) { converted_int[i] = '4'; }
+		if (number % 10 == 5) { converted_int[i] = '5'; }
+		if (number % 10 == 6) { converted_int[i] = '6'; }
+		if (number % 10 == 7) { converted_int[i] = '7'; }
+		if (number % 10 == 8) { converted_int[i] = '8'; }
+		if (number % 10 == 9) { converted_int[i] = '9'; }
+		
+		converted_int = (char *)realloc(converted_int, (i + 2) * sizeof(converted_int));
+		number = number / 10;
+	}
+	
+	// reverse array
+	int halfway_point = i/ 2;
+	char ch;
+	for (int j = 0; j <= halfway_point; j++)
+	{
+		ch = converted_int[j];
+		int last = i - j;
+		converted_int[j] = converted_int[last];
+		converted_int[last] = ch;
+	}
+	converted_int[i] = '\0';
+
+	return converted_int;
+}
+
+// warning: will break for long numbers (int digit_slot overflows), like '12343678912'
+int convert_to_int(char * str)
+{
+	int number = 0;
+	int len = strlen(str);
+	for (int i = 0; i < len; i++)
+	{
+		int digit_slot = pow(10, len - i - 1);
+
+		if (str[i] == '0') { number = number + 0 * digit_slot; }
+		if (str[i] == '1') { number = number + 1 * digit_slot; }
+		if (str[i] == '2') { number = number + 2 * digit_slot; }
+		if (str[i] == '3') { number = number + 3 * digit_slot; }
+		if (str[i] == '4') { number = number + 4 * digit_slot; }
+		if (str[i] == '5') { number = number + 5 * digit_slot; }
+		if (str[i] == '6') { number = number + 6 * digit_slot; }
+		if (str[i] == '7') { number = number + 7 * digit_slot; }
+		if (str[i] == '8') { number = number + 8 * digit_slot; }
+		if (str[i] == '9') { number = number + 9 * digit_slot; }
+	}
+
+	return number;
 }
