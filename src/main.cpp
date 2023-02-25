@@ -28,8 +28,8 @@
 #include "main.h"
 #include "page.hpp"
 
-static Page working_page;
 void init();
+static Page working_page;
 void remove_most_recent_page();
 void make_new_page();
 void convert_to_int();
@@ -94,7 +94,6 @@ void list_pages()
 int main(int argc, char * argv[])
 {	
 	init();
-	
 	char * last_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
 	if (argc == 1) 
 	{ edit(last_page_num); }
@@ -208,6 +207,6 @@ int main(int argc, char * argv[])
 		else
 		{ invalid(argv[1]); }
 	}
-
+	
 	return 0;
 }

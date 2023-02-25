@@ -28,7 +28,7 @@ int convert_to_int(char * str);
 char * convert_to_char_array(int number);
 char * get_current_time();
 
-char * init_dir(char * dir)
+char * init_page_dir(char * dir)
 {
 	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
 	strcpy(dir, HOME_DIR);
@@ -37,11 +37,18 @@ char * init_dir(char * dir)
 	return dir;
 }
 
+char * init_page_count_dir(char * dir)
+{
+	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
+	strcpy(dir, HOME_DIR);
+	strcat(dir, PROGRAM_DIR);
+	strcat(dir, "page_counter");
+
+	return dir;
+}
+
 void init()
 {
-	PAGE_COUNT_DIR = init_dir(PAGE_COUNT_DIR); strcat(PAGE_COUNT_DIR, "page_counter");
-	CURRENT_PAGE_DIR = init_dir(CURRENT_PAGE_DIR);
-
 	// check if PAGE_COUNT_DIR does not exist
 	if (access(PAGE_COUNT_DIR, F_OK) != 0)
 	{
