@@ -65,7 +65,7 @@ $(PROGRAM_NAME): $(OBJS_DIR)
 	cd ..
 	du -b $(PROGRAM_NAME).o
 
-run: $(PROGRAM_NAME)
+run: $(OBJS_DIR) $(SRCS_CPP) $(SRCS_C) $(PROGRAM_NAME)
 	./$(PROGRAM_NAME).o
 
 clean:
