@@ -16,9 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define PROGRAM_NAME "livsdiary"
-#define PROGRAM_VERSION "v1.1.4"
-#define PROGRAM_DIR "/.livsdiary/"
+#include "program.h"
 
 #define INPUT_BUFFER 128
 #define DIR_BUFFER 48
