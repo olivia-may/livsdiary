@@ -16,6 +16,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+
+//FIXME
 #include <iostream>
 using std::cout;
 using std::cin;
@@ -89,7 +91,7 @@ void Page::output()
 
 void Page::write()
 {
-	FILE * current_page_file = fopen(CURRENT_PAGE_DIR, "w");
+	FILE * current_page_file = fopen(page_loc, "w");
 	fprintf(current_page_file, page_mem_storage);
 	fclose(current_page_file);
 	cout << "\"~/.livsdiary/pages/" << page_num << "\" written" << endl << endl;
@@ -177,15 +179,15 @@ void Page::process_input()
 }
 
 void Page::edit()
-{
+{	
 	while (true)
 	{	
 		is_making_new_page = false;
 		is_opening_page = false;
 		is_removing_page = false;
 
-		strcat(CURRENT_PAGE_DIR, page_num);
-		page_mem_storage = copy_file_to_memory(CURRENT_PAGE_DIR);
+		strcat(page_loc, page_num);
+		page_mem_storage = copy_file_to_memory(page_loc);
 
 		cout << page_mem_storage << "<" << endl;
 
@@ -193,13 +195,13 @@ void Page::edit()
 		
 		if (is_making_new_page == true)
 		{
-			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
+			page_loc[strlen(page_loc) - strlen(page_num)] = '\0';
 			make_new_page();
 			page_num = copy_file_to_memory(PAGE_COUNT_DIR); // switch to new page in cli
 		}
 		else if (is_removing_page == true)
 		{
-			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
+			page_loc[strlen(page_loc) - strlen(page_num)] = '\0';
 			int page_count_int = convert_to_int(copy_file_to_memory(PAGE_COUNT_DIR));
 			stop_loop_here = false;
 			if (page_count_int == 0)
@@ -220,7 +222,7 @@ void Page::edit()
 		}
 		else if (is_opening_page == true)
 		{
-			CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
+			page_loc[strlen(page_loc) - strlen(page_num)] = '\0';
 			get_input_for_opening_pages();
 			if (check_input_is_int(input) == true)
 			{

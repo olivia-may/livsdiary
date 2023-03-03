@@ -22,9 +22,10 @@
 #define DIR_BUFFER 48
 #define PAGE_COUNT_BUFFER 8
 
+char * get_page_loc();
+char * get_page_count_loc();
+
 static char page_count[PAGE_COUNT_BUFFER];
-char * init_page_dir(char * dir);
-char * init_page_count_dir(char * dir);
-static char * HOME_DIR = getenv("HOME");
-static char * CURRENT_PAGE_DIR = init_page_dir(CURRENT_PAGE_DIR);
-static char * PAGE_COUNT_DIR = init_page_count_dir(PAGE_COUNT_DIR);
+
+#define HOME_DIR getenv("HOME")
+#define PAGE_COUNT_DIR get_page_count_loc()

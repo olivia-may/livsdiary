@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 // i tried, and it feels weird doing this, but i cant find anything for this, so i dont know what else to do
 char * convert_to_char_array(int number) 

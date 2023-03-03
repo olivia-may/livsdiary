@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "main.h"
 
@@ -28,21 +29,24 @@ int convert_to_int(char * str);
 char * convert_to_char_array(int number);
 char * get_current_time();
 
-char * init_page_dir(char * dir)
+char * get_page_loc()
 {
+	char * dir = NULL;
 	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
 	strcpy(dir, HOME_DIR);
 	strcat(dir, PROGRAM_DIR);
+	strcat(dir, "\0");
 
 	return dir;
 }
 
-char * init_page_count_dir(char * dir)
+char * get_page_count_loc()
 {
+	char * dir;
 	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
 	strcpy(dir, HOME_DIR);
 	strcat(dir, PROGRAM_DIR);
-	strcat(dir, "page_counter");
+	strcat(dir, "page_counter\0");
 
 	return dir;
 }
@@ -53,7 +57,7 @@ void init()
 	if (access(PAGE_COUNT_DIR, F_OK) != 0)
 	{
 		// make needed dirs
-		mkdir(CURRENT_PAGE_DIR, 0777);
+		mkdir(get_page_loc(), 0777);
 		
 		// make page counter
 		FILE * working_file = fopen(PAGE_COUNT_DIR, "w");
@@ -61,15 +65,16 @@ void init()
 		fclose(working_file);
 
 		// make toc page
-		strcat(CURRENT_PAGE_DIR, "0");
-		working_file = fopen(CURRENT_PAGE_DIR, "w");
+		char * page_loc = get_page_loc();
+		strcat(page_loc, "0");
+		working_file = fopen(page_loc, "w");
 		fprintf(working_file, "** Table of Contents **\n");
 		fprintf(working_file, "This page cannot be removed.\n");
 		fprintf(working_file, "Feel free remove this message and\n");
 		fprintf(working_file, "write anything you want here!\n");
 		fprintf(working_file, "Type and enter ':n' to make a new diary entry.\n");
 		fclose(working_file);
-		CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - 1] = '\0';
+		page_loc[strlen(page_loc) - 1] = '\0';
 	}
 }
 
@@ -107,20 +112,22 @@ void make_new_page()
 	fclose(page_count_file);
 	
 	char * latest_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
-	strcat(CURRENT_PAGE_DIR, latest_page_num);
-	FILE * current_page_file = fopen(CURRENT_PAGE_DIR, "w");
+	char * page_loc = get_page_loc();
+	strcat(page_loc, latest_page_num);
+	FILE * current_page_file = fopen(page_loc, "w");
 	fprintf(current_page_file, "** Page %s **\n", latest_page_num);
 	fprintf(current_page_file, "%s\n", get_current_time());
-	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(latest_page_num)] = '\0';
+	page_loc[strlen(page_loc) - strlen(latest_page_num)] = '\0';
 	fclose(current_page_file);
 }
 
 void remove_most_recent_page()
 {	
 	char * most_recent_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
-	strcat(CURRENT_PAGE_DIR, most_recent_page_num);
-	remove(CURRENT_PAGE_DIR); // remove file
-	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(most_recent_page_num)] = '\0';
+	char * page_loc = get_page_loc();
+	strcat(page_loc, most_recent_page_num);
+	remove(page_loc); // remove file
+	page_loc[strlen(page_loc) - strlen(most_recent_page_num)] = '\0';
 	
 	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");	
 	char * temp = convert_to_char_array(convert_to_int(copy_file_to_memory(PAGE_COUNT_DIR)) - 1);

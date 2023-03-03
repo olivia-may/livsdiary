@@ -79,9 +79,10 @@ void edit(char * page_num)
 void view(char input[])
 {
 	char page_num[PAGE_COUNT_BUFFER]; strcpy(page_num, input);
-	strcat(CURRENT_PAGE_DIR, page_num);
-	printf("%s\n", copy_file_to_memory(CURRENT_PAGE_DIR));
-	CURRENT_PAGE_DIR[strlen(CURRENT_PAGE_DIR) - strlen(page_num)] = '\0';
+	char * page_loc = get_page_loc();
+	strcat(page_loc, page_num);
+	printf("%s\n", copy_file_to_memory(page_loc));
+	page_loc[strlen(page_loc) - strlen(page_num)] = '\0';
 }
 void list_pages()
 {

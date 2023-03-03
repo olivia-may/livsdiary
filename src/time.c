@@ -22,7 +22,7 @@
 char * get_current_time()
 {
 	time_t now = time(0);
-	tm * lt = localtime(&now);
+	struct tm * lt = localtime(&now);
 	char * current_time = asctime(lt);
 	current_time[strlen(current_time) - 1] = ' ';
 	strcat(current_time, lt->tm_zone);

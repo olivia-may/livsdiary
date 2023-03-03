@@ -3,6 +3,7 @@ class Page
 	private:
 		char * page_mem_storage = NULL;
 		char input[INPUT_BUFFER];
+		char * page_loc = get_page_loc();
 		int input_len = 0;
 		bool save_input;
 		bool stop_loop_here;
