@@ -16,46 +16,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+extern "C"
+{
+#include "main.h"
 
-//FIXME
+char * convert_to_char_array(int number);
+int convert_to_int(char * str);
+bool check_input_is_int(char * input);
+void remove_most_recent_page();
+void make_new_page();
+char * copy_file_to_memory(char * dir);
+}
+
 #include <iostream>
 using std::cout;
 using std::cin;
 using std::endl;
 #include <cstring>
 
-#include "main.h"
 #include "page.hpp"
-
-char * convert_to_char_array(int number);
-int convert_to_int(char * str);
-void remove_most_recent_page();
-void make_new_page();
-char * copy_file_to_memory(char * dir);
-
-bool check_input_is_int(char * input)
-{
-	if (input[0] == '\0')
-	{ return false; }
-	for (int i = 0; i < strlen(input); i++)
-	{				
-		if (input[i] == '0' ||
-		input[i] == '1' ||
-		input[i] == '2' ||
-		input[i] == '3' ||
-		input[i] == '4' ||
-		input[i] == '5' ||
-		input[i] == '6' ||
-		input[i] == '7' ||
-		input[i] == '8' ||
-		input[i] == '9')
-		{ continue; }
-		else
-		{ return false; }
-	}
-
-	return true;
-}
 
 void Page::save_input_to_memory()
 {

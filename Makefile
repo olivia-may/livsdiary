@@ -26,7 +26,8 @@
 # make install			Install to /usr/local/bin.
 # make uninstall		Remove from /usr/local/bin.
 
-CC=g++
+CC=gcc
+CPP=g++
 LINKERFLAGS=
 
 PROGRAM_NAME=livsdiary
@@ -64,11 +65,11 @@ ${SRCS_C}: $(OBJS_DIR) program.h
 	$(CC) -c $(SRCS_DIR)$@.c -o $(OBJS_DIR)$@.o
 
 ${SRCS_CPP}: $(OBJS_DIR) program.h
-	$(CC) -c $(SRCS_DIR)$@.cpp -o $(OBJS_DIR)$@.o
+	$(CPP) -c $(SRCS_DIR)$@.cpp -o $(OBJS_DIR)$@.o
 
 $(PROGRAM_NAME): program.h
 	cd $(OBJS_DIR)
-	$(CC) $(LINKERFLAGS) $(OBJS) -o ../$(PROGRAM_NAME).o 
+	$(CPP) $(LINKERFLAGS) $(OBJS) -o ../$(PROGRAM_NAME).o 
 	cd ..
 	du -b $(PROGRAM_NAME).o
 

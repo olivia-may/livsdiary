@@ -21,22 +21,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#include <iostream>
-#include <cstring>
-
+extern "C"
+{
 #include "main.h"
-#include "page.hpp"
 
 void init();
-static Page working_page;
 void remove_most_recent_page();
 void make_new_page();
-void convert_to_int();
 bool check_input_is_int(char * input);
 int convert_to_int(char * str);
 char * convert_to_char_array(int number);
 char * copy_file_to_memory(char * dir);
+}
+
+#include <iostream>
+#include <cstring>
+
+#include "page.hpp"
+
+static Page working_page;
 
 /* The command-line options */
 void invalid(char *argv)

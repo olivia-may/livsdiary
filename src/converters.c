@@ -93,3 +93,27 @@ int convert_to_int(char * str)
 
 	return number;
 }
+
+bool check_input_is_int(char * input)
+{
+	if (input[0] == '\0')
+	{ return false; }
+	for (int i = 0; i < strlen(input); i++)
+	{				
+		if (input[i] == '0' ||
+		input[i] == '1' ||
+		input[i] == '2' ||
+		input[i] == '3' ||
+		input[i] == '4' ||
+		input[i] == '5' ||
+		input[i] == '6' ||
+		input[i] == '7' ||
+		input[i] == '8' ||
+		input[i] == '9')
+		{ continue; }
+		else
+		{ return false; }
+	}
+
+	return true;
+}
