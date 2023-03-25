@@ -260,7 +260,6 @@ ${SRCS_CPP}: $(OBJS_DIR) program.h
 vim nvim neovim:
 	make -j$(nproc) --directory=$(VIM_MAKEFILE_DIR)
 
-#FIXME rbuffer something
 $(PROGRAM_NAME): program.h
 	$(CPP) $(LINKERFLAGS1) $(OBJS) $(LINKERFLAGS2) -o $(MAIN_DIR)$(PROGRAM_NAME).o
 	du -b $(PROGRAM_NAME).o

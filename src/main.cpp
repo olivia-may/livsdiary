@@ -92,11 +92,6 @@ int main(int argc, char * argv[])
 	init();
 	char * last_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
 	
-	char **argv_vim = (char **)malloc(32);
-	argv_vim[0] = (char *)"nvim"; argv_vim[1] = (char *)"README.md";
-	nvim_main((int)2, argv_vim);
-	
-	/*
 	if (argc == 1) 
 	{ edit(last_page_num); }
 	else
@@ -209,6 +204,6 @@ int main(int argc, char * argv[])
 		else
 		{ invalid(argv[1]); }
 	}
-	*/
+
 	return 0;
 }
