@@ -28,8 +28,8 @@
 
 CC=gcc
 CPP=g++
-LINKERFLAGS1=-L/usr/local/lib -Wl,--as-needed
-LINKERFLAGS2=-lgtk-x11-2.0 -lgdk-x11-2.0 -lpangocairo-1.0 -latk-1.0 -lcairo -lgdk_pixbuf-2.0 -lgio-2.0 -lpangoft2-1.0 -lpango-1.0 -lgobject-2.0 -lglib-2.0 -lharfbuzz -lfontconfig -lfreetype  -lSM -lICE -lXpm -lXt -lX11 -lXdmcp -lSM -lICE  -lm -ltinfo -lelf  -lsodium  -lacl -lattr -lgpm
+LINKERFLAGS1=-g -Wl,--export-dynamic -rdynamic
+LINKERFLAGS2=-Wl,--no-undefined /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libluv.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libtermkey.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libvterm.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libmsgpack-c.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libtree-sitter.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libunibilium.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libluajit-5.1.a -fstack-protector-strong -lm -lutil /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libuv.a -lpthread -ldl -lrt
 
 PROGRAM_NAME=livsdiary
 PROGRAM_VERSION=v1.3.0
@@ -40,9 +40,9 @@ MAIN_DIR=$(shell pwd)/
 SRCS_DIR=$(MAIN_DIR)src/
 OBJS_DIR=$(MAIN_DIR)obj/
 
-VIM_MAIN_DIR=$(SRCS_DIR)vim/
-VIM_MAKEFILE_DIR=$(VIM_MAIN_DIR)src/
-VIM_OBJS_DIR=$(VIM_MAIN_DIR)src/objects/
+VIM_MAIN_DIR=$(SRCS_DIR)neovim/
+VIM_MAKEFILE_DIR=$(VIM_MAIN_DIR)build/
+VIM_OBJS_DIR=$(VIM_MAIN_DIR)build/src/nvim/CMakeFiles/nvim.dir/
 
 SRCS_C=\
 	converters.c \
@@ -54,153 +54,194 @@ SRCS_CPP=\
 	page.cpp
 
 OBJS=\
-	$(OBJS_DIR)converters.o \
-	$(OBJS_DIR)filesystem.o \
-	$(OBJS_DIR)main.o \
-	$(OBJS_DIR)page.o \
-	$(OBJS_DIR)time.o \
-	$(VIM_OBJS_DIR)alloc.o \
-	$(VIM_OBJS_DIR)arabic.o \
-	$(VIM_OBJS_DIR)arglist.o \
-	$(VIM_OBJS_DIR)autocmd.o \
-	$(VIM_OBJS_DIR)beval.o \
-	$(VIM_OBJS_DIR)blob.o \
-	$(VIM_OBJS_DIR)blowfish.o \
-	$(VIM_OBJS_DIR)buffer.o \
-	$(VIM_OBJS_DIR)change.o \
-	$(VIM_OBJS_DIR)channel.o \
-	$(VIM_OBJS_DIR)charset.o \
-	$(VIM_OBJS_DIR)cindent.o \
-	$(VIM_OBJS_DIR)clientserver.o \
-	$(VIM_OBJS_DIR)clipboard.o \
-	$(VIM_OBJS_DIR)cmdexpand.o \
-	$(VIM_OBJS_DIR)cmdhist.o \
-	$(VIM_OBJS_DIR)crypt.o \
-	$(VIM_OBJS_DIR)crypt_zip.o \
-	$(VIM_OBJS_DIR)debugger.o \
-	$(VIM_OBJS_DIR)dict.o \
-	$(VIM_OBJS_DIR)diff.o \
-	$(VIM_OBJS_DIR)digraph.o \
-	$(VIM_OBJS_DIR)drawline.o \
-	$(VIM_OBJS_DIR)drawscreen.o \
-	$(VIM_OBJS_DIR)edit.o \
-	$(VIM_OBJS_DIR)eval.o \
-	$(VIM_OBJS_DIR)evalbuffer.o \
-	$(VIM_OBJS_DIR)evalfunc.o \
-	$(VIM_OBJS_DIR)evalvars.o \
-	$(VIM_OBJS_DIR)evalwindow.o \
-	$(VIM_OBJS_DIR)ex_cmds.o \
-	$(VIM_OBJS_DIR)ex_cmds2.o \
-	$(VIM_OBJS_DIR)ex_docmd.o \
-	$(VIM_OBJS_DIR)ex_eval.o \
-	$(VIM_OBJS_DIR)ex_getln.o \
-	$(VIM_OBJS_DIR)fileio.o \
-	$(VIM_OBJS_DIR)filepath.o \
-	$(VIM_OBJS_DIR)findfile.o \
-	$(VIM_OBJS_DIR)float.o \
-	$(VIM_OBJS_DIR)fold.o \
-	$(VIM_OBJS_DIR)getchar.o \
-	$(VIM_OBJS_DIR)gui.o \
-	$(VIM_OBJS_DIR)gui_beval.o \
-	$(VIM_OBJS_DIR)gui_gtk.o \
-	$(VIM_OBJS_DIR)gui_gtk_f.o \
-	$(VIM_OBJS_DIR)gui_gtk_gresources.o \
-	$(VIM_OBJS_DIR)gui_gtk_x11.o \
-	$(VIM_OBJS_DIR)gui_xim.o \
-	$(VIM_OBJS_DIR)hardcopy.o \
-	$(VIM_OBJS_DIR)hashtab.o \
-	$(VIM_OBJS_DIR)help.o \
-	$(VIM_OBJS_DIR)highlight.o \
-	$(VIM_OBJS_DIR)if_cscope.o \
-	$(VIM_OBJS_DIR)if_xcmdsrv.o \
-	$(VIM_OBJS_DIR)indent.o \
-	$(VIM_OBJS_DIR)insexpand.o \
-	$(VIM_OBJS_DIR)job.o \
-	$(VIM_OBJS_DIR)json.o \
-	$(VIM_OBJS_DIR)list.o \
-	$(VIM_OBJS_DIR)locale.o \
-	$(VIM_OBJS_DIR)logfile.o \
-	$(VIM_OBJS_DIR)main.o \
-	$(VIM_OBJS_DIR)map.o \
-	$(VIM_OBJS_DIR)mark.o \
-	$(VIM_OBJS_DIR)match.o \
-	$(VIM_OBJS_DIR)mbyte.o \
-	$(VIM_OBJS_DIR)memfile.o \
-	$(VIM_OBJS_DIR)memline.o \
-	$(VIM_OBJS_DIR)menu.o \
-	$(VIM_OBJS_DIR)message.o \
-	$(VIM_OBJS_DIR)misc1.o \
-	$(VIM_OBJS_DIR)misc2.o \
-	$(VIM_OBJS_DIR)mouse.o \
-	$(VIM_OBJS_DIR)move.o \
-	$(VIM_OBJS_DIR)netbeans.o \
-	$(VIM_OBJS_DIR)normal.o \
-	$(VIM_OBJS_DIR)ops.o \
-	$(VIM_OBJS_DIR)option.o \
-	$(VIM_OBJS_DIR)optionstr.o \
-	$(VIM_OBJS_DIR)os_unix.o \
-	$(VIM_OBJS_DIR)pathdef.o \
-	$(VIM_OBJS_DIR)popupmenu.o \
-	$(VIM_OBJS_DIR)popupwin.o \
-	$(VIM_OBJS_DIR)profiler.o \
-	$(VIM_OBJS_DIR)pty.o \
-	$(VIM_OBJS_DIR)quickfix.o \
-	$(VIM_OBJS_DIR)regexp.o \
-	$(VIM_OBJS_DIR)register.o \
-	$(VIM_OBJS_DIR)screen.o \
-	$(VIM_OBJS_DIR)scriptfile.o \
-	$(VIM_OBJS_DIR)search.o \
-	$(VIM_OBJS_DIR)session.o \
-	$(VIM_OBJS_DIR)sha256.o \
-	$(VIM_OBJS_DIR)sign.o \
-	$(VIM_OBJS_DIR)sound.o \
-	$(VIM_OBJS_DIR)spell.o \
-	$(VIM_OBJS_DIR)spellfile.o \
-	$(VIM_OBJS_DIR)spellsuggest.o \
-	$(VIM_OBJS_DIR)strings.o \
-	$(VIM_OBJS_DIR)syntax.o \
-	$(VIM_OBJS_DIR)tag.o \
-	$(VIM_OBJS_DIR)term.o \
-	$(VIM_OBJS_DIR)terminal.o \
-	$(VIM_OBJS_DIR)testing.o \
-	$(VIM_OBJS_DIR)textformat.o \
-	$(VIM_OBJS_DIR)textobject.o \
-	$(VIM_OBJS_DIR)textprop.o \
-	$(VIM_OBJS_DIR)time.o \
-	$(VIM_OBJS_DIR)typval.o \
-	$(VIM_OBJS_DIR)ui.o \
-	$(VIM_OBJS_DIR)undo.o \
-	$(VIM_OBJS_DIR)usercmd.o \
-	$(VIM_OBJS_DIR)userfunc.o \
-	$(VIM_OBJS_DIR)version.o \
-	$(VIM_OBJS_DIR)vim9class.o \
-	$(VIM_OBJS_DIR)vim9cmds.o \
-	$(VIM_OBJS_DIR)vim9compile.o \
-	$(VIM_OBJS_DIR)vim9execute.o \
-	$(VIM_OBJS_DIR)vim9expr.o \
-	$(VIM_OBJS_DIR)vim9instr.o \
-	$(VIM_OBJS_DIR)vim9script.o \
-	$(VIM_OBJS_DIR)vim9type.o \
-	$(VIM_OBJS_DIR)viminfo.o \
-	$(VIM_OBJS_DIR)window.o \
-	$(VIM_OBJS_DIR)bufwrite.o \
-	$(VIM_OBJS_DIR)vterm_encoding.o \
-	$(VIM_OBJS_DIR)vterm_keyboard.o \
-	$(VIM_OBJS_DIR)vterm_mouse.o \
-	$(VIM_OBJS_DIR)vterm_parser.o \
-	$(VIM_OBJS_DIR)vterm_pen.o \
-	$(VIM_OBJS_DIR)vterm_screen.o \
-	$(VIM_OBJS_DIR)vterm_state.o \
-	$(VIM_OBJS_DIR)vterm_unicode.o \
-	$(VIM_OBJS_DIR)vterm_vterm.o \
-	$(VIM_OBJS_DIR)xdiffi.o \
-	$(VIM_OBJS_DIR)xemit.o \
-	$(VIM_OBJS_DIR)xhistogram.o \
-	$(VIM_OBJS_DIR)xpatience.o \
-	$(VIM_OBJS_DIR)xprepare.o \
-	$(VIM_OBJS_DIR)xutils.o
+	$(OBJS_DIR)converters.c.o \
+	$(OBJS_DIR)filesystem.c.o \
+	$(OBJS_DIR)main.cpp.o \
+	$(OBJS_DIR)page.cpp.o \
+	$(OBJS_DIR)time.c.o \
+	$(VIM_OBJS_DIR)__/__/cmake.config/auto/pathdef.c.o \
+	$(VIM_OBJS_DIR)__/__/test/unit/fixtures/rbuffer.c.o \
+	$(VIM_OBJS_DIR)__/__/test/unit/fixtures/multiqueue.c.o \
+	$(VIM_OBJS_DIR)__/cjson/fpconv.c.o \
+	$(VIM_OBJS_DIR)__/cjson/lua_cjson.c.o \
+	$(VIM_OBJS_DIR)__/cjson/strbuf.c.o \
+	$(VIM_OBJS_DIR)__/mpack/conv.c.o \
+	$(VIM_OBJS_DIR)__/mpack/lmpack.c.o \
+	$(VIM_OBJS_DIR)__/mpack/mpack_core.c.o \
+	$(VIM_OBJS_DIR)__/mpack/object.c.o \
+	$(VIM_OBJS_DIR)__/mpack/rpc.c.o \
+	$(VIM_OBJS_DIR)__/xdiff/xdiffi.c.o \
+	$(VIM_OBJS_DIR)__/xdiff/xemit.c.o \
+	$(VIM_OBJS_DIR)__/xdiff/xhistogram.c.o \
+	$(VIM_OBJS_DIR)__/xdiff/xpatience.c.o \
+	$(VIM_OBJS_DIR)__/xdiff/xprepare.c.o \
+	$(VIM_OBJS_DIR)__/xdiff/xutils.c.o \
+	$(VIM_OBJS_DIR)api/autocmd.c.o \
+	$(VIM_OBJS_DIR)api/buffer.c.o \
+	$(VIM_OBJS_DIR)api/command.c.o \
+	$(VIM_OBJS_DIR)api/deprecated.c.o \
+	$(VIM_OBJS_DIR)api/extmark.c.o \
+	$(VIM_OBJS_DIR)api/options.c.o \
+	$(VIM_OBJS_DIR)api/private/converter.c.o \
+	$(VIM_OBJS_DIR)api/private/dispatch.c.o \
+	$(VIM_OBJS_DIR)api/private/helpers.c.o \
+	$(VIM_OBJS_DIR)api/private/validate.c.o \
+	$(VIM_OBJS_DIR)api/tabpage.c.o \
+	$(VIM_OBJS_DIR)api/ui.c.o \
+	$(VIM_OBJS_DIR)api/vim.c.o \
+	$(VIM_OBJS_DIR)api/vimscript.c.o \
+	$(VIM_OBJS_DIR)api/win_config.c.o \
+	$(VIM_OBJS_DIR)api/window.c.o \
+	$(VIM_OBJS_DIR)arabic.c.o \
+	$(VIM_OBJS_DIR)arglist.c.o\
+	$(VIM_OBJS_DIR)auto/lua_api_c_bindings.generated.c.o \
+	$(VIM_OBJS_DIR)autocmd.c.o \
+	$(VIM_OBJS_DIR)buffer.c.o \
+	$(VIM_OBJS_DIR)buffer_updates.c.o \
+	$(VIM_OBJS_DIR)change.c.o \
+	$(VIM_OBJS_DIR)channel.c.o \
+	$(VIM_OBJS_DIR)charset.c.o \
+	$(VIM_OBJS_DIR)cmdexpand.c.o \
+	$(VIM_OBJS_DIR)cmdhist.c.o \
+	$(VIM_OBJS_DIR)context.c.o \
+	$(VIM_OBJS_DIR)cursor.c.o \
+	$(VIM_OBJS_DIR)cursor_shape.c.o \
+	$(VIM_OBJS_DIR)debugger.c.o \
+	$(VIM_OBJS_DIR)decoration.c.o \
+	$(VIM_OBJS_DIR)decoration_provider.c.o \
+	$(VIM_OBJS_DIR)diff.c.o \
+	$(VIM_OBJS_DIR)digraph.c.o \
+	$(VIM_OBJS_DIR)drawline.c.o \
+	$(VIM_OBJS_DIR)drawscreen.c.o \
+	$(VIM_OBJS_DIR)edit.c.o\
+	$(VIM_OBJS_DIR)eval/buffer.c.o \
+	$(VIM_OBJS_DIR)eval/decode.c.o \
+	$(VIM_OBJS_DIR)eval/encode.c.o \
+	$(VIM_OBJS_DIR)eval/executor.c.o \
+	$(VIM_OBJS_DIR)eval/funcs.c.o \
+	$(VIM_OBJS_DIR)eval/gc.c.o \
+	$(VIM_OBJS_DIR)eval/typval.c.o \
+	$(VIM_OBJS_DIR)eval/userfunc.c.o \
+	$(VIM_OBJS_DIR)eval/vars.c.o \
+	$(VIM_OBJS_DIR)eval/window.c.o \
+	$(VIM_OBJS_DIR)eval.c.o \
+	$(VIM_OBJS_DIR)event/libuv_process.c.o \
+	$(VIM_OBJS_DIR)event/loop.c.o \
+	$(VIM_OBJS_DIR)event/multiqueue.c.o \
+	$(VIM_OBJS_DIR)event/process.c.o \
+	$(VIM_OBJS_DIR)event/rstream.c.o \
+	$(VIM_OBJS_DIR)event/signal.c.o \
+	$(VIM_OBJS_DIR)event/socket.c.o \
+	$(VIM_OBJS_DIR)event/stream.c.o \
+	$(VIM_OBJS_DIR)event/time.c.o \
+	$(VIM_OBJS_DIR)event/wstream.c.o \
+	$(VIM_OBJS_DIR)ex_cmds.c.o \
+	$(VIM_OBJS_DIR)ex_cmds2.c.o \
+	$(VIM_OBJS_DIR)ex_docmd.c.o \
+	$(VIM_OBJS_DIR)ex_eval.c.o \
+	$(VIM_OBJS_DIR)ex_getln.c.o \
+	$(VIM_OBJS_DIR)ex_session.c.o \
+	$(VIM_OBJS_DIR)extmark.c.o \
+	$(VIM_OBJS_DIR)file_search.c.o \
+	$(VIM_OBJS_DIR)fileio.c.o \
+	$(VIM_OBJS_DIR)fold.c.o \
+	$(VIM_OBJS_DIR)garray.c.o \
+	$(VIM_OBJS_DIR)getchar.c.o \
+	$(VIM_OBJS_DIR)grid.c.o \
+	$(VIM_OBJS_DIR)hashtab.c.o \
+	$(VIM_OBJS_DIR)help.c.o \
+	$(VIM_OBJS_DIR)highlight.c.o \
+	$(VIM_OBJS_DIR)highlight_group.c.o \
+	$(VIM_OBJS_DIR)indent.c.o \
+	$(VIM_OBJS_DIR)indent_c.c.o \
+	$(VIM_OBJS_DIR)input.c.o \
+	$(VIM_OBJS_DIR)insexpand.c.o \
+	$(VIM_OBJS_DIR)keycodes.c.o \
+	$(VIM_OBJS_DIR)linematch.c.o \
+	$(VIM_OBJS_DIR)log.c.o \
+	$(VIM_OBJS_DIR)lua/converter.c.o \
+	$(VIM_OBJS_DIR)lua/executor.c.o\
+	$(VIM_OBJS_DIR)lua/spell.c.o \
+	$(VIM_OBJS_DIR)lua/stdlib.c.o \
+	$(VIM_OBJS_DIR)lua/treesitter.c.o \
+	$(VIM_OBJS_DIR)lua/xdiff.c.o \
+	$(VIM_OBJS_DIR)main.c.o \
+	$(VIM_OBJS_DIR)map.c.o \
+	$(VIM_OBJS_DIR)mapping.c.o \
+	$(VIM_OBJS_DIR)mark.c.o \
+	$(VIM_OBJS_DIR)marktree.c.o \
+	$(VIM_OBJS_DIR)match.c.o \
+	$(VIM_OBJS_DIR)math.c.o \
+	$(VIM_OBJS_DIR)mbyte.c.o \
+	$(VIM_OBJS_DIR)memfile.c.o \
+	$(VIM_OBJS_DIR)memline.c.o \
+	$(VIM_OBJS_DIR)memory.c.o \
+	$(VIM_OBJS_DIR)menu.c.o \
+	$(VIM_OBJS_DIR)message.c.o \
+	$(VIM_OBJS_DIR)mouse.c.o \
+	$(VIM_OBJS_DIR)move.c.o \
+	$(VIM_OBJS_DIR)msgpack_rpc/channel.c.o \
+	$(VIM_OBJS_DIR)msgpack_rpc/helpers.c.o \
+	$(VIM_OBJS_DIR)msgpack_rpc/server.c.o \
+	$(VIM_OBJS_DIR)msgpack_rpc/unpacker.c.o \
+	$(VIM_OBJS_DIR)normal.c.o \
+	$(VIM_OBJS_DIR)ops.c.o \
+	$(VIM_OBJS_DIR)option.c.o \
+	$(VIM_OBJS_DIR)optionstr.c.o \
+	$(VIM_OBJS_DIR)os/dl.c.o \
+	$(VIM_OBJS_DIR)os/env.c.o \
+	$(VIM_OBJS_DIR)os/fileio.c.o \
+	$(VIM_OBJS_DIR)os/fs.c.o \
+	$(VIM_OBJS_DIR)os/input.c.o \
+	$(VIM_OBJS_DIR)os/lang.c.o \
+	$(VIM_OBJS_DIR)os/mem.c.o \
+	$(VIM_OBJS_DIR)os/process.c.o \
+	$(VIM_OBJS_DIR)os/pty_process_unix.c.o \
+	$(VIM_OBJS_DIR)os/shell.c.o \
+	$(VIM_OBJS_DIR)os/signal.c.o \
+	$(VIM_OBJS_DIR)os/stdpaths.c.o \
+	$(VIM_OBJS_DIR)os/time.c.o \
+	$(VIM_OBJS_DIR)os/tty.c.o \
+	$(VIM_OBJS_DIR)os/users.c.o \
+	$(VIM_OBJS_DIR)path.c.o \
+	$(VIM_OBJS_DIR)plines.c.o \
+	$(VIM_OBJS_DIR)popupmenu.c.o \
+	$(VIM_OBJS_DIR)profile.c.o \
+	$(VIM_OBJS_DIR)quickfix.c.o \
+	$(VIM_OBJS_DIR)rbuffer.c.o \
+	$(VIM_OBJS_DIR)regexp.c.o \
+	$(VIM_OBJS_DIR)runtime.c.o \
+	$(VIM_OBJS_DIR)search.c.o \
+	$(VIM_OBJS_DIR)sha256.c.o \
+	$(VIM_OBJS_DIR)shada.c.o \
+	$(VIM_OBJS_DIR)sign.c.o \
+	$(VIM_OBJS_DIR)spell.c.o \
+	$(VIM_OBJS_DIR)spellfile.c.o \
+	$(VIM_OBJS_DIR)spellsuggest.c.o \
+	$(VIM_OBJS_DIR)state.c.o \
+	$(VIM_OBJS_DIR)statusline.c.o \
+	$(VIM_OBJS_DIR)strings.c.o \
+	$(VIM_OBJS_DIR)syntax.c.o \
+	$(VIM_OBJS_DIR)tag.c.o \
+	$(VIM_OBJS_DIR)terminal.c.o \
+	$(VIM_OBJS_DIR)testing.c.o \
+	$(VIM_OBJS_DIR)textformat.c.o \
+	$(VIM_OBJS_DIR)textobject.c.o \
+	$(VIM_OBJS_DIR)tui/input.c.o \
+	$(VIM_OBJS_DIR)tui/terminfo.c.o \
+	$(VIM_OBJS_DIR)tui/tui.c.o \
+	$(VIM_OBJS_DIR)ugrid.c.o \
+	$(VIM_OBJS_DIR)ui.c.o \
+	$(VIM_OBJS_DIR)ui_client.c.o \
+	$(VIM_OBJS_DIR)ui_compositor.c.o \
+	$(VIM_OBJS_DIR)undo.c.o \
+	$(VIM_OBJS_DIR)usercmd.c.o \
+	$(VIM_OBJS_DIR)version.c.o \
+	$(VIM_OBJS_DIR)viml/parser/expressions.c.o \
+	$(VIM_OBJS_DIR)viml/parser/parser.c.o \
+	$(VIM_OBJS_DIR)window.c.o
 
-.PHONY=all run clean remove-user-files install uninstall
+.PHONY=all run clean help remove-user-files install uninstall
 
 all: ${SRCS_C} ${SRCS_CPP} vim $(PROGRAM_NAME)
 
@@ -216,9 +257,10 @@ ${SRCS_C}: $(OBJS_DIR) program.h
 ${SRCS_CPP}: $(OBJS_DIR) program.h
 	$(CPP) -c $(SRCS_DIR)$@ -o $(OBJS_DIR)$@.o
 
-vim:
+vim nvim neovim:
 	make -j$(nproc) --directory=$(VIM_MAKEFILE_DIR)
 
+#FIXME rbuffer something
 $(PROGRAM_NAME): program.h
 	$(CPP) $(LINKERFLAGS1) $(OBJS) $(LINKERFLAGS2) -o $(MAIN_DIR)$(PROGRAM_NAME).o
 	du -b $(PROGRAM_NAME).o
@@ -231,8 +273,11 @@ clean:
 	rm -rf $(OBJS_DIR)
 	make --directory=$(VIM_MAKEFILE_DIR) clean
 
+help:
+	@printf "LIVSDiary Makefile help\n"
+
 remove-user-files:
-	rm -rf ~/.livsdiary
+	rm -rf ~$(PROGRAM_DIR)
 
 # Must be root user for both
 install: $(PROGRAM_NAME)
