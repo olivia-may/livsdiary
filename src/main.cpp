@@ -30,8 +30,7 @@
 #include "main.hpp"
 #include "page.hpp"
 #include "program.h"
-
-static Page working_page;
+#include "vim.h"
 
 /* The command-line options */
 void invalid(char *argv)
@@ -62,14 +61,19 @@ void help()
 }
 void edit(char * page_num)
 {
+	/*
 	printf("** LIVSDiary %s **\n", PROGRAM_VERSION);
 	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
 	printf("This is free software, and you are welcome to\n");
 	printf("redistribute it under certain conditions.\n\n");
-	
-	working_page.print_help();
-	working_page.page_num = page_num;
-	working_page.edit();
+	*/
+
+	char *page_loc = get_page_loc(); strcat(page_loc, page_num);
+	// `+ 5` for `nvim` and '\0'
+	char **nvim_args = (char **)malloc(sizeof(char*) * (strlen(page_loc) + 5));
+	nvim_args[0] = "nvim";
+	nvim_args[1] = page_loc;
+	nvim_main((int)2, nvim_args);
 }
 void view(char input[])
 {
