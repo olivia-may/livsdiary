@@ -16,35 +16,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PAGE_HPP
-#define PAGE_HPP
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
 
-#define INPUT_BUFFER 128
+#define HOME_DIR getenv("HOME")
+#define PAGE_COUNT_DIR get_page_count_loc()
+#define DIR_BUFFER 48
 
-class Page
-{
-	private:
-		char * page_mem_storage = NULL;
-		char input[INPUT_BUFFER];
-		char * page_loc = get_page_loc();
-		int input_len = 0;
-		bool save_input;
-		bool stop_loop_here;
-		bool is_making_new_page;
-		bool is_opening_page;
-		bool is_removing_page;
-		
-		void input_commands();
-		void save_input_to_memory();
-		void output();
-		void write();
-		void get_input_for_opening_pages();
-		void process_input();
-	public:
-		char * page_num = NULL;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-		void print_help();
-		void edit();
-};
+char *get_page_loc();
+char *get_page_count_loc();
+void init();
+char *copy_file_to_memory(char *dir);
+void make_new_page();
+void remove_most_recent_page();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

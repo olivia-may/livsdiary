@@ -16,16 +16,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "program.h"
+#ifndef MAIN_HPP
+#define MAIN_HPP
 
-#define INPUT_BUFFER 128
-#define DIR_BUFFER 48
 #define PAGE_COUNT_BUFFER 8
 
-char * get_page_loc();
-char * get_page_count_loc();
+void invalid(char *argv);
+void no_arg();
+void version();
+void help();
+void edit();
+void view(char input[]);
+void list_pages();
 
-static char page_count[PAGE_COUNT_BUFFER];
+#endif
 
-#define HOME_DIR getenv("HOME")
-#define PAGE_COUNT_DIR get_page_count_loc()
+

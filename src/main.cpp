@@ -21,23 +21,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-extern "C"
-{
-#include "main.h"
-
-void init();
-void remove_most_recent_page();
-void make_new_page();
-bool check_input_is_int(char * input);
-int convert_to_int(char * str);
-char * convert_to_char_array(int number);
-char * copy_file_to_memory(char * dir);
-}
 
 #include <iostream>
 #include <cstring>
 
+#include "converters.h"
+#include "filesystem.h"
+#include "main.hpp"
 #include "page.hpp"
+#include "program.h"
 
 static Page working_page;
 

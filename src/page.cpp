@@ -16,24 +16,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-extern "C"
-{
-#include "main.h"
-
-char * convert_to_char_array(int number);
-int convert_to_int(char * str);
-bool check_input_is_int(char * input);
-void remove_most_recent_page();
-void make_new_page();
-char * copy_file_to_memory(char * dir);
-}
-
 #include <iostream>
 using std::cout;
 using std::cin;
 using std::endl;
 #include <cstring>
 
+#include "converters.h"
+#include "filesystem.h"
 #include "page.hpp"
 
 void Page::save_input_to_memory()

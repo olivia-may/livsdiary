@@ -23,11 +23,10 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "main.h"
-
-int convert_to_int(char * str);
-char * convert_to_char_array(int number);
-char * get_current_time();
+#include "converters.h"
+#include "filesystem.h"
+#include "program.h"
+#include "time.h"
 
 char * get_page_loc()
 {

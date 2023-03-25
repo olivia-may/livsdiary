@@ -16,35 +16,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PAGE_HPP
-#define PAGE_HPP
+#ifndef CONVERTERS_H
+#define CONVERTERS_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define INPUT_BUFFER 128
+char *convert_to_char_array(int number);
+int convert_to_int(char *str);
+bool check_input_is_int(char *input);
 
-class Page
-{
-	private:
-		char * page_mem_storage = NULL;
-		char input[INPUT_BUFFER];
-		char * page_loc = get_page_loc();
-		int input_len = 0;
-		bool save_input;
-		bool stop_loop_here;
-		bool is_making_new_page;
-		bool is_opening_page;
-		bool is_removing_page;
-		
-		void input_commands();
-		void save_input_to_memory();
-		void output();
-		void write();
-		void get_input_for_opening_pages();
-		void process_input();
-	public:
-		char * page_num = NULL;
-
-		void print_help();
-		void edit();
-};
-
+#ifdef __cplusplus
+}
+#endif
 #endif
