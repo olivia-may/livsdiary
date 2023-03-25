@@ -26,11 +26,6 @@
 # make install			Install to /usr/local/bin.
 # make uninstall		Remove from /usr/local/bin.
 
-CC=gcc
-CPP=g++
-LINKERFLAGS1=-DNVIM_TS_HAS_SET_MATCH_LIMIT -DNVIM_TS_HAS_SET_ALLOCATOR -g  -Wl,--no-undefined -Wl,--export-dynamic -rdynamic
-LINKERFLAGS2=-fstack-protector-strong /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libluv.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libuv_a.a -ldl -lnsl -lrt /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libmsgpackc.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libvterm.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libtermkey.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libunibilium.a /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libtree-sitter.a -lm -lutil /home/olivia/projects/c-cpp/livsdiary/src/neovim/.deps/usr/lib/libluajit-5.1.a
-
 PROGRAM_NAME=livsdiary
 PROGRAM_VERSION=v1.3.0
 # where the diary is stored in the home directory '~/.livsdiary/'
@@ -43,6 +38,11 @@ OBJS_DIR=$(MAIN_DIR)obj/
 VIM_MAIN_DIR=$(SRCS_DIR)neovim/
 VIM_MAKEFILE_DIR=$(VIM_MAIN_DIR)
 VIM_OBJS_DIR=$(VIM_MAIN_DIR)build/src/nvim/CMakeFiles/nvim.dir/
+
+CC=gcc
+CPP=g++
+LINKERFLAGS1=-DNVIM_TS_HAS_SET_MATCH_LIMIT -DNVIM_TS_HAS_SET_ALLOCATOR -g  -Wl,--no-undefined -Wl,--export-dynamic -rdynamic
+LINKERFLAGS2=-fstack-protector-strong $(VIM_MAIN_DIR).deps/usr/lib/libluv.a $(VIM_MAIN_DIR).deps/usr/lib/libuv_a.a -ldl -lnsl -lrt $(VIM_MAIN_DIR).deps/usr/lib/libmsgpackc.a $(VIM_MAIN_DIR).deps/usr/lib/libvterm.a $(VIM_MAIN_DIR).deps/usr/lib/libtermkey.a $(VIM_MAIN_DIR).deps/usr/lib/libunibilium.a $(VIM_MAIN_DIR).deps/usr/lib/libtree-sitter.a -lm -lutil $(VIM_MAIN_DIR).deps/usr/lib/libluajit-5.1.a
 
 SRCS_C=\
 	converters.c \
@@ -241,7 +241,7 @@ OBJS=\
 	$(VIM_OBJS_DIR)viml/parser/parser.c.o \
 	$(VIM_OBJS_DIR)window.c.o
 
-.PHONY=all run clean help remove-user-files install uninstall
+.PHONY=all run clean help vim nvim neovim remove-user-files install uninstall
 
 all: ${SRCS_C} ${SRCS_CPP} $(PROGRAM_NAME)
 
