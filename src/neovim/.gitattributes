@@ -1,0 +1,11 @@
+*.h.in          linguist-language=C
+*.c.in          linguist-language=C
+*CMakeLists.txt linguist-language=CMake
+
+runtime/doc/*   linguist-documentation
+
+src/xdiff/**    linguist-vendored
+src/cjson/**    linguist-vendored
+src/unicode/**  linguist-vendored
+
+.github/    export-ignore
