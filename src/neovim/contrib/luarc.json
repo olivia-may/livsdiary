@@ -10,17 +10,13 @@
           "before_each",
           "after_each",
           "setup",
-          "teardown",
-          "finally",
-          "lfs"
+          "teardown"
         ]
     },
     "workspace": {
-        "library": [
-            "runtime/lua",
-            "${3rd}/lfs/library"
-        ],
-        "checkThirdParty": false,
+        "library": {
+            "runtime/lua": true
+        },
         "maxPreload": 2000,
         "preloadFileSize": 1000
     },

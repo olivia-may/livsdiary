@@ -4,8 +4,9 @@
 package.path = arg[1]
 package.cpath = arg[2]
 
-local StdioStream = require'test.client.uv_stream'.StdioStream
-local Session = require'test.client.session'
+local mpack = require('mpack')
+local StdioStream = require('nvim.stdio_stream')
+local Session = require('nvim.session')
 
 local stdio_stream = StdioStream.open()
 local session = Session.new(stdio_stream)
@@ -18,7 +19,7 @@ local function on_request(method, args)
     return "done!"
   elseif method == "exit" then
     session:stop()
-    return vim.NIL
+    return mpack.NIL
   end
 end
 

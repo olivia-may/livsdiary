@@ -53,6 +53,7 @@ ifeq (,$(BUILD_TOOL))
   endif
 endif
 
+
 # Only need to handle Ninja here.  Make will inherit the VERBOSE variable, and the -j, -l, and -n flags.
 ifeq ($(CMAKE_GENERATOR),Ninja)
   ifneq ($(VERBOSE),)
@@ -65,7 +66,8 @@ ifeq ($(CMAKE_GENERATOR),Ninja)
 endif
 
 DEPS_CMAKE_FLAGS ?=
-USE_BUNDLED ?=
+# Back-compat: USE_BUNDLED_DEPS was the old name.
+USE_BUNDLED ?= $(USE_BUNDLED_DEPS)
 
 ifneq (,$(USE_BUNDLED))
   BUNDLED_CMAKE_FLAG := -DUSE_BUNDLED=$(USE_BUNDLED)
@@ -113,38 +115,30 @@ build/.ran-deps-cmake::
 
 # TODO: cmake 3.2+ add_custom_target() has a USES_TERMINAL flag.
 oldtest: | nvim build/runtime/doc/tags
-	+$(SINGLE_MAKE) -C test/old/testdir clean
+	+$(SINGLE_MAKE) -C src/nvim/testdir clean
 ifeq ($(strip $(TEST_FILE)),)
-	+$(SINGLE_MAKE) -C test/old/testdir NVIM_PRG=$(NVIM_PRG) $(MAKEOVERRIDES)
+	+$(SINGLE_MAKE) -C src/nvim/testdir NVIM_PRG=$(NVIM_PRG) $(MAKEOVERRIDES)
 else
 	@# Handle TEST_FILE=test_foo{,.res,.vim}.
-	+$(SINGLE_MAKE) -C test/old/testdir NVIM_PRG=$(NVIM_PRG) SCRIPTS= $(MAKEOVERRIDES) $(patsubst %.vim,%,$(patsubst %.res,%,$(TEST_FILE)))
+	+$(SINGLE_MAKE) -C src/nvim/testdir NVIM_PRG=$(NVIM_PRG) SCRIPTS= $(MAKEOVERRIDES) $(patsubst %.vim,%,$(patsubst %.res,%,$(TEST_FILE)))
 endif
 # Build oldtest by specifying the relative .vim filename.
 .PHONY: phony_force
-test/old/testdir/%.vim: phony_force
-	+$(SINGLE_MAKE) -C test/old/testdir NVIM_PRG=$(NVIM_PRG) SCRIPTS= $(MAKEOVERRIDES) $(patsubst test/old/testdir/%.vim,%,$@)
+src/nvim/testdir/%.vim: phony_force
+	+$(SINGLE_MAKE) -C src/nvim/testdir NVIM_PRG=$(NVIM_PRG) SCRIPTS= $(MAKEOVERRIDES) $(patsubst src/nvim/testdir/%.vim,%,$@)
 
-functionaltest-lua: | nvim
+functionaltest functionaltest-lua unittest benchmark: | nvim
 	$(BUILD_TOOL) -C build $@
 
-FORMAT=formatc formatlua format
-LINT=lintlua lintsh lintc clang-tidy lintcommit lint
-TEST=functionaltest unittest
-generated-sources benchmark uninstall $(FORMAT) $(LINT) $(TEST): | build/.ran-cmake
+lintlua lintsh lintpy lintuncrustify lintc lintcfull check-single-includes generated-sources lintcommit lint formatc formatlua format: | build/.ran-cmake
 	$(CMAKE_PRG) --build build --target $@
 
-test: $(TEST)
-
-iwyu: build/.ran-cmake
-	cmake --preset iwyu
-	cmake --build --preset iwyu > build/iwyu.log
-	iwyu-fix-includes --only_re="src/nvim" --ignore_re="src/nvim/(auto|map.h|eval/encode.c)" --safe_headers < build/iwyu.log
-	cmake -B build -U ENABLE_IWYU
+test: functionaltest unittest
 
 clean:
 	+test -d build && $(BUILD_TOOL) -C build clean || true
-	$(MAKE) -C test/old/testdir clean
+	$(MAKE) -C src/nvim/testdir clean
+	$(MAKE) -C runtime/doc clean
 	$(MAKE) -C runtime/indent clean
 
 distclean:
@@ -173,4 +167,4 @@ $(DEPS_BUILD_DIR)/%: phony_force
 	$(BUILD_TOOL) -C $(DEPS_BUILD_DIR) $(patsubst $(DEPS_BUILD_DIR)/%,%,$@)
 endif
 
-.PHONY: test clean distclean nvim libnvim cmake deps install appimage checkprefix benchmark uninstall $(FORMAT) $(LINT) $(TEST)
+.PHONY: test lintlua lintpy lintsh functionaltest unittest lint lintc clean distclean nvim libnvim cmake deps install appimage checkprefix lintcommit formatc formatlua format

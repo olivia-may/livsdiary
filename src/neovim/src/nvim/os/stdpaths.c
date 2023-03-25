@@ -2,7 +2,6 @@
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include <stdbool.h>
-#include <string.h>
 
 #include "nvim/ascii.h"
 #include "nvim/fileio.h"
@@ -57,18 +56,6 @@ static const char *const xdg_defaults[] = {
 #endif
 };
 
-/// Get the value of $NVIM_APPNAME or "nvim" if not set.
-///
-/// @return $NVIM_APPNAME value
-const char *get_appname(void)
-{
-  const char *env_val = os_getenv("NVIM_APPNAME");
-  if (env_val == NULL || *env_val == '\0') {
-    env_val = "nvim";
-  }
-  return env_val;
-}
-
 /// Return XDG variable value
 ///
 /// @param[in]  idx  XDG variable to use.
@@ -112,31 +99,28 @@ char *stdpaths_get_xdg_var(const XDGVarType idx)
 
 /// Return Nvim-specific XDG directory subpath.
 ///
-/// Windows: Uses "…/$NVIM_APPNAME-data" for kXDGDataHome to avoid storing
+/// Windows: Uses "…/nvim-data" for kXDGDataHome to avoid storing
 /// configuration and data files in the same path. #4403
 ///
 /// @param[in]  idx  XDG directory to use.
 ///
-/// @return [allocated] "{xdg_directory}/$NVIM_APPNAME"
+/// @return [allocated] "{xdg_directory}/nvim"
 char *get_xdg_home(const XDGVarType idx)
   FUNC_ATTR_WARN_UNUSED_RESULT
 {
   char *dir = stdpaths_get_xdg_var(idx);
-  const char *appname = get_appname();
-  size_t appname_len = strlen(appname);
-  assert(appname_len < (IOSIZE - sizeof("-data")));
-
   if (dir) {
-    xstrlcpy(IObuff, appname, appname_len + 1);
 #if defined(MSWIN)
-    if (idx == kXDGDataHome || idx == kXDGStateHome) {
-      STRCAT(IObuff, "-data");
-    }
+    dir = concat_fnames_realloc(dir,
+                                ((idx == kXDGDataHome
+                                  || idx == kXDGStateHome) ? "nvim-data" : "nvim"),
+                                true);
+#else
+    dir = concat_fnames_realloc(dir, "nvim", true);
 #endif
-    dir = concat_fnames_realloc(dir, IObuff, true);
 
 #ifdef BACKSLASH_IN_FILENAME
-    slash_adjust(dir);
+    slash_adjust((char_u *)dir);
 #endif
   }
   return dir;
@@ -146,7 +130,7 @@ char *get_xdg_home(const XDGVarType idx)
 ///
 /// @param[in]  fname  New component of the path.
 ///
-/// @return [allocated] `$XDG_CACHE_HOME/$NVIM_APPNAME/{fname}`
+/// @return [allocated] `$XDG_CACHE_HOME/nvim/{fname}`
 char *stdpaths_user_cache_subpath(const char *fname)
   FUNC_ATTR_WARN_UNUSED_RESULT FUNC_ATTR_NONNULL_ALL FUNC_ATTR_NONNULL_RET
 {
@@ -157,7 +141,7 @@ char *stdpaths_user_cache_subpath(const char *fname)
 ///
 /// @param[in]  fname  New component of the path.
 ///
-/// @return [allocated] `$XDG_CONFIG_HOME/$NVIM_APPNAME/{fname}`
+/// @return [allocated] `$XDG_CONFIG_HOME/nvim/{fname}`
 char *stdpaths_user_conf_subpath(const char *fname)
   FUNC_ATTR_WARN_UNUSED_RESULT FUNC_ATTR_NONNULL_ALL FUNC_ATTR_NONNULL_RET
 {
@@ -168,7 +152,7 @@ char *stdpaths_user_conf_subpath(const char *fname)
 ///
 /// @param[in]  fname  New component of the path.
 ///
-/// @return [allocated] `$XDG_DATA_HOME/$NVIM_APPNAME/{fname}`
+/// @return [allocated] `$XDG_DATA_HOME/nvim/{fname}`
 char *stdpaths_user_data_subpath(const char *fname)
   FUNC_ATTR_WARN_UNUSED_RESULT FUNC_ATTR_NONNULL_ALL FUNC_ATTR_NONNULL_RET
 {
@@ -181,7 +165,7 @@ char *stdpaths_user_data_subpath(const char *fname)
 /// @param[in]  trailing_pathseps  Amount of trailing path separators to add.
 /// @param[in]  escape_commas  If true, all commas will be escaped.
 ///
-/// @return [allocated] `$XDG_STATE_HOME/$NVIM_APPNAME/{fname}`.
+/// @return [allocated] `$XDG_STATE_HOME/nvim/{fname}`.
 char *stdpaths_user_state_subpath(const char *fname, const size_t trailing_pathseps,
                                   const bool escape_commas)
   FUNC_ATTR_WARN_UNUSED_RESULT FUNC_ATTR_NONNULL_ALL FUNC_ATTR_NONNULL_RET

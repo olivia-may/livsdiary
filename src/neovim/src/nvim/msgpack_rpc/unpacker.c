@@ -1,17 +1,9 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdlib.h>
-
-#include "klib/kvec.h"
-#include "mpack/conv.h"
 #include "nvim/api/private/helpers.h"
-#include "nvim/ascii.h"
-#include "nvim/macros.h"
+#include "nvim/log.h"
 #include "nvim/memory.h"
-#include "nvim/msgpack_rpc/channel_defs.h"
 #include "nvim/msgpack_rpc/helpers.h"
 #include "nvim/msgpack_rpc/unpacker.h"
 #include "nvim/ui_client.h"
@@ -186,7 +178,7 @@ void unpacker_init(Unpacker *p)
   mpack_parser_init(&p->parser, 0);
   p->parser.data.p = p;
   mpack_tokbuf_init(&p->reader);
-  p->unpack_error = ERROR_INIT;
+  p->unpack_error = (Error)ERROR_INIT;
 
   p->arena = (Arena)ARENA_EMPTY;
 }
@@ -298,7 +290,7 @@ error:
 //
 // When method is "grid_line", we furthermore decode a cell at a time like:
 //
-// <0>[2, "redraw", <10>[{11}["grid_line", <14>[g, r, c, [<15>[cell], <15>[cell], ...]], ...], <11>[...], ...]]
+// <0>[2, "redraw", <10>[{11}["grid_line", <13>[g, r, c, [<14>[cell], <14>[cell], ...]], ...], <11>[...], ...]]
 //
 // where [cell] is [char, repeat, attr], where 'repeat' and 'attr' is optional
 
@@ -318,19 +310,17 @@ bool unpacker_advance(Unpacker *p)
     }
   }
 
-  if (p->state >= 10 && p->state != 13) {
+  if (p->state >= 10 && p->state != 12) {
     if (!unpacker_parse_redraw(p)) {
       return false;
     }
 
-    if (p->state == 15) {
+    if (p->state == 14) {
       // grid_line event already unpacked
       goto done;
     } else {
-      assert(p->state == 12);
       // unpack other ui events using mpack_parse()
       p->arena = (Arena)ARENA_EMPTY;
-      p->state = 13;
     }
   }
 
@@ -357,11 +347,11 @@ done:
   case 2:
     p->state = 0;
     return true;
-  case 13:
-  case 15:
+  case 12:
+  case 14:
     p->ncalls--;
     if (p->ncalls > 0) {
-      p->state = (p->state == 15) ? 14 : 12;
+      p->state = (p->state == 14) ? 13 : 12;
     } else if (p->nevents > 0) {
       p->state = 11;
     } else {
@@ -382,7 +372,6 @@ bool unpacker_parse_redraw(Unpacker *p)
   size_t size = p->read_size;
   GridLineEvent *g = p->grid_line_event;
 
-// -V:NEXT_TYPE:501
 #define NEXT_TYPE(tok, typ) \
   result = mpack_rtoken(&data, &size, &tok); \
   if (result == MPACK_EOF) { \
@@ -430,14 +419,14 @@ redo:
       }
       return true;
     } else {
-      p->state = 14;
+      p->state = 13;
       p->arena = (Arena)ARENA_EMPTY;
       p->grid_line_event = arena_alloc(&p->arena, sizeof *p->grid_line_event, true);
       g = p->grid_line_event;
     }
     FALLTHROUGH;
 
-  case 14:
+  case 13:
     NEXT_TYPE(tok, MPACK_TOKEN_ARRAY);
     int eventarrsize = (int)tok.length;
     if (eventarrsize != 4) {
@@ -458,10 +447,10 @@ redo:
 
     p->read_ptr = data;
     p->read_size = size;
-    p->state = 15;
+    p->state = 14;
     FALLTHROUGH;
 
-  case 15:
+  case 14:
     assert(g->icell < g->ncells);
 
     NEXT_TYPE(tok, MPACK_TOKEN_ARRAY);
@@ -514,9 +503,6 @@ redo:
       return true;
     }
     goto redo;
-
-  case 12:
-    return true;
 
   default:
     abort();

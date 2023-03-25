@@ -6,7 +6,7 @@
 -- or the test suite. (Eventually the test suite will be run in a worker process,
 -- so this wouldn't be a separate case to consider)
 
-vim = vim or {}
+local vim = vim or {}
 
 --- Returns a deep copy of the given object. Non-table objects are copied as
 --- in a typical Lua assignment, whereas table objects are copied recursively.
@@ -14,9 +14,8 @@ vim = vim or {}
 --- same functions as those in the input table. Userdata and threads are not
 --- copied and will throw an error.
 ---
----@generic T: table
----@param orig T Table to copy
----@return T Table of copied keys and (nested) values.
+---@param orig table Table to copy
+---@return table Table of copied keys and (nested) values.
 function vim.deepcopy(orig) end -- luacheck: no unused
 vim.deepcopy = (function()
   local function _id(v)
@@ -49,9 +48,6 @@ vim.deepcopy = (function()
     if f then
       return f(orig, cache or {})
     else
-      if type(orig) == 'userdata' and orig == vim.NIL then
-        return vim.NIL
-      end
       error('Cannot deepcopy object of type ' .. type(orig))
     end
   end
@@ -60,14 +56,13 @@ end)()
 --- Splits a string at each instance of a separator.
 ---
 ---@see |vim.split()|
----@see |luaref-patterns|
 ---@see https://www.lua.org/pil/20.2.html
 ---@see http://lua-users.org/wiki/StringLibraryTutorial
 ---
 ---@param s string String to split
 ---@param sep string Separator or pattern
----@param plain (boolean|nil) If `true` use `sep` literally (passed to string.find)
----@return fun():string (function) Iterator over the split components
+---@param plain boolean If `true` use `sep` literally (passed to string.find)
+---@return function Iterator over the split components
 function vim.gsplit(s, sep, plain)
   vim.validate({ s = { s, 's' }, sep = { sep, 's' }, plain = { plain, 'b', true } })
 
@@ -103,22 +98,22 @@ end
 --- Splits a string at each instance of a separator.
 ---
 --- Examples:
---- <pre>lua
----  split(":aa::b:", ":")                   --> {'','aa','','b',''}
----  split("axaby", "ab?")                   --> {'','x','y'}
----  split("x*yz*o", "*", {plain=true})      --> {'x','yz','o'}
----  split("|x|y|z|", "|", {trimempty=true}) --> {'x', 'y', 'z'}
+--- <pre>
+---  split(":aa::b:", ":")     => {'','aa','','b',''}
+---  split("axaby", "ab?")     => {'','x','y'}
+---  split("x*yz*o", "*", {plain=true})  => {'x','yz','o'}
+---  split("|x|y|z|", "|", {trimempty=true}) => {'x', 'y', 'z'}
 --- </pre>
 ---
 ---@see |vim.gsplit()|
 ---
 ---@param s string String to split
 ---@param sep string Separator or pattern
----@param kwargs (table|nil) Keyword arguments:
+---@param kwargs table Keyword arguments:
 ---       - plain: (boolean) If `true` use `sep` literally (passed to string.find)
 ---       - trimempty: (boolean) If `true` remove empty items from the front
 ---         and back of the list
----@return string[] List of split components
+---@return table List of split components
 function vim.split(s, sep, kwargs)
   local plain
   local trimempty = false
@@ -161,9 +156,8 @@ end
 ---
 ---@see From https://github.com/premake/premake-core/blob/master/src/base/table.lua
 ---
----@generic T: table
----@param t table<T, any> (table) Table
----@return T[] (list) List of keys
+---@param t table Table
+---@return table List of keys
 function vim.tbl_keys(t)
   assert(type(t) == 'table', string.format('Expected table, got %s', type(t)))
 
@@ -177,9 +171,8 @@ end
 --- Return a list of all values used in a table.
 --- However, the order of the return table of values is not guaranteed.
 ---
----@generic T
----@param t table<any, T> (table) Table
----@return T[] (list) List of values
+---@param t table Table
+---@return table List of values
 function vim.tbl_values(t)
   assert(type(t) == 'table', string.format('Expected table, got %s', type(t)))
 
@@ -192,9 +185,8 @@ end
 
 --- Apply a function to all values of a table.
 ---
----@generic T
----@param func fun(value: T): any (function) Function
----@param t table<any, T> (table) Table
+---@param func function|table Function or callable table
+---@param t table Table
 ---@return table Table of transformed values
 function vim.tbl_map(func, t)
   vim.validate({ func = { func, 'c' }, t = { t, 't' } })
@@ -208,10 +200,9 @@ end
 
 --- Filter a table using a predicate function
 ---
----@generic T
----@param func fun(value: T): boolean (function) Function
----@param t table<any, T> (table) Table
----@return T[] (table) Table of filtered values
+---@param func function|table Function or callable table
+---@param t table Table
+---@return table Table of filtered values
 function vim.tbl_filter(func, t)
   vim.validate({ func = { func, 'c' }, t = { t, 't' } })
 
@@ -313,14 +304,12 @@ end
 ---
 ---@see |vim.tbl_extend()|
 ---
----@generic T1: table
----@generic T2: table
----@param behavior "error"|"keep"|"force" (string) Decides what to do if a key is found in more than one map:
+---@param behavior string Decides what to do if a key is found in more than one map:
 ---      - "error": raise an error
 ---      - "keep":  use value from the leftmost map
 ---      - "force": use value from the rightmost map
----@param ... T2 Two or more map-like tables
----@return T1|T2 (table) Merged table
+---@param ... table Two or more map-like tables
+---@return table Merged table
 function vim.tbl_deep_extend(behavior, ...)
   return tbl_extend(behavior, true, ...)
 end
@@ -384,7 +373,7 @@ end
 --- Return `nil` if the key does not exist.
 ---
 --- Examples:
---- <pre>lua
+--- <pre>
 ---  vim.tbl_get({ key = { nested_key = true }}, 'key', 'nested_key') == true
 ---  vim.tbl_get({ key = {}}, 'key', 'nested_key') == nil
 --- </pre>
@@ -396,14 +385,15 @@ end
 function vim.tbl_get(o, ...)
   local keys = { ... }
   if #keys == 0 then
-    return nil
+    return
   end
   for i, k in ipairs(keys) do
+    if type(o[k]) ~= 'table' and next(keys, i) then
+      return nil
+    end
     o = o[k]
     if o == nil then
-      return nil
-    elseif type(o) ~= 'table' and next(keys, i) then
-      return nil
+      return
     end
   end
   return o
@@ -415,12 +405,11 @@ end
 ---
 ---@see |vim.tbl_extend()|
 ---
----@generic T: table
----@param dst T List which will be modified and appended to
+---@param dst table List which will be modified and appended to
 ---@param src table List from which values will be inserted
----@param start (integer|nil) Start index on src. Defaults to 1
----@param finish (integer|nil) Final index on src. Defaults to `#src`
----@return T dst
+---@param start number Start index on src. Defaults to 1
+---@param finish number Final index on src. Defaults to `#src`
+---@return table dst
 function vim.list_extend(dst, src, start, finish)
   vim.validate({
     dst = { dst, 't' },
@@ -458,33 +447,6 @@ function vim.tbl_flatten(t)
   return result
 end
 
---- Enumerate a table sorted by its keys.
----
----@see Based on https://github.com/premake/premake-core/blob/master/src/base/table.lua
----
----@param t table List-like table
----@return iterator over sorted keys and their values
-function vim.spairs(t)
-  assert(type(t) == 'table', string.format('Expected table, got %s', type(t)))
-
-  -- collect the keys
-  local keys = {}
-  for k in pairs(t) do
-    table.insert(keys, k)
-  end
-  table.sort(keys)
-
-  -- Return the iterator function.
-  -- TODO(justinmk): Return "iterator function, table {t}, and nil", like pairs()?
-  local i = 0
-  return function()
-    i = i + 1
-    if keys[i] then
-      return keys[i], t[keys[i]]
-    end
-  end
-end
-
 --- Tests if a Lua table can be treated as an array.
 ---
 --- Empty table `{}` is assumed to be an array, unless it was created by
@@ -514,7 +476,7 @@ function vim.tbl_islist(t)
     -- TODO(bfredl): in the future, we will always be inside nvim
     -- then this check can be deleted.
     if vim._empty_dict_mt == nil then
-      return false
+      return nil
     end
     return getmetatable(t) ~= vim._empty_dict_mt
   end
@@ -522,14 +484,14 @@ end
 
 --- Counts the number of non-nil values in table `t`.
 ---
---- <pre>lua
---- vim.tbl_count({ a=1, b=2 })  --> 2
---- vim.tbl_count({ 1, 2 })      --> 2
+--- <pre>
+--- vim.tbl_count({ a=1, b=2 }) => 2
+--- vim.tbl_count({ 1, 2 }) => 2
 --- </pre>
 ---
 ---@see https://github.com/Tieske/Penlight/blob/master/lua/pl/tablex.lua
 ---@param t table Table
----@return integer Number of non-nil values in table
+---@return number Number of non-nil values in table
 function vim.tbl_count(t)
   vim.validate({ t = { t, 't' } })
 
@@ -542,11 +504,10 @@ end
 
 --- Creates a copy of a table containing only elements from start to end (inclusive)
 ---
----@generic T
----@param list T[] (list) Table
----@param start integer|nil Start range of slice
----@param finish integer|nil End range of slice
----@return T[] (list) Copy of table sliced from start to finish (inclusive)
+---@param list table Table
+---@param start number Start range of slice
+---@param finish number End range of slice
+---@return table Copy of table sliced from start to finish (inclusive)
 function vim.list_slice(list, start, finish)
   local new_list = {}
   for i = start or 1, finish or #list do
@@ -557,7 +518,6 @@ end
 
 --- Trim whitespace (Lua pattern "%s") from both sides of a string.
 ---
----@see |luaref-patterns|
 ---@see https://www.lua.org/pil/20.2.html
 ---@param s string String to trim
 ---@return string String with whitespace removed from its beginning and end
@@ -573,7 +533,7 @@ end
 ---@return string %-escaped pattern string
 function vim.pesc(s)
   vim.validate({ s = { s, 's' } })
-  return (s:gsub('[%(%)%.%%%+%-%*%?%[%]%^%$]', '%%%1'))
+  return s:gsub('[%(%)%.%%%+%-%*%?%[%]%^%$]', '%%%1')
 end
 
 --- Tests if `s` starts with `prefix`.
@@ -599,7 +559,7 @@ end
 --- Validates a parameter specification (types and values).
 ---
 --- Usage example:
---- <pre>lua
+--- <pre>
 ---  function user.new(name, age, hobbies)
 ---    vim.validate{
 ---      name={name, 'string'},
@@ -611,24 +571,24 @@ end
 --- </pre>
 ---
 --- Examples with explicit argument values (can be run directly):
---- <pre>lua
+--- <pre>
 ---  vim.validate{arg1={{'foo'}, 'table'}, arg2={'foo', 'string'}}
----     --> NOP (success)
+---     => NOP (success)
 ---
 ---  vim.validate{arg1={1, 'table'}}
----     --> error('arg1: expected table, got number')
+---     => error('arg1: expected table, got number')
 ---
 ---  vim.validate{arg1={3, function(a) return (a % 2) == 0 end, 'even number'}}
----     --> error('arg1: expected even number, got 3')
+---     => error('arg1: expected even number, got 3')
 --- </pre>
 ---
 --- If multiple types are valid they can be given as a list.
---- <pre>lua
+--- <pre>
 ---  vim.validate{arg1={{'foo'}, {'table', 'string'}}, arg2={'foo', {'table', 'string'}}}
----     --> NOP (success)
+---     => NOP (success)
 ---
 ---  vim.validate{arg1={1, {'string', table'}}}
----     --> error('arg1: expected string|table, got number')
+---     => error('arg1: expected string|table, got number')
 ---
 --- </pre>
 ---
@@ -763,7 +723,7 @@ end
 --- If {create} is `nil`, this will create a defaulttable whose constructor function is
 --- this function, effectively allowing to create nested tables on the fly:
 ---
---- <pre>lua
+--- <pre>
 --- local a = vim.defaulttable()
 --- a.b.c = 1
 --- </pre>

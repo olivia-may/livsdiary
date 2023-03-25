@@ -30,7 +30,7 @@ ENVIRONMENT VARIABLES
     - detect a parent Nvim (use |$NVIM| instead)
   - Ignored if --listen is given.
   - Unset by |terminal| and |jobstart()| unless explicitly given by the "env"
-    option. Example: >vim
+    option. Example: >
 	call jobstart(['foo'], { 'env': { 'NVIM_LISTEN_ADDRESS': v:servername  } })
 <
 
@@ -107,29 +107,18 @@ internally and are no longer exposed as part of the API. Instead, use
 - *vim.lsp.diagnostic.set_virtual_text()*
 
 LSP FUNCTIONS
-- *vim.lsp.buf.range_code_action()*	Use |vim.lsp.buf.code_action()| with
-					the `range` parameter.
 - *vim.lsp.util.diagnostics_to_items()*	Use |vim.diagnostic.toqflist()| instead.
 - *vim.lsp.util.set_qflist()*		Use |setqflist()| instead.
 - *vim.lsp.util.set_loclist()*		Use |setloclist()| instead.
 - *vim.lsp.buf_get_clients()*		Use |vim.lsp.get_active_clients()| with
-					{buffer = bufnr} instead.
-- *vim.lsp.buf.formatting()*		Use |vim.lsp.buf.format()| with
+                                        {buffer = bufnr} instead.
+- vim.lsp.buf.formatting()		Use |vim.lsp.buf.format()| with
 					{async = true} instead.
-- *vim.lsp.buf.range_formatting()*	Use |vim.lsp.formatexpr()|
+- vim.lsp.buf.range_formatting()	Use |vim.lsp.formatexpr()|
 					or |vim.lsp.buf.format()| instead.
 
-TREESITTER FUNCTIONS
-- *vim.treesitter.language.require_language()*	Use |vim.treesitter.add()|
-						instead.
-- *vim.treesitter.get_node_at_pos()*		Use |vim.treesitter.get_node()|
-						instead.
-- *vim.treesitter.get_node_at_cursor()*		Use |vim.treesitter.get_node()|
-						and |TSNode:type()| instead.
-
 LUA
-- vim.register_keystroke_callback()	Use |vim.on_key()| instead.
-- *vim.pretty_print()*			Use |vim.print()| instead.
+- *vim.register_keystroke_callback()* 	Use |vim.on_key()| instead.
 
 NORMAL COMMANDS
 - *]f* *[f*		Same as "gf".
@@ -137,6 +126,11 @@ NORMAL COMMANDS
 OPTIONS
 - *cpo-<* *:menu-<special>* *:menu-special* *:map-<special>* *:map-special*
   `<>` notation is always enabled.
+- *'cscopeverbose'*	Enabled by default. Use |:silent| instead.
+- *'exrc'* *'ex'*	Security risk: downloaded files could include
+			a malicious .nvimrc or .exrc file. See 'secure'.
+			Recommended alternative: define an autocommand in your
+			|vimrc| to set options for a matching directory.
 - 'gdefault'		Enables the |:substitute| flag 'g' by default.
 - *'fe'*		'fenc'+'enc' before Vim 6.0; no longer used.
 - *'highlight'* *'hl'*	Names of builtin |highlight-groups| cannot be changed.
@@ -146,27 +140,6 @@ OPTIONS
 - 'viewoptions'		Flags "unix", "slash" are ignored and always enabled.
 - *'viminfo'*		Deprecated alias to 'shada' option.
 - *'viminfofile'*	Deprecated alias to 'shadafile' option.
-- *'paste'* *'nopaste'*	This option is obsolete; |paste| is handled automatically.
-			Enables "paste mode":
-			  - mappings in Insert mode and Command-line mode are
-			    disabled
-			  - abbreviations are disabled
-			  - 'autoindent' is reset
-			  - 'expandtab' is reset
-			  - 'formatoptions' is used like it is empty
-			  - 'revins' is reset
-			  - 'ruler' is reset
-			  - 'showmatch' is reset
-			  - 'smartindent' is reset
-			  - 'smarttab' is reset
-			  - 'softtabstop' is set to 0
-			  - 'textwidth' is set to 0
-			  - 'wrapmargin' is set to 0
-			These options keep their value, but their effect is
-			disabled:
-			  - 'cindent'
-			  - 'indentexpr'
-			  - 'lisp'
 
 UI EXTENSIONS
 - *ui-wildmenu*		Use |ui-cmdline| with |ui-popupmenu| instead. Enabled

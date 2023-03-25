@@ -2,11 +2,10 @@
 -- Busted started doing this to help provide more isolation.  See issue #62
 -- for more information about this.
 local helpers = require('test.functional.helpers')(nil)
-require('test.functional.ui.screen')
+local iswin = helpers.iswin
 local busted = require("busted")
-local is_os = helpers.is_os
 
-if is_os('win') then
+if iswin() then
   local ffi = require('ffi')
   ffi.cdef[[
   typedef int errno_t;

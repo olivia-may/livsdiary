@@ -37,56 +37,45 @@
 // Some code from pangoterm http://www.leonerd.org.uk/code/pangoterm
 
 #include <assert.h>
-#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <vterm.h>
-#include <vterm_keycodes.h>
 
-#include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
 #include "nvim/ascii.h"
 #include "nvim/autocmd.h"
 #include "nvim/buffer.h"
-#include "nvim/buffer_defs.h"
 #include "nvim/change.h"
-#include "nvim/channel.h"
 #include "nvim/cursor.h"
-#include "nvim/drawline.h"
 #include "nvim/drawscreen.h"
 #include "nvim/eval.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/event/loop.h"
-#include "nvim/event/multiqueue.h"
 #include "nvim/event/time.h"
+#include "nvim/ex_cmds.h"
 #include "nvim/ex_docmd.h"
 #include "nvim/getchar.h"
-#include "nvim/globals.h"
 #include "nvim/highlight.h"
 #include "nvim/highlight_group.h"
 #include "nvim/keycodes.h"
+#include "nvim/log.h"
 #include "nvim/macros.h"
 #include "nvim/main.h"
 #include "nvim/map.h"
 #include "nvim/mbyte.h"
 #include "nvim/memline.h"
 #include "nvim/memory.h"
+#include "nvim/message.h"
 #include "nvim/mouse.h"
 #include "nvim/move.h"
-#include "nvim/msgpack_rpc/channel_defs.h"
-#include "nvim/normal.h"
 #include "nvim/option.h"
 #include "nvim/optionstr.h"
-#include "nvim/pos.h"
+#include "nvim/os/input.h"
 #include "nvim/state.h"
 #include "nvim/terminal.h"
-#include "nvim/types.h"
 #include "nvim/ui.h"
 #include "nvim/vim.h"
+#include "nvim/window.h"
 
 typedef struct terminal_state {
   VimState state;
@@ -386,7 +375,7 @@ void terminal_check_size(Terminal *term)
   // Check if there is a window that displays the terminal and find the maximum width and height.
   // Skip the autocommand window which isn't actually displayed.
   FOR_ALL_TAB_WINDOWS(tp, wp) {
-    if (is_aucmd_win(wp)) {
+    if (wp == aucmd_win) {
       continue;
     }
     if (wp->w_buffer && wp->w_buffer->terminal == term) {
@@ -434,12 +423,12 @@ bool terminal_enter(void)
   handle_T save_curwin = curwin->handle;
   bool save_w_p_cul = curwin->w_p_cul;
   char *save_w_p_culopt = NULL;
-  uint8_t save_w_p_culopt_flags = curwin->w_p_culopt_flags;
+  char_u save_w_p_culopt_flags = curwin->w_p_culopt_flags;
   int save_w_p_cuc = curwin->w_p_cuc;
   long save_w_p_so = curwin->w_p_so;
   long save_w_p_siso = curwin->w_p_siso;
   if (curwin->w_p_cul && curwin->w_p_culopt_flags & CULOPT_NBR) {
-    if (strcmp(curwin->w_p_culopt, "number") != 0) {
+    if (strcmp(curwin->w_p_culopt, "number")) {
       save_w_p_culopt = curwin->w_p_culopt;
       curwin->w_p_culopt = xstrdup("number");
     }
@@ -533,19 +522,7 @@ static int terminal_check(VimState *state)
   terminal_check_cursor();
 
   if (must_redraw) {
-    update_screen();
-
-    // Make sure an invoked autocmd doesn't delete the buffer (and the
-    // terminal) under our fingers.
-    curbuf->b_locked++;
-
-    // save and restore curwin and curbuf, in case the autocmd changes them
-    aco_save_T aco;
-    aucmd_prepbuf(&aco, curbuf);
-    apply_autocmds(EVENT_TEXTCHANGEDT, NULL, NULL, false, curbuf);
-    aucmd_restbuf(&aco);
-
-    curbuf->b_locked--;
+    update_screen(0);
   }
 
   if (need_maketitle) {  // Update title in terminal-mode. #7248
@@ -717,35 +694,31 @@ void terminal_paste(long count, char **y_array, size_t y_size)
   }
   vterm_keyboard_start_paste(curbuf->terminal->vt);
   size_t buff_len = strlen(y_array[0]);
-  char *buff = xmalloc(buff_len);
+  char_u *buff = xmalloc(buff_len);
   for (int i = 0; i < count; i++) {  // -V756
     // feed the lines to the terminal
     for (size_t j = 0; j < y_size; j++) {
       if (j) {
         // terminate the previous line
-#ifdef MSWIN
-        terminal_send(curbuf->terminal, "\r\n", 2);
-#else
         terminal_send(curbuf->terminal, "\n", 1);
-#endif
       }
       size_t len = strlen(y_array[j]);
       if (len > buff_len) {
         buff = xrealloc(buff, len);
         buff_len = len;
       }
-      char *dst = buff;
-      char *src = y_array[j];
+      char_u *dst = buff;
+      char_u *src = (char_u *)y_array[j];
       while (*src != '\0') {
-        len = (size_t)utf_ptr2len(src);
-        int c = utf_ptr2char(src);
+        len = (size_t)utf_ptr2len((char *)src);
+        int c = utf_ptr2char((char *)src);
         if (!is_filter_char(c)) {
           memcpy(dst, src, len);
           dst += len;
         }
         src += len;
       }
-      terminal_send(curbuf->terminal, buff, (size_t)(dst - buff));
+      terminal_send(curbuf->terminal, (char *)buff, (size_t)(dst - buff));
     }
   }
   xfree(buff);

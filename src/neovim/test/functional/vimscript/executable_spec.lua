@@ -1,16 +1,15 @@
 local helpers = require('test.functional.helpers')(after_each)
-local eq, clear, call, write_file, command =
-  helpers.eq, helpers.clear, helpers.call, helpers.write_file,
+local eq, clear, call, iswin, write_file, command =
+  helpers.eq, helpers.clear, helpers.call, helpers.iswin, helpers.write_file,
   helpers.command
 local exc_exec = helpers.exc_exec
 local eval = helpers.eval
-local is_os = helpers.is_os
 
 describe('executable()', function()
   before_each(clear)
 
   it('returns 1 for commands in $PATH', function()
-    local exe = is_os('win') and 'ping' or 'ls'
+    local exe = iswin() and 'ping' or 'ls'
     eq(1, call('executable', exe))
     command('let $PATH = fnamemodify("./test/functional/fixtures/bin", ":p")')
     eq(1, call('executable', 'null'))
@@ -18,7 +17,7 @@ describe('executable()', function()
     eq(1, call('executable', 'false'))
   end)
 
-  if is_os('win') then
+  if iswin() then
     it('exepath respects shellslash', function()
       command('let $PATH = fnamemodify("./test/functional/fixtures/bin", ":p")')
       eq([[test\functional\fixtures\bin\null.CMD]], call('fnamemodify', call('exepath', 'null'), ':.'))
@@ -57,8 +56,8 @@ describe('executable()', function()
     -- Some executable in build/bin/, *not* in $PATH nor CWD.
     local sibling_exe = 'printargs-test'
     -- Windows: siblings are in Nvim's "pseudo-$PATH".
-    local expected = is_os('win') and 1 or 0
-    if is_os('win') then
+    local expected = iswin() and 1 or 0
+    if iswin() then
       eq('arg1=lemon;arg2=sky;arg3=tree;',
          call('system', sibling_exe..' lemon sky tree'))
     end
@@ -70,7 +69,7 @@ describe('executable()', function()
       clear()
       write_file('Xtest_not_executable', 'non-executable file')
       write_file('Xtest_executable', 'executable file (exec-bit set)')
-      if not is_os('win') then  -- N/A for Windows.
+      if not iswin() then  -- N/A for Windows.
         call('system', {'chmod', '-x', 'Xtest_not_executable'})
         call('system', {'chmod', '+x', 'Xtest_executable'})
       end
@@ -91,17 +90,14 @@ describe('executable()', function()
     end)
 
     it('set, qualified as a path', function()
-      local expected = is_os('win') and 0 or 1
+      local expected = iswin() and 0 or 1
       eq(expected, call('executable', './Xtest_executable'))
     end)
   end)
 end)
 
 describe('executable() (Windows)', function()
-  if not is_os('win') then
-    pending('N/A for non-windows')
-    return
-  end
+  if not iswin() then return end  -- N/A for Unix.
 
   local exts = {'bat', 'exe', 'com', 'cmd'}
   setup(function()

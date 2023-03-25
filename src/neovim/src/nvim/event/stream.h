@@ -6,10 +6,7 @@
 #include <uv.h>
 
 #include "nvim/event/loop.h"
-#include "nvim/event/multiqueue.h"
 #include "nvim/rbuffer.h"
-
-struct stream;
 
 typedef struct stream Stream;
 /// Type of function called when the Stream buffer is filled with data
@@ -19,7 +16,8 @@ typedef struct stream Stream;
 /// @param count Number of bytes that was read.
 /// @param data User-defined data
 /// @param eof If the stream reached EOF.
-typedef void (*stream_read_cb)(Stream *stream, RBuffer *buf, size_t count, void *data, bool eof);
+typedef void (*stream_read_cb)(Stream *stream, RBuffer *buf, size_t count,
+                               void *data, bool eof);
 
 /// Type of function called when the Stream has information about a write
 /// request.

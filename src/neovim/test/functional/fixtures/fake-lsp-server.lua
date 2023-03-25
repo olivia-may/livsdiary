@@ -272,7 +272,6 @@ function tests.text_document_save_did_open()
     end;
     body = function()
       notify('start')
-      expect_notification('textDocument/didClose')
       expect_notification('textDocument/didOpen')
       expect_notification('textDocument/didSave')
       notify('shutdown')
@@ -928,30 +927,10 @@ function tests.basic_formatting()
   }
 end
 
-function tests.set_defaults_all_capabilities()
-  skeleton {
-    on_init = function(_)
-      return {
-        capabilities = {
-          definitionProvider = true,
-          completionProvider = true,
-          documentRangeFormattingProvider = true,
-        }
-      }
-    end;
-    body = function()
-      notify('test')
-    end;
-  }
-end
-
--- Tests will be indexed by test_name
-local test_name = arg[1]
-local timeout = arg[2]
-assert(type(test_name) == 'string', 'test_name must be specified as first arg.')
+-- Tests will be indexed by TEST_NAME
 
 local kill_timer = vim.loop.new_timer()
-kill_timer:start(timeout or 1e3, 0, function()
+kill_timer:start(_G.TIMEOUT or 1e3, 0, function()
   kill_timer:stop()
   kill_timer:close()
   log('ERROR', 'LSP', 'TIMEOUT')
@@ -959,11 +938,14 @@ kill_timer:start(timeout or 1e3, 0, function()
   os.exit(100)
 end)
 
+local test_name = _G.TEST_NAME -- lualint workaround
+assert(type(test_name) == 'string', 'TEST_NAME must be specified.')
 local status, err = pcall(assert(tests[test_name], "Test not found"))
 kill_timer:stop()
 kill_timer:close()
 if not status then
   log('ERROR', 'LSP', tostring(err))
   io.stderr:write(err)
-  vim.cmd [[101cquit]]
+  os.exit(101)
 end
+os.exit(0)

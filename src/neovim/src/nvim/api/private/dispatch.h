@@ -1,14 +1,12 @@
 #ifndef NVIM_API_PRIVATE_DISPATCH_H
 #define NVIM_API_PRIVATE_DISPATCH_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "nvim/api/private/defs.h"
-#include "nvim/memory.h"
-#include "nvim/types.h"
 
-typedef Object (*ApiDispatchWrapper)(uint64_t channel_id, Array args, Arena *arena, Error *error);
+typedef Object (*ApiDispatchWrapper)(uint64_t channel_id,
+                                     Array args,
+                                     Arena *arena,
+                                     Error *error);
 
 /// The rpc_method_handlers table, used in msgpack_rpc_dispatch(), stores
 /// functions of this type.

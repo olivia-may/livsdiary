@@ -6,29 +6,48 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include "auto/config.h"
 #include "nvim/ascii.h"
 #include "nvim/assert.h"
+#include "nvim/buffer.h"
 #include "nvim/charset.h"
+#include "nvim/diff.h"
+#include "nvim/edit.h"
+#include "nvim/eval.h"
 #include "nvim/eval/encode.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
+#include "nvim/ex_cmds.h"
 #include "nvim/ex_docmd.h"
-#include "nvim/gettext.h"
-#include "nvim/macros.h"
+#include "nvim/ex_getln.h"
+#include "nvim/file_search.h"
+#include "nvim/fileio.h"
+#include "nvim/fold.h"
+#include "nvim/func_attr.h"
+#include "nvim/getchar.h"
+#include "nvim/mark.h"
 #include "nvim/math.h"
 #include "nvim/mbyte.h"
+#include "nvim/memfile.h"
+#include "nvim/memline.h"
 #include "nvim/memory.h"
 #include "nvim/message.h"
+#include "nvim/move.h"
+#include "nvim/ops.h"
 #include "nvim/option.h"
+#include "nvim/os/os.h"
+#include "nvim/os/shell.h"
+#include "nvim/os_unix.h"
+#include "nvim/path.h"
+#include "nvim/quickfix.h"
+#include "nvim/regexp.h"
+#include "nvim/screen.h"
+#include "nvim/search.h"
+#include "nvim/spell.h"
 #include "nvim/strings.h"
-#include "nvim/types.h"
+#include "nvim/syntax.h"
+#include "nvim/tag.h"
 #include "nvim/vim.h"
+#include "nvim/window.h"
 
 /// Copy up to `len` bytes of `string` into newly allocated memory and
 /// terminate with a NUL. The allocated memory always has size `len + 1`, even
@@ -41,7 +60,7 @@ char *xstrnsave(const char *string, size_t len)
 
 // Same as vim_strsave(), but any characters found in esc_chars are preceded
 // by a backslash.
-char *vim_strsave_escaped(const char *string, const char *esc_chars)
+char_u *vim_strsave_escaped(const char_u *string, const char_u *esc_chars)
   FUNC_ATTR_NONNULL_RET FUNC_ATTR_MALLOC FUNC_ATTR_NONNULL_ALL
 {
   return vim_strsave_escaped_ext(string, esc_chars, '\\', false);
@@ -50,36 +69,36 @@ char *vim_strsave_escaped(const char *string, const char *esc_chars)
 // Same as vim_strsave_escaped(), but when "bsl" is true also escape
 // characters where rem_backslash() would remove the backslash.
 // Escape the characters with "cc".
-char *vim_strsave_escaped_ext(const char *string, const char *esc_chars, char cc, bool bsl)
+char_u *vim_strsave_escaped_ext(const char_u *string, const char_u *esc_chars, char_u cc, bool bsl)
   FUNC_ATTR_NONNULL_RET FUNC_ATTR_MALLOC FUNC_ATTR_NONNULL_ALL
 {
   // First count the number of backslashes required.
   // Then allocate the memory and insert them.
   size_t length = 1;                    // count the trailing NUL
-  for (const char *p = string; *p; p++) {
-    const size_t l = (size_t)(utfc_ptr2len(p));
+  for (const char_u *p = string; *p; p++) {
+    const size_t l = (size_t)(utfc_ptr2len((char *)p));
     if (l > 1) {
       length += l;                      // count a multibyte char
       p += l - 1;
       continue;
     }
-    if (vim_strchr(esc_chars, (uint8_t)(*p)) != NULL || (bsl && rem_backslash(p))) {
+    if (vim_strchr((char *)esc_chars, *p) != NULL || (bsl && rem_backslash((char *)p))) {
       length++;                         // count a backslash
     }
     length++;                           // count an ordinary char
   }
 
-  char *escaped_string = xmalloc(length);
-  char *p2 = escaped_string;
-  for (const char *p = string; *p; p++) {
-    const size_t l = (size_t)(utfc_ptr2len(p));
+  char_u *escaped_string = xmalloc(length);
+  char_u *p2 = escaped_string;
+  for (const char_u *p = string; *p; p++) {
+    const size_t l = (size_t)(utfc_ptr2len((char *)p));
     if (l > 1) {
       memcpy(p2, p, l);
       p2 += l;
       p += l - 1;                     // skip multibyte char
       continue;
     }
-    if (vim_strchr(esc_chars, (uint8_t)(*p)) != NULL || (bsl && rem_backslash(p))) {
+    if (vim_strchr((char *)esc_chars, *p) != NULL || (bsl && rem_backslash((char *)p))) {
       *p2++ = cc;
     }
     *p2++ = *p;
@@ -137,20 +156,19 @@ char *vim_strnsave_unquoted(const char *const string, const size_t length)
   return ret;
 }
 
-/// Escape "string" for use as a shell argument with system().
-/// This uses single quotes, except when we know we need to use double quotes
-/// (MS-Windows without 'shellslash' set).
-/// Escape a newline, depending on the 'shell' option.
-/// When "do_special" is true also replace "!", "%", "#" and things starting
-/// with "<" like "<cfile>".
-/// When "do_newline" is false do not escape newline unless it is csh shell.
-///
-/// @return  the result in allocated memory.
-char *vim_strsave_shellescape(const char *string, bool do_special, bool do_newline)
+// Escape "string" for use as a shell argument with system().
+// This uses single quotes, except when we know we need to use double quotes
+// (MS-Windows without 'shellslash' set).
+// Escape a newline, depending on the 'shell' option.
+// When "do_special" is true also replace "!", "%", "#" and things starting
+// with "<" like "<cfile>".
+// When "do_newline" is false do not escape newline unless it is csh shell.
+// Returns the result in allocated memory.
+char_u *vim_strsave_shellescape(const char_u *string, bool do_special, bool do_newline)
   FUNC_ATTR_NONNULL_RET FUNC_ATTR_MALLOC FUNC_ATTR_NONNULL_ALL
 {
   char *d;
-  char *escaped_string;
+  char_u *escaped_string;
   size_t l;
   int csh_like;
   bool fish_like;
@@ -166,8 +184,8 @@ char *vim_strsave_shellescape(const char *string, bool do_special, bool do_newli
   fish_like = fish_like_shell();
 
   // First count the number of extra bytes required.
-  size_t length = strlen(string) + 3;       // two quotes and a trailing NUL
-  for (const char *p = string; *p != NUL; MB_PTR_ADV(p)) {
+  size_t length = STRLEN(string) + 3;       // two quotes and a trailing NUL
+  for (const char_u *p = string; *p != NUL; MB_PTR_ADV(p)) {
 #ifdef MSWIN
     if (!p_ssl) {
       if (*p == '"') {
@@ -196,7 +214,7 @@ char *vim_strsave_shellescape(const char *string, bool do_special, bool do_newli
 
   // Allocate memory for the result and fill it.
   escaped_string = xmalloc(length);
-  d = escaped_string;
+  d = (char *)escaped_string;
 
   // add opening quote
 #ifdef MSWIN
@@ -206,7 +224,7 @@ char *vim_strsave_shellescape(const char *string, bool do_special, bool do_newli
 #endif
   *d++ = '\'';
 
-  for (const char *p = string; *p != NUL;) {
+  for (const char *p = (char *)string; *p != NUL;) {
 #ifdef MSWIN
     if (!p_ssl) {
       if (*p == '"') {
@@ -234,7 +252,7 @@ char *vim_strsave_shellescape(const char *string, bool do_special, bool do_newli
       *d++ = *p++;
       continue;
     }
-    if (do_special && find_cmdline_var(p, &l) >= 0) {
+    if (do_special && find_cmdline_var((char_u *)p, &l) >= 0) {
       *d++ = '\\';                    // insert backslash
       while (--l != SIZE_MAX) {  // copy the var
         *d++ = *p++;
@@ -264,14 +282,14 @@ char *vim_strsave_shellescape(const char *string, bool do_special, bool do_newli
 
 // Like vim_strsave(), but make all characters uppercase.
 // This uses ASCII lower-to-upper case translation, language independent.
-char *vim_strsave_up(const char *string)
+char_u *vim_strsave_up(const char_u *string)
   FUNC_ATTR_NONNULL_RET FUNC_ATTR_MALLOC FUNC_ATTR_NONNULL_ALL
 {
   char *p1;
 
-  p1 = xstrdup(string);
-  vim_strup(p1);
-  return p1;
+  p1 = xstrdup((char *)string);
+  vim_strup((char_u *)p1);
+  return (char_u *)p1;
 }
 
 /// Like xstrnsave(), but make all characters uppercase.
@@ -280,17 +298,17 @@ char *vim_strnsave_up(const char *string, size_t len)
   FUNC_ATTR_NONNULL_RET FUNC_ATTR_MALLOC FUNC_ATTR_NONNULL_ALL
 {
   char *p1 = xstrnsave(string, len);
-  vim_strup(p1);
+  vim_strup((char_u *)p1);
   return p1;
 }
 
 // ASCII lower-to-upper case translation, language independent.
-void vim_strup(char *p)
+void vim_strup(char_u *p)
   FUNC_ATTR_NONNULL_ALL
 {
-  uint8_t c;
-  while ((c = (uint8_t)(*p)) != NUL) {
-    *p++ = (char)(uint8_t)(c < 'a' || c > 'z' ? c : c - 0x20);
+  char_u c;
+  while ((c = *p) != NUL) {
+    *p++ = (char_u)(c < 'a' || c > 'z' ? c : c - 0x20);
   }
 }
 
@@ -313,7 +331,7 @@ char *strcase_save(const char *const orig, bool upper)
     int l = utf_ptr2len(p);
     if (c == 0) {
       // overlong sequence, use only the first byte
-      c = (uint8_t)(*p);
+      c = (char_u)(*p);
       l = 1;
     }
     int uc = upper ? mb_toupper(c) : mb_tolower(c);
@@ -339,12 +357,12 @@ char *strcase_save(const char *const orig, bool upper)
 }
 
 // delete spaces at the end of a string
-void del_trailing_spaces(char *ptr)
+void del_trailing_spaces(char_u *ptr)
   FUNC_ATTR_NONNULL_ALL
 {
-  char *q;
+  char_u *q;
 
-  q = ptr + strlen(ptr);
+  q = ptr + STRLEN(ptr);
   while (--q > ptr && ascii_iswhite(q[0]) && q[-1] != '\\' && q[-1] != Ctrl_V) {
     *q = NUL;
   }
@@ -372,7 +390,7 @@ int vim_stricmp(const char *s1, const char *s2)
   int i;
 
   for (;;) {
-    i = (int)TOLOWER_LOC((uint8_t)(*s1)) - (int)TOLOWER_LOC((uint8_t)(*s2));
+    i = (int)TOLOWER_LOC(*s1) - (int)TOLOWER_LOC(*s2);
     if (i != 0) {
       return i;                             // this character different
     }
@@ -396,7 +414,7 @@ int vim_strnicmp(const char *s1, const char *s2, size_t len)
   int i;
 
   while (len > 0) {
-    i = (int)TOLOWER_LOC((uint8_t)(*s1)) - (int)TOLOWER_LOC((uint8_t)(*s2));
+    i = (int)TOLOWER_LOC(*s1) - (int)TOLOWER_LOC(*s2);
     if (i != 0) {
       return i;                             // this character different
     }
@@ -452,14 +470,14 @@ void sort_strings(char **files, int count)
 
 // Return true if string "s" contains a non-ASCII character (128 or higher).
 // When "s" is NULL false is returned.
-bool has_non_ascii(const char *s)
+bool has_non_ascii(const char_u *s)
   FUNC_ATTR_PURE
 {
-  const char *p;
+  const char_u *p;
 
   if (s != NULL) {
     for (p = s; *p != NUL; p++) {
-      if ((uint8_t)(*p) >= 128) {
+      if (*p >= 128) {
         return true;
       }
     }
@@ -586,9 +604,10 @@ static const void *tv_ptr(const typval_T *const tvs, int *const idxp)
   if (tvs[idx].v_type == VAR_UNKNOWN) {
     emsg(_(e_printf));
     return NULL;
+  } else {
+    (*idxp)++;
+    return tvs[idx].vval.v_string;
   }
-  (*idxp)++;
-  return tvs[idx].vval.v_string;
 }
 
 /// Get float argument from idxp entry in tvs
@@ -946,18 +965,18 @@ int vim_vsnprintf_typval(char *str, size_t str_m, const char *fmt, va_list ap, t
                                  - str_arg);
           }
           if (fmt_spec == 'S') {
-            char *p1;
+            char_u *p1;
             size_t i;
 
-            for (i = 0, p1 = (char *)str_arg; *p1; p1 += utfc_ptr2len(p1)) {
-              size_t cell = (size_t)utf_ptr2cells(p1);
+            for (i = 0, p1 = (char_u *)str_arg; *p1; p1 += utfc_ptr2len((char *)p1)) {
+              size_t cell = (size_t)utf_ptr2cells((char *)p1);
               if (precision_specified && i + cell > precision) {
                 break;
               }
               i += cell;
             }
 
-            str_arg_l = (size_t)(p1 - str_arg);
+            str_arg_l = (size_t)(p1 - (char_u *)str_arg);
             if (min_field_width != 0) {
               min_field_width += str_arg_l - i;
             }
@@ -1016,11 +1035,13 @@ int vim_vsnprintf_typval(char *str, size_t str_m, const char *fmt, va_list ap, t
                     : va_arg(ap, long long));  // NOLINT (runtime/int)
             break;
           case 'z':
-            arg = (tvs ? (ptrdiff_t)tv_nr(tvs, &arg_idx) : va_arg(ap, ptrdiff_t));
+            arg = (tvs
+                       ? (ptrdiff_t)tv_nr(tvs, &arg_idx)
+                       : va_arg(ap, ptrdiff_t));
             break;
           }
           if (arg > 0) {
-            arg_sign = 1;
+            arg_sign =  1;
           } else if (arg < 0) {
             arg_sign = -1;
           }
@@ -1028,13 +1049,19 @@ int vim_vsnprintf_typval(char *str, size_t str_m, const char *fmt, va_list ap, t
           // unsigned
           switch (length_modifier) {
           case '\0':
-            uarg = (unsigned int)(tvs ? tv_nr(tvs, &arg_idx) : va_arg(ap, unsigned int));
+            uarg = (unsigned int)(tvs
+                                      ? tv_nr(tvs, &arg_idx)
+                                      : va_arg(ap, unsigned int));
             break;
           case 'h':
-            uarg = (uint16_t)(tvs ? tv_nr(tvs, &arg_idx) : va_arg(ap, unsigned int));
+            uarg = (uint16_t)(tvs
+                                  ? tv_nr(tvs, &arg_idx)
+                                  : va_arg(ap, unsigned int));
             break;
           case 'l':
-            uarg = (tvs ? (unsigned long)tv_nr(tvs, &arg_idx) : va_arg(ap, unsigned long));
+            uarg = (tvs
+                        ? (unsigned long)tv_nr(tvs, &arg_idx)
+                        : va_arg(ap, unsigned long));
             break;
           case '2':
             uarg = (uintmax_t)(unsigned long long)(  // NOLINT (runtime/int)
@@ -1044,7 +1071,9 @@ int vim_vsnprintf_typval(char *str, size_t str_m, const char *fmt, va_list ap, t
                     : va_arg(ap, unsigned long long));  // NOLINT (runtime/int)
             break;
           case 'z':
-            uarg = (tvs ? (size_t)tv_nr(tvs, &arg_idx) : va_arg(ap, size_t));
+            uarg = (tvs
+                        ? (size_t)tv_nr(tvs, &arg_idx)
+                        : va_arg(ap, size_t));
             break;
           }
           arg_sign = (uarg != 0);

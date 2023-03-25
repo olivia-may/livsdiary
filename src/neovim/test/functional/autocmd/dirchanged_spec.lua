@@ -1,12 +1,12 @@
 local lfs = require('lfs')
-local helpers = require('test.functional.helpers')(after_each)
+local h = require('test.functional.helpers')(after_each)
 
-local clear = helpers.clear
-local command = helpers.command
-local eq = helpers.eq
-local eval = helpers.eval
-local request = helpers.request
-local is_os = helpers.is_os
+local clear = h.clear
+local command = h.command
+local eq = h.eq
+local eval = h.eval
+local request = h.request
+local iswin = h.iswin
 
 describe('autocmd DirChanged and DirChangedPre', function()
   local curdir = string.gsub(lfs.currentdir(), '\\', '/')
@@ -21,8 +21,8 @@ describe('autocmd DirChanged and DirChangedPre', function()
     curdir .. '\\XTEST-FUNCTIONAL-AUTOCMD-DIRCHANGED.DIR3',
   }
 
-  setup(function()    for _, dir in pairs(dirs) do helpers.mkdir(dir) end end)
-  teardown(function() for _, dir in pairs(dirs) do helpers.rmdir(dir) end end)
+  setup(function()    for _, dir in pairs(dirs) do h.mkdir(dir) end end)
+  teardown(function() for _, dir in pairs(dirs) do h.rmdir(dir) end end)
 
   before_each(function()
     clear()
@@ -159,7 +159,7 @@ describe('autocmd DirChanged and DirChangedPre', function()
     eq(1, eval('g:cdprecount'))
     eq(1, eval('g:cdcount'))
 
-    if is_os('win') then
+    if iswin() then
       command('lcd '..win_dirs[1])
       eq({}, eval('g:evpre'))
       eq({}, eval('g:ev'))
@@ -182,7 +182,7 @@ describe('autocmd DirChanged and DirChangedPre', function()
     eq(2, eval('g:cdprecount'))
     eq(2, eval('g:cdcount'))
 
-    if is_os('win') then
+    if iswin() then
       command('tcd '..win_dirs[2])
       eq({}, eval('g:evpre'))
       eq({}, eval('g:ev'))
@@ -204,7 +204,7 @@ describe('autocmd DirChanged and DirChangedPre', function()
     eq(3, eval('g:cdprecount'))
     eq(3, eval('g:cdcount'))
 
-    if is_os('win') then
+    if iswin() then
       command('cd '..win_dirs[3])
       eq({}, eval('g:evpre'))
       eq({}, eval('g:ev'))
@@ -229,7 +229,7 @@ describe('autocmd DirChanged and DirChangedPre', function()
     eq(4, eval('g:cdprecount'))
     eq(4, eval('g:cdcount'))
 
-    if is_os('win') then
+    if iswin() then
       command('split '..win_dirs[1]..'/baz')
       eq({}, eval('g:evpre'))
       eq({}, eval('g:ev'))
@@ -278,7 +278,7 @@ describe('autocmd DirChanged and DirChangedPre', function()
     eq(9, eval('g:cdprecount'))         -- same CWD, no DirChangedPre event
     eq(9, eval('g:cdcount'))            -- same CWD, no DirChanged event
 
-    if is_os('win') then
+    if iswin() then
       command('tabnew')                 -- tab 3
       eq(9, eval('g:cdprecount'))       -- same CWD, no DirChangedPre event
       eq(9, eval('g:cdcount'))          -- same CWD, no DirChanged event

@@ -51,7 +51,7 @@ local function test_embed(ext_linegrid)
   end)
 
   it("doesn't erase output when setting color scheme", function()
-    if helpers.is_os('openbsd') then
+    if 'openbsd' == helpers.uname() then
       pending('FIXME #10804')
     end
     startup('--cmd', 'echoerr "foo"', '--cmd', 'color default', '--cmd', 'echoerr "bar"')
@@ -81,6 +81,20 @@ local function test_embed(ext_linegrid)
     ]], condition=function()
       eq(Screen.colors.Green, screen.default_colors.rgb_bg)
     end}
+  end)
+
+  it("set display-=msgsep before first redraw", function()
+    startup('--cmd', 'set display-=msgsep')
+    screen:expect{grid=[[
+      ^                                                            |
+      {3:~                                                           }|
+      {3:~                                                           }|
+      {3:~                                                           }|
+      {3:~                                                           }|
+      {3:~                                                           }|
+      {3:~                                                           }|
+                                                                  |
+    ]]}
   end)
 end
 

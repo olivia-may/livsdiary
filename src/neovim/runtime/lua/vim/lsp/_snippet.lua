@@ -483,7 +483,7 @@ end)
 local M = {}
 
 ---The snippet node type enum
----@types table<string, integer>
+---@types table<string, number>
 M.NodeType = Node.Type
 
 ---Parse snippet string and returns the AST

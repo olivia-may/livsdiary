@@ -2,31 +2,26 @@
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
+#include <limits.h>
+#include <stdlib.h>
 
-#include "klib/kvec.h"
 #include "nvim/api/private/converter.h"
 #include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
 #include "nvim/api/vimscript.h"
 #include "nvim/ascii.h"
-#include "nvim/buffer_defs.h"
+#include "nvim/autocmd.h"
 #include "nvim/eval.h"
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/eval/userfunc.h"
 #include "nvim/ex_docmd.h"
-#include "nvim/garray.h"
-#include "nvim/globals.h"
-#include "nvim/memory.h"
-#include "nvim/pos.h"
+#include "nvim/ops.h"
 #include "nvim/runtime.h"
+#include "nvim/strings.h"
 #include "nvim/vim.h"
 #include "nvim/viml/parser/expressions.h"
 #include "nvim/viml/parser/parser.h"
+#include "nvim/window.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "api/vimscript.c.generated.h"
@@ -137,36 +132,34 @@ Object nvim_eval(String expr, Error *err)
   static int recursive = 0;  // recursion depth
   Object rv = OBJECT_INIT;
 
-  // Initialize `force_abort`  and `suppress_errthrow` at the top level.
-  if (!recursive) {
-    force_abort = false;
-    suppress_errthrow = false;
-    did_throw = false;
-    // `did_emsg` is set by emsg(), which cancels execution.
-    did_emsg = false;
-  }
-
-  recursive++;
-
-  typval_T rettv;
-  int ok;
-
-  TRY_WRAP(err, {
-    ok = eval0(expr.data, &rettv, NULL, true);
-  });
-
-  if (!ERROR_SET(err)) {
-    if (ok == FAIL) {
-      // Should never happen, try_end() (in TRY_WRAP) should get the error. #8371
-      api_set_error(err, kErrorTypeException,
-                    "Failed to evaluate expression: '%.*s'", 256, expr.data);
-    } else {
-      rv = vim_to_object(&rettv);
+  TRY_WRAP({
+    // Initialize `force_abort`  and `suppress_errthrow` at the top level.
+    if (!recursive) {
+      force_abort = false;
+      suppress_errthrow = false;
+      did_throw = false;
+      // `did_emsg` is set by emsg(), which cancels execution.
+      did_emsg = false;
     }
-  }
+    recursive++;
+    try_start();
 
-  tv_clear(&rettv);
-  recursive--;
+    typval_T rettv;
+    int ok = eval0(expr.data, &rettv, NULL, true);
+
+    if (!try_end(err)) {
+      if (ok == FAIL) {
+        // Should never happen, try_end() should get the error. #8371
+        api_set_error(err, kErrorTypeException,
+                      "Failed to evaluate expression: '%.*s'", 256, expr.data);
+      } else {
+        rv = vim_to_object(&rettv);
+      }
+    }
+
+    tv_clear(&rettv);
+    recursive--;
+  });
 
   return rv;
 }
@@ -198,36 +191,33 @@ static Object _call_function(String fn, Array args, dict_T *self, Error *err)
     }
   }
 
-  // Initialize `force_abort`  and `suppress_errthrow` at the top level.
-  if (!recursive) {
-    force_abort = false;
-    suppress_errthrow = false;
-    did_throw = false;
-    // `did_emsg` is set by emsg(), which cancels execution.
-    did_emsg = false;
-  }
-  recursive++;
-
-  typval_T rettv;
-  funcexe_T funcexe = FUNCEXE_INIT;
-  funcexe.fe_firstline = curwin->w_cursor.lnum;
-  funcexe.fe_lastline = curwin->w_cursor.lnum;
-  funcexe.fe_evaluate = true;
-  funcexe.fe_selfdict = self;
-
-  TRY_WRAP(err, {
+  TRY_WRAP({
+    // Initialize `force_abort`  and `suppress_errthrow` at the top level.
+    if (!recursive) {
+      force_abort = false;
+      suppress_errthrow = false;
+      did_throw = false;
+      // `did_emsg` is set by emsg(), which cancels execution.
+      did_emsg = false;
+    }
+    recursive++;
+    try_start();
+    typval_T rettv;
+    funcexe_T funcexe = FUNCEXE_INIT;
+    funcexe.fe_firstline = curwin->w_cursor.lnum;
+    funcexe.fe_lastline = curwin->w_cursor.lnum;
+    funcexe.fe_evaluate = true;
+    funcexe.fe_selfdict = self;
     // call_func() retval is deceptive, ignore it.  Instead we set `msg_list`
     // (see above) to capture abort-causing non-exception errors.
     (void)call_func(fn.data, (int)fn.size, &rettv, (int)args.size,
                     vim_args, &funcexe);
+    if (!try_end(err)) {
+      rv = vim_to_object(&rettv);
+    }
+    tv_clear(&rettv);
+    recursive--;
   });
-
-  if (!ERROR_SET(err)) {
-    rv = vim_to_object(&rettv);
-  }
-
-  tv_clear(&rettv);
-  recursive--;
 
 free_vim_args:
   while (i > 0) {
@@ -542,7 +532,7 @@ Dictionary nvim_parse_expression(String expr, String flags, Boolean highlight, E
       kv_drop(ast_conv_stack, 1);
     } else {
       if (cur_item.ret_node_p->type == kObjectTypeNil) {
-        size_t items_size = (size_t)(3  // "type", "start" and "len"  // NOLINT(bugprone-misplaced-widening-cast)
+        size_t items_size = (size_t)(3  // "type", "start" and "len"
                                      + (node->children != NULL)  // "children"
                                      + (node->type == kExprNodeOption
                                         || node->type == kExprNodePlainIdentifier)  // "scope"

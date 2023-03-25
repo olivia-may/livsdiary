@@ -10,7 +10,6 @@
 --    secure=nil, gettext=nil, noglob=nil, normal_fname_chars=nil,
 --    pri_mkrc=nil, deny_in_modelines=nil, normal_dname_chars=nil,
 --    modelineexpr=nil,
---    func=nil,
 --    expand=nil, nodefault=nil, no_mkrc=nil,
 --    alloced=nil,
 --    save_pv_indir=nil,
@@ -20,8 +19,8 @@
 -- types: bool, number, string
 -- lists: (nil), comma, onecomma, flags, flagscomma
 -- scopes: global, buffer, window
--- redraw options: statuslines, tabline, current_window, current_window_only,
---                 current_buffer, all_windows, curswant
+-- redraw options: statuslines, current_window, curent_window_only,
+--                 current_buffer, all_windows, everything, curswant
 -- defaults: {condition=#if condition, if_true=default, if_false=default}
 -- #if condition:
 --    string: #ifdef string
@@ -55,6 +54,8 @@ return {
       full_name='aleph', abbreviation='al',
       short_desc=N_("ASCII code of the letter Aleph (Hebrew)"),
       type='number', scope={'global'},
+      redraw={'curswant'},
+      varname='p_aleph',
       defaults={if_true=224}
     },
     {
@@ -127,6 +128,7 @@ return {
       full_name='background', abbreviation='bg',
       short_desc=N_("\"dark\" or \"light\", used for highlight colors"),
       type='string', scope={'global'},
+      redraw={'all_windows'},
       varname='p_bg',
       defaults={if_true="dark"}
     },
@@ -393,6 +395,7 @@ return {
       short_desc=N_("number of columns in the display"),
       type='number', scope={'global'},
       no_mkrc=true,
+      redraw={'everything'},
       varname='p_columns',
       defaults={if_true=macros('DFLT_COLS')}
     },
@@ -419,6 +422,7 @@ return {
       full_name='compatible', abbreviation='cp',
       short_desc=N_("No description"),
       type='bool', scope={'global'},
+      redraw={'all_windows'},
       varname='p_force_off',
       -- pri_mkrc isn't needed here, optval_default()
       -- always returns TRUE for 'compatible'
@@ -454,7 +458,6 @@ return {
       type='string', scope={'buffer'},
       secure=true,
       alloced=true,
-      func=true,
       varname='p_cfu',
       defaults={if_true=""}
     },
@@ -494,6 +497,58 @@ return {
       redraw={'all_windows'},
       varname='p_cpo',
       defaults={if_true=macros('CPO_VIM')}
+    },
+    {
+      full_name='cscopepathcomp', abbreviation='cspc',
+      short_desc=N_("how many components of the path to show"),
+      type='number', scope={'global'},
+      varname='p_cspc',
+      defaults={if_true=0}
+    },
+    {
+      full_name='cscopeprg', abbreviation='csprg',
+      short_desc=N_("command to execute cscope"),
+      type='string', scope={'global'},
+      secure=true,
+      expand=true,
+      varname='p_csprg',
+      defaults={if_true="cscope"}
+    },
+    {
+      full_name='cscopequickfix', abbreviation='csqf',
+      short_desc=N_("use quickfix window for cscope results"),
+      type='string', list='onecomma', scope={'global'},
+      deny_duplicates=true,
+      varname='p_csqf',
+      defaults={if_true=""}
+    },
+    {
+      full_name='cscoperelative', abbreviation='csre',
+      short_desc=N_("Use cscope.out path basename as prefix"),
+      type='bool', scope={'global'},
+      varname='p_csre',
+      defaults={if_true=0}
+    },
+    {
+      full_name='cscopetag', abbreviation='cst',
+      short_desc=N_("use cscope for tag commands"),
+      type='bool', scope={'global'},
+      varname='p_cst',
+      defaults={if_true=0}
+    },
+    {
+      full_name='cscopetagorder', abbreviation='csto',
+      short_desc=N_("determines \":cstag\" search order"),
+      type='number', scope={'global'},
+      varname='p_csto',
+      defaults={if_true=0}
+    },
+    {
+      full_name='cscopeverbose', abbreviation='csverb',
+      short_desc=N_("give messages when adding a cscope database"),
+      type='bool', scope={'global'},
+      varname='p_csverbose',
+      defaults={if_true=1}
     },
     {
       full_name='cursorbind', abbreviation='crb',
@@ -608,7 +663,7 @@ return {
       deny_duplicates=true,
       redraw={'all_windows'},
       varname='p_dy',
-      defaults={if_true="lastline"}
+      defaults={if_true="lastline,msgsep"}
     },
     {
       full_name='eadirection', abbreviation='ead',
@@ -641,15 +696,6 @@ return {
       defaults={if_true=macros('ENC_DFLT')}
     },
     {
-      full_name='endoffile', abbreviation='eof',
-      short_desc=N_("write CTRL-Z for last line in file"),
-      type='bool', scope={'buffer'},
-      no_mkrc=true,
-      redraw={'statuslines'},
-      varname='p_eof',
-      defaults={if_true=false}
-    },
-    {
       full_name='endofline', abbreviation='eol',
       short_desc=N_("write <EOL> for last line in file"),
       type='bool', scope={'buffer'},
@@ -662,6 +708,7 @@ return {
       full_name='equalalways', abbreviation='ea',
       short_desc=N_("windows are automatically made the same size"),
       type='bool', scope={'global'},
+      redraw={'all_windows'},
       varname='p_ea',
       defaults={if_true=true}
     },
@@ -1004,6 +1051,7 @@ return {
       full_name='guioptions', abbreviation='go',
       short_desc=N_("GUI: Which components and options are used"),
       type='string', list='flags', scope={'global'},
+      redraw={'all_windows'},
       enable_if=false,
     },
     {
@@ -1069,16 +1117,16 @@ return {
     },
     {
       full_name='hkmap', abbreviation='hk',
-      short_desc=N_("No description"),
+      short_desc=N_("Hebrew keyboard mapping"),
       type='bool', scope={'global'},
-      varname='p_force_off',
+      varname='p_hkmap',
       defaults={if_true=false}
     },
     {
       full_name='hkmapp', abbreviation='hkp',
-      short_desc=N_("No description"),
+      short_desc=N_("phonetic Hebrew keyboard mapping"),
       type='bool', scope={'global'},
-      varname='p_force_off',
+      varname='p_hkmapp',
       defaults={if_true=false}
     },
     {
@@ -1147,6 +1195,7 @@ return {
       full_name='inccommand', abbreviation='icm',
       short_desc=N_("Live preview of substitution"),
       type='string', scope={'global'},
+      redraw={'all_windows'},
       varname='p_icm',
       defaults={if_true="nosplit"}
     },
@@ -1354,6 +1403,7 @@ return {
       short_desc=N_("of lines in the display"),
       type='number', scope={'global'},
       no_mkrc=true,
+      redraw={'everything'},
       varname='p_lines',
       defaults={if_true=macros('DFLT_ROWS')}
     },
@@ -1371,14 +1421,6 @@ return {
       type='bool', scope={'buffer'},
       varname='p_lisp',
       defaults={if_true=false}
-    },
-    {
-      full_name='lispoptions', abbreviation='lop',
-      short_desc=N_("options for lisp indenting"),
-      type='string', list='onecomma', scope={'buffer'},
-      deny_duplicates=true,
-      varname='p_lop', pv_name='p_lop',
-      defaults={if_true=''}
     },
     {
       full_name='lispwords', abbreviation='lw',
@@ -1638,7 +1680,6 @@ return {
       type='string', scope={'buffer'},
       secure=true,
       alloced=true,
-      func=true,
       varname='p_ofu',
       defaults={if_true=""}
     },
@@ -1654,7 +1695,6 @@ return {
       short_desc=N_("function to be called for |g@| operator"),
       type='string', scope={'global'},
       secure=true,
-      func=true,
       varname='p_opfunc',
       defaults={if_true=""}
     },
@@ -1685,8 +1725,9 @@ return {
     },
     {
       full_name='pastetoggle', abbreviation='pt',
-      short_desc=N_("No description"),
+      short_desc=N_("key code that causes 'paste' to toggle"),
       type='string', scope={'global'},
+      varname='p_pt',
       defaults={if_true=""}
     },
     {
@@ -1737,6 +1778,65 @@ return {
       defaults={if_true=false}
     },
     {
+      full_name='printdevice', abbreviation='pdev',
+      short_desc=N_("name of the printer to be used for :hardcopy"),
+      type='string', scope={'global'},
+      secure=true,
+      varname='p_pdev',
+      defaults={if_true=""}
+    },
+    {
+      full_name='printencoding', abbreviation='penc',
+      short_desc=N_("encoding to be used for printing"),
+      type='string', scope={'global'},
+      varname='p_penc',
+      defaults={if_true=""}
+    },
+    {
+      full_name='printexpr', abbreviation='pexpr',
+      short_desc=N_("expression used to print PostScript for :hardcopy"),
+      type='string', scope={'global'},
+      secure=true,
+      varname='p_pexpr',
+      defaults={if_true=""}
+    },
+    {
+      full_name='printfont', abbreviation='pfn',
+      short_desc=N_("name of the font to be used for :hardcopy"),
+      type='string', scope={'global'},
+      varname='p_pfn',
+      defaults={if_true="courier"}
+    },
+    {
+      full_name='printheader', abbreviation='pheader',
+      short_desc=N_("format of the header used for :hardcopy"),
+      type='string', scope={'global'},
+      varname='p_header',
+      defaults={if_true="%<%f%h%m%=Page %N"}
+    },
+    {
+      full_name='printmbcharset', abbreviation='pmbcs',
+      short_desc=N_("CJK character set to be used for :hardcopy"),
+      type='string', scope={'global'},
+      varname='p_pmcs',
+      defaults={if_true=""}
+    },
+    {
+      full_name='printmbfont', abbreviation='pmbfn',
+      short_desc=N_("font names to be used for CJK output of :hardcopy"),
+      type='string', scope={'global'},
+      varname='p_pmfn',
+      defaults={if_true=""}
+    },
+    {
+      full_name='printoptions', abbreviation='popt',
+      short_desc=N_("controls the format of :hardcopy output"),
+      type='string', list='onecomma', scope={'global'},
+      deny_duplicates=true,
+      varname='p_popt',
+      defaults={if_true=""}
+    },
+    {
       full_name='prompt',
       short_desc=N_("enable prompt in Ex mode"),
       type='bool', scope={'global'},
@@ -1777,8 +1877,6 @@ return {
       full_name='quickfixtextfunc', abbreviation='qftf',
       short_desc=N_("customize the quickfix window"),
       type='string', scope={'global'},
-      secure=true,
-      func=true,
       varname='p_qftf',
       defaults={if_true=""}
     },
@@ -1925,6 +2023,7 @@ return {
       full_name='scrolloff', abbreviation='so',
       short_desc=N_("minimum nr. of lines above and below cursor"),
       type='number', scope={'global', 'window'},
+      redraw={'all_windows'},
       varname='p_so',
       defaults={if_true=0}
     },
@@ -1945,7 +2044,7 @@ return {
     },
     {
       full_name='secure',
-      short_desc=N_("No description"),
+      short_desc=N_("mode for reading .vimrc in current dir"),
       type='bool', scope={'global'},
       secure=true,
       varname='p_secure',
@@ -2026,7 +2125,7 @@ return {
       varname='p_sp',
       defaults={
         condition='MSWIN',
-        if_true="2>&1| tee",
+        if_true=">%s 2>&1",
         if_false="| tee",
       }
     },
@@ -2122,13 +2221,6 @@ return {
       defaults={if_true=true}
     },
     {
-      full_name='showcmdloc', abbreviation='sloc',
-      short_desc=N_("change location of partial command"),
-      type='string', scope={'global'},
-      varname='p_sloc',
-      defaults={if_true="last"}
-    },
-    {
       full_name='showfulltag', abbreviation='sft',
       short_desc=N_("show full tag pattern when completing tag"),
       type='bool', scope={'global'},
@@ -2168,6 +2260,7 @@ return {
       full_name='sidescrolloff', abbreviation='siso',
       short_desc=N_("min. nr. of columns to left and right of cursor"),
       type='number', scope={'global', 'window'},
+      redraw={'all_windows'},
       varname='p_siso',
       defaults={if_true=0}
     },
@@ -2273,13 +2366,6 @@ return {
       defaults={if_true=false}
     },
     {
-      full_name='splitkeep', abbreviation='spk',
-      short_desc=N_("determines scroll behavior for split windows"),
-      type='string', scope={'global'},
-      varname='p_spk',
-      defaults={if_true='cursor'}
-    },
-    {
       full_name='splitright', abbreviation='spr',
       short_desc=N_("new window is put right of the current one"),
       type='bool', scope={'global'},
@@ -2293,15 +2379,6 @@ return {
       vim=false,
       varname='p_sol',
       defaults={if_true=false}
-    },
-    {
-      full_name='statuscolumn', abbreviation='stc',
-      short_desc=N_("custom format for the status column"),
-      type='string', scope={'window'},
-      redraw={'current_window'},
-      secure=true,
-      alloced=true,
-      defaults={if_true=""}
     },
     {
       full_name='statusline', abbreviation='stl',
@@ -2368,8 +2445,6 @@ return {
       full_name='tagfunc', abbreviation='tfu',
       short_desc=N_("function used to perform tag searches"),
       type='string', scope={'buffer'},
-      secure=true,
-      func=true,
       varname='p_tfu',
       defaults={if_true=""}
     },
@@ -2378,7 +2453,7 @@ return {
       short_desc=N_("custom format for the console tab pages line"),
       type='string', scope={'global'},
       modelineexpr=true,
-      redraw={'tabline'},
+      redraw={'all_windows'},
       varname='p_tal',
       defaults={if_true=""}
     },
@@ -2500,7 +2575,6 @@ return {
       type='string', scope={'global', 'buffer'},
       secure=true,
       alloced=true,
-      func=true,
       varname='p_tsrfu',
       defaults={if_true=""}
     },
@@ -2644,7 +2718,7 @@ return {
       full_name='verbose', abbreviation='vbs',
       short_desc=N_("give informative messages"),
       type='number', scope={'global'},
-      varname='p_verbose', redraw={'ui_option'},
+      varname='p_verbose',
       defaults={if_true=0}
     },
     {

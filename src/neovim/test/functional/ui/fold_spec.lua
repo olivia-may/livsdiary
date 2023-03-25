@@ -7,8 +7,7 @@ local insert = helpers.insert
 local expect = helpers.expect
 local funcs = helpers.funcs
 local meths = helpers.meths
-local exec = helpers.exec
-local exec_lua = helpers.exec_lua
+local source = helpers.source
 local assert_alive = helpers.assert_alive
 
 
@@ -29,6 +28,8 @@ describe("folded lines", function()
   local function with_ext_multigrid(multigrid)
     local screen
     before_each(function()
+      clear()
+      command('hi VertSplit gui=reverse')
       screen = Screen.new(45, 8)
       screen:attach({rgb=true, ext_multigrid=multigrid})
       screen:set_default_attr_ids({
@@ -88,10 +89,10 @@ describe("folded lines", function()
     end)
 
     it("highlights with CursorLineFold when 'cursorline' is set", function()
-      command("set number cursorline foldcolumn=2")
+      command("set cursorline foldcolumn=2 foldmethod=marker")
       command("hi link CursorLineFold Search")
       insert(content1)
-      feed("ggzf3jj")
+      feed("zf3j")
       if multigrid then
         screen:expect([[
         ## grid 1
@@ -104,26 +105,26 @@ describe("folded lines", function()
           [2:---------------------------------------------]|
           [3:---------------------------------------------]|
         ## grid 2
-          {7:+ }{8:  1 }{5:+--  4 lines: This is a················}|
-          {6:  }{9:  5 }{12:^in his cave.                           }|
-          {7:  }{8:  6 }                                       |
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
+          {7:  }This is a                                  |
+          {7:  }valid English                              |
+          {7:  }sentence composed by                       |
+          {7:  }an exhausted developer                     |
+          {7:  }in his cave.                               |
+          {6:  }{12:^                                           }|
           {1:~                                            }|
         ## grid 3
                                                        |
         ]])
       else
         screen:expect([[
-          {7:+ }{8:  1 }{5:+--  4 lines: This is a················}|
-          {6:  }{9:  5 }{12:^in his cave.                           }|
-          {7:  }{8:  6 }                                       |
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-                                                       |
+        {7:  }This is a                                  |
+        {7:  }valid English                              |
+        {7:  }sentence composed by                       |
+        {7:  }an exhausted developer                     |
+        {7:  }in his cave.                               |
+        {6:  }{12:^                                           }|
+        {1:~                                            }|
+                                                     |
         ]])
       end
       feed("k")
@@ -139,34 +140,28 @@ describe("folded lines", function()
           [2:---------------------------------------------]|
           [3:---------------------------------------------]|
         ## grid 2
-          {6:+ }{9:  1 }{12:^+--  4 lines: This is a················}|
-          {7:  }{8:  5 }in his cave.                           |
-          {7:  }{8:  6 }                                       |
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
+          {7:  }This is a                                  |
+          {7:  }valid English                              |
+          {7:  }sentence composed by                       |
+          {7:  }an exhausted developer                     |
+          {6:  }{12:^in his cave.                               }|
+          {7:  }                                           |
           {1:~                                            }|
         ## grid 3
                                                        |
         ]])
       else
         screen:expect([[
-          {6:+ }{9:  1 }{12:^+--  4 lines: This is a················}|
-          {7:  }{8:  5 }in his cave.                           |
-          {7:  }{8:  6 }                                       |
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-                                                       |
+        {7:  }This is a                                  |
+        {7:  }valid English                              |
+        {7:  }sentence composed by                       |
+        {7:  }an exhausted developer                     |
+        {6:  }{12:^in his cave.                               }|
+        {7:  }                                           |
+        {1:~                                            }|
+                                                     |
         ]])
       end
-      -- CursorLine is applied correctly with screenrow motions #22232
-      feed("jgk")
-      screen:expect_unchanged(true)
-      -- CursorLine is applied correctly when closing a fold when cursor is not at fold start
-      feed("zo4Gzc")
-      screen:expect_unchanged(true)
       command("set cursorlineopt=line")
       if multigrid then
         screen:expect([[
@@ -180,29 +175,38 @@ describe("folded lines", function()
           [2:---------------------------------------------]|
           [3:---------------------------------------------]|
         ## grid 2
-          {7:+ }{8:  1 }{12:^+--  4 lines: This is a················}|
-          {7:  }{8:  5 }in his cave.                           |
-          {7:  }{8:  6 }                                       |
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
+          {7:  }This is a                                  |
+          {7:  }valid English                              |
+          {7:  }sentence composed by                       |
+          {7:  }an exhausted developer                     |
+          {7:  }{12:^in his cave.                               }|
+          {7:  }                                           |
           {1:~                                            }|
         ## grid 3
                                                        |
         ]])
       else
         screen:expect([[
-          {7:+ }{8:  1 }{12:^+--  4 lines: This is a················}|
-          {7:  }{8:  5 }in his cave.                           |
-          {7:  }{8:  6 }                                       |
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-                                                       |
+        {7:  }This is a                                  |
+        {7:  }valid English                              |
+        {7:  }sentence composed by                       |
+        {7:  }an exhausted developer                     |
+        {7:  }{12:^in his cave.                               }|
+        {7:  }                                           |
+        {1:~                                            }|
+                                                     |
         ]])
       end
-      command("set relativenumber cursorlineopt=number")
+    end)
+
+    it("highlighting with relative line numbers", function()
+      command("set relativenumber cursorline cursorlineopt=number foldmethod=marker")
+      feed_command("set foldcolumn=2")
+      funcs.setline(1, '{{{1')
+      funcs.setline(2, 'line 1')
+      funcs.setline(3, '{{{1')
+      funcs.setline(4, 'line 2')
+      feed("j")
       if multigrid then
         screen:expect([[
         ## grid 1
@@ -215,26 +219,26 @@ describe("folded lines", function()
           [2:---------------------------------------------]|
           [3:---------------------------------------------]|
         ## grid 2
-          {6:+ }{9:1   }{5:^+--  4 lines: This is a················}|
-          {7:  }{8:  1 }in his cave.                           |
-          {7:  }{8:  2 }                                       |
+          {7:+ }{8:  1 }{5:+--  2 lines: ·························}|
+          {7:+ }{9:  0 }{5:^+--  2 lines: ·························}|
+          {1:~                                            }|
           {1:~                                            }|
           {1:~                                            }|
           {1:~                                            }|
           {1:~                                            }|
         ## grid 3
-                                                       |
+          :set foldcolumn=2                            |
         ]])
       else
         screen:expect([[
-          {6:+ }{9:1   }{5:^+--  4 lines: This is a················}|
-          {7:  }{8:  1 }in his cave.                           |
-          {7:  }{8:  2 }                                       |
+          {7:+ }{8:  1 }{5:+--  2 lines: ·························}|
+          {7:+ }{9:  0 }{5:^+--  2 lines: ·························}|
           {1:~                                            }|
           {1:~                                            }|
           {1:~                                            }|
           {1:~                                            }|
-                                                       |
+          {1:~                                            }|
+          :set foldcolumn=2                            |
         ]])
       end
     end)
@@ -1710,7 +1714,7 @@ describe("folded lines", function()
     end)
 
     it('does not crash when foldtext is longer than columns #12988', function()
-      exec([[
+      source([[
         function! MyFoldText() abort
           return repeat('-', &columns + 100)
         endfunction
@@ -1757,7 +1761,7 @@ describe("folded lines", function()
 
     it('work correctly with :move #18668', function()
       screen:try_resize(45, 12)
-      exec([[
+      source([[
         set foldmethod=expr foldexpr=indent(v:lnum)
         let content = ['', '', 'Line1', '  Line2', '  Line3',
               \ 'Line4', '  Line5', '  Line6',
@@ -1887,128 +1891,6 @@ describe("folded lines", function()
           {8:  5 }n his cave.                              |
           {8:  6 }                                         |
           {1:~                                            }|
-          {1:~                                            }|
-                                                       |
-        ]])
-      end
-    end)
-
-    it('fold attached virtual lines are drawn correctly #21837', function()
-      funcs.setline(1, 'line 1')
-      funcs.setline(2, 'line 2')
-      funcs.setline(3, 'line 3')
-      funcs.setline(4, 'line 4')
-      feed("zfj")
-      exec_lua([[
-        local ns = vim.api.nvim_create_namespace("ns")
-        vim.api.nvim_buf_set_extmark(0, ns, 0, 0, { virt_lines_above = true, virt_lines = {{{"virt_line above line 1", ""}}} })
-        vim.api.nvim_buf_set_extmark(0, ns, 1, 0, { virt_lines = {{{"virt_line below line 2", ""}}} })
-        vim.api.nvim_buf_set_extmark(0, ns, 2, 0, { virt_lines_above = true, virt_lines = {{{"virt_line above line 3", ""}}} })
-        vim.api.nvim_buf_set_extmark(0, ns, 3, 0, { virt_lines = {{{"virt_line below line 4", ""}}} })
-      ]])
-      if multigrid then
-        screen:expect([[
-        ## grid 1
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [3:---------------------------------------------]|
-        ## grid 2
-          {5:^+--  2 lines: line 1·························}|
-          virt_line above line 3                       |
-          line 3                                       |
-          line 4                                       |
-          virt_line below line 4                       |
-          {1:~                                            }|
-          {1:~                                            }|
-        ## grid 3
-                                                       |
-        ]])
-      else
-        screen:expect([[
-          {5:^+--  2 lines: line 1·························}|
-          virt_line above line 3                       |
-          line 3                                       |
-          line 4                                       |
-          virt_line below line 4                       |
-          {1:~                                            }|
-          {1:~                                            }|
-                                                       |
-        ]])
-      end
-
-      feed('jzfj')
-      if multigrid then
-        screen:expect([[
-        ## grid 1
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [3:---------------------------------------------]|
-        ## grid 2
-          {5:+--  2 lines: line 1·························}|
-          {5:^+--  2 lines: line 3·························}|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-        ## grid 3
-                                                       |
-        ]])
-      else
-        screen:expect([[
-          {5:+--  2 lines: line 1·························}|
-          {5:^+--  2 lines: line 3·························}|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-          {1:~                                            }|
-                                                       |
-        ]])
-      end
-
-      feed('kzo<C-Y>')
-      funcs.setline(5, 'line 5')
-      if multigrid then
-        screen:expect([[
-        ## grid 1
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [2:---------------------------------------------]|
-          [3:---------------------------------------------]|
-        ## grid 2
-          virt_line above line 1                       |
-          ^line 1                                       |
-          line 2                                       |
-          virt_line below line 2                       |
-          {5:+--  2 lines: line 3·························}|
-          line 5                                       |
-          {1:~                                            }|
-        ## grid 3
-                                                       |
-        ]])
-      else
-        screen:expect([[
-          virt_line above line 1                       |
-          ^line 1                                       |
-          line 2                                       |
-          virt_line below line 2                       |
-          {5:+--  2 lines: line 3·························}|
-          line 5                                       |
           {1:~                                            }|
                                                        |
         ]])

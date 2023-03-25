@@ -180,16 +180,7 @@ See |:verbose-cmd| for more information.
 			the number 0 is returned.
 			Note that there is no check for unreachable lines,
 			thus there is no warning if commands follow ":return".
-			Also, there is no check if the following
-			line contains a valid command.  Forgetting the line
-			continuation backslash may go unnoticed: >
-				return 'some text'
-				       .. ' some more text'
-<			Will happily return "some text" without an error.  It
-			should have been: >
-				return 'some text'
-				       \ .. ' some more text'
-<
+
 			If the ":return" is used after a |:try| but before the
 			matching |:finally| (if present), the commands
 			following the ":finally" up to the matching |:endtry|
@@ -234,10 +225,9 @@ Example: >
   call Something('key', 20)	"key: 20"
 
 The argument default expressions are evaluated at the time of the function
-call, not when the function is defined.  Thus it is possible to use an
-expression which is invalid the moment the function is defined.  The
-expressions are also only evaluated when arguments are not specified during a
-call.
+call, not definition.  Thus it is possible to use an expression which is
+invalid the moment the function is defined.  The expressions are also only
+evaluated when arguments are not specified during a call.
 
 								*E989*
 Optional arguments with default expressions must occur after any mandatory
@@ -353,6 +343,7 @@ is used as a method: >
 
 
 ==============================================================================
+
 3. Automatically loading functions ~
 							*autoload-functions*
 When using many or large functions, it's possible to automatically define them
@@ -396,10 +387,6 @@ file should then define the function like this: >
 	function filename#funcname()
 	   echo "Done!"
 	endfunction
-
-If the file doesn't exist, Vim will also search in 'packpath' (under "start")
-to allow calling packages' functions from your |vimrc| when the packages have
-not been added to 'runtimepath' yet (see |packages|).
 
 The file name and the name used before the # in the function must match
 exactly, and the defined function must have the name exactly as it will be

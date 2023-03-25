@@ -2,7 +2,6 @@ name: vim-patches
 on:
   schedule:
     - cron: '3 3 * * *'
-  workflow_dispatch:
 
 jobs:
   update-vim-patches:
@@ -11,7 +10,7 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      VIM_SOURCE_DIR: ${{ github.workspace }}/vim-src
+      VIM_SOURCE_DIR: ${{ format('{0}/vim-src', github.workspace) }}
       VERSION_BRANCH: marvim/ci-version-update
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -25,8 +24,6 @@ jobs:
           path: ${{ env.VIM_SOURCE_DIR }}
           fetch-depth: 0
 
-      - run: sudo apt-get install libfuse2
-
       - run: |
           gh release download -R neovim/neovim -p nvim.appimage
           chmod a+x nvim.appimage
@@ -34,7 +31,7 @@ jobs:
           mv nvim.appimage $HOME/.local/bin/nvim
           printf '%s\n' "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Set up git config
+      - name: Setup git config
         run: |
           git config --global user.name 'marvim'
           git config --global user.email 'marvim@users.noreply.github.com'

@@ -77,8 +77,13 @@ describe('vim.ui_attach', function()
     }
 
     feed '<c-y>'
-    -- There is an intermediate state where the 'showmode' message disappears.
-    screen:expect_unchanged(true)
+    screen:expect{grid=[[
+      foobar^                                  |
+      {1:~                                       }|
+      {1:~                                       }|
+      {1:~                                       }|
+      {2:-- INSERT --}                            |
+    ]], intermediate=true}
     expect_events {
        { "popupmenu_hide" };
     }
@@ -111,32 +116,5 @@ describe('vim.ui_attach', function()
       '--cmd', 'quitall!',
     })
     eq(0, helpers.eval('v:shell_error'))
-  end)
-
-  it('can receive accurate message kinds even if they are history', function()
-    exec_lua([[
-    vim.cmd.echomsg("'message1'")
-    print('message2')
-    vim.ui_attach(ns, { ext_messages = true }, on_event)
-    vim.cmd.echomsg("'message3'")
-    ]])
-    feed(':messages<cr>')
-    feed('<cr>')
-
-    local actual = exec_lua([[
-    return vim.tbl_filter(function (event)
-      return event[1] == "msg_history_show"
-    end, events)
-    ]])
-    eq({
-      {
-        'msg_history_show',
-        {
-          { 'echomsg', { { 0, 'message1' } } },
-          { '', { { 0, 'message2' } } },
-          { 'echomsg', { { 0, 'message3' } } },
-        },
-      },
-    }, actual, inspect(actual))
   end)
 end)

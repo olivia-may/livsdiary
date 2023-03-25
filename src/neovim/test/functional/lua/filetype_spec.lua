@@ -94,41 +94,6 @@ describe('vim.filetype', function()
       return vim.filetype.match({ buf = 0 })
     ]])
   end)
-
-  it('works with contents #22180', function()
-    eq('sh', exec_lua [[
-      -- Needs to be set so detect#sh doesn't fail
-      vim.g.ft_ignore_pat = '\\.\\(Z\\|gz\\|bz2\\|zip\\|tgz\\)$'
-      return vim.filetype.match({ contents = { '#!/usr/bin/env bash' } })
-    ]])
-  end)
-
-  it('considers extension mappings when matching from hashbang', function()
-    eq('fooscript', exec_lua [[
-      vim.filetype.add({
-        extension = {
-          foo = 'fooscript',
-        }
-      })
-      return vim.filetype.match({ contents = { '#!/usr/bin/env foo' } })
-    ]])
-  end)
-
-  it('can get default option values for filetypes via vim.filetype.get_option()', function()
-    command('filetype plugin on')
-
-    for ft, opts in pairs {
-      lua = { commentstring = '-- %s' },
-      vim = { commentstring = '"%s' },
-      man = { tagfunc = 'v:lua.require\'man\'.goto_tag' },
-      xml = { formatexpr = 'xmlformat#Format()' }
-    } do
-      for option, value in pairs(opts) do
-        eq(value, exec_lua([[ return vim.filetype.get_option(...) ]], ft, option))
-      end
-    end
-
-  end)
 end)
 
 describe('filetype.lua', function()

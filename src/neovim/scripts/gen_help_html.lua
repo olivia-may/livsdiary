@@ -35,7 +35,6 @@ local spell_dict = {
   lua = 'Lua',
   VimL = 'Vimscript',
 }
-local language = nil
 
 local M = {}
 
@@ -48,7 +47,6 @@ local new_layout = {
   ['develop.txt'] = true,
   ['lua.txt'] = true,
   ['luaref.txt'] = true,
-  ['news.txt'] = true,
   ['nvim.txt'] = true,
   ['pi_health.txt'] = true,
   ['provider.txt'] = true,
@@ -60,18 +58,19 @@ local exclude_invalid = {
   ["'previewpopup'"] = "quickref.txt",
   ["'pvp'"] = "quickref.txt",
   ["'string'"] = "eval.txt",
-  Query = 'treesitter.txt',
-  ['eq?'] = 'treesitter.txt',
-  ['lsp-request'] = 'lsp.txt',
-  matchit = 'vim_diff.txt',
-  ['matchit.txt'] = 'help.txt',
+  Query = "treesitter.txt",
+  ["eq?"] = "treesitter.txt",
+  ["lsp-request"] = "lsp.txt",
+  matchit = "vim_diff.txt",
+  ["matchit.txt"] = "help.txt",
   ["set!"] = "treesitter.txt",
-  ['v:_null_blob'] = 'builtin.txt',
-  ['v:_null_dict'] = 'builtin.txt',
-  ['v:_null_list'] = 'builtin.txt',
-  ['v:_null_string'] = 'builtin.txt',
-  ['vim.lsp.buf_request()'] = 'lsp.txt',
-  ['vim.lsp.util.get_progress_messages()'] = 'lsp.txt',
+  ["v:_null_blob"] = "builtin.txt",
+  ["v:_null_dict"] = "builtin.txt",
+  ["v:_null_list"] = "builtin.txt",
+  ["v:_null_string"] = "builtin.txt",
+  ["vim.lsp.buf_request()"] = "lsp.txt",
+  ["vim.lsp.util.get_progress_messages()"] = "lsp.txt",
+  ["vim.treesitter.start()"] = "treesitter.txt",
 }
 
 -- False-positive "invalid URLs".
@@ -87,6 +86,7 @@ local exclude_invalid_urls = {
   ["http://papp.plan9.de"] = "syntax.txt",
   ["http://wiki.services.openoffice.org/wiki/Dictionaries"] = "spell.txt",
   ["http://www.adapower.com"] = "ft_ada.txt",
+  ["http://www.ghostscript.com/"] = "print.txt",
   ["http://www.jclark.com/"] = "quickfix.txt",
 }
 
@@ -294,11 +294,12 @@ local function ignore_invalid(s)
   )
 end
 
-local function ignore_parse_error(s)
-  return (
+local function ignore_parse_error(s, fname)
+  local helpfile = vim.fs.basename(fname)
+  return (helpfile == 'pi_netrw.txt'
     -- Ignore parse errors for unclosed tag.
     -- This is common in vimdocs and is treated as plaintext by :help.
-    s:find("^[`'|*]")
+    or s:find("^[`'|*]")
   )
 end
 
@@ -367,7 +368,7 @@ local function visit_validate(root, level, lang_tree, opt, stats)
   end
 
   if node_name == 'ERROR' then
-    if ignore_parse_error(text) then
+    if ignore_parse_error(text, opt.fname) then
       return
     end
     -- Store the raw text to give context to the error report.
@@ -387,18 +388,6 @@ local function visit_validate(root, level, lang_tree, opt, stats)
   elseif node_name == 'taglink' or node_name == 'optionlink' then
     local _, _, _ = validate_link(root, opt.buf, opt.fname)
   end
-end
-
--- Fix tab alignment issues caused by concealed characters like |, `, * in tags
--- and code blocks.
-local function fix_tab_after_conceal(text, next_node_text)
-  -- Vim tabs take into account the two concealed characters even though they
-  -- are invisible, so we need to add back in the two spaces if this is
-  -- followed by a tab to make the tab alignment to match Vim's behavior.
-  if string.sub(next_node_text,1,1) == '\t' then
-    text = text .. '  '
-  end
-  return text
 end
 
 -- Generates HTML from node `root` recursively.
@@ -431,7 +420,7 @@ local function visit_node(root, level, lang_tree, headings, opt, stats)
     return string.format('%s%s', ws_, vim.treesitter.get_node_text(node, opt.buf))
   end
 
-  if root:named_child_count() == 0 or node_name == 'ERROR' then
+  if root:child_count() == 0 or node_name == 'ERROR' then
     text = node_text()
     trimmed = html_esc(trim(text))
     text = html_esc(text)
@@ -487,7 +476,7 @@ local function visit_node(root, level, lang_tree, headings, opt, stats)
     end
     return string.format('<div class="help-para">\n%s\n</div>\n', text)
   elseif node_name == 'line' then
-    if (parent ~= 'codeblock' or parent ~= 'code') and (is_blank(text) or is_noise(text, stats.noise_lines)) then
+    if parent ~= 'code' and (is_blank(text) or is_noise(text, stats.noise_lines)) then
       return ''  -- Discard common "noise" lines.
     end
     -- XXX: Avoid newlines (too much whitespace) after block elements in old (preformatted) layout.
@@ -517,39 +506,24 @@ local function visit_node(root, level, lang_tree, headings, opt, stats)
     if ignored then
       return text
     end
-    local s = ('%s<a href="%s#%s">%s</a>'):format(ws(), helppage, url_encode(tagname), html_esc(tagname))
-    if opt.old and node_name == 'taglink' then
-      s = fix_tab_after_conceal(s, node_text(root:next_sibling()))
-    end
-    return s
+    return ('%s<a href="%s#%s">%s</a>'):format(ws(), helppage, url_encode(tagname), html_esc(tagname))
   elseif vim.tbl_contains({'codespan', 'keycode'}, node_name) then
     if root:has_error() then
       return text
     end
-    local s = ('%s<code>%s</code>'):format(ws(), trimmed)
-    if opt.old and node_name == 'codespan' then
-      s = fix_tab_after_conceal(s, node_text(root:next_sibling()))
-    end
-    return s
+    return ('%s<code>%s</code>'):format(ws(), trimmed)
   elseif node_name == 'argument' then
     return ('%s<code>{%s}</code>'):format(ws(), text)
+  -- TODO: use language for proper syntax highlighted code blocks
   elseif node_name == 'codeblock' then
     return text
   elseif node_name == 'language' then
-    language = node_text(root)
     return ''
   elseif node_name == 'code' then
     if is_blank(text) then
       return ''
     end
-    local code
-    if language then
-      code = ('<pre><code class="language-%s">%s</code></pre>'):format(language,trim(trim_indent(text), 2))
-      language = nil
-    else
-      code = ('<pre>%s</pre>'):format(trim(trim_indent(text), 2))
-    end
-    return code
+    return ('<pre>%s</pre>'):format(trim(trim_indent(text), 2))
   elseif node_name == 'tag' then  -- anchor
     if root:has_error() then
       return text
@@ -564,10 +538,6 @@ local function visit_node(root, level, lang_tree, headings, opt, stats)
     end
     local el = in_heading and 'span' or 'code'
     local s = ('%s<a name="%s"></a><%s class="%s">%s</%s>'):format(ws(), url_encode(tagname), el, cssclass, trimmed, el)
-    if opt.old then
-        s = fix_tab_after_conceal(s, node_text(root:next_sibling()))
-    end
-
     if in_heading and prev ~= 'tag' then
       -- Start the <span> container for tags in a heading.
       -- This makes "justify-content:space-between" right-align the tags.
@@ -579,7 +549,7 @@ local function visit_node(root, level, lang_tree, headings, opt, stats)
     end
     return s
   elseif node_name == 'ERROR' then
-    if ignore_parse_error(trimmed) then
+    if ignore_parse_error(trimmed, opt.fname) then
       return text
     end
 
@@ -695,9 +665,6 @@ local function gen_one(fname, to_fname, old, commit)
     <link href="/css/bootstrap.css" rel="stylesheet">
     <link href="/css/main.css" rel="stylesheet">
     <link href="help.css" rel="stylesheet">
-    <link href="/highlight/styles/neovim.min.css" rel="stylesheet">
-    <script src="/highlight/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
     <title>%s - Neovim docs</title>
   </head>
   <body>
@@ -840,14 +807,8 @@ end
 local function gen_css(fname)
   local css = [[
     :root {
-      --code-color: #004b4b;
-      --tag-color: #095943;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --code-color: #00c243;
-        --tag-color: #00b7b7;
-      }
+      --code-color: #008B8B;
+      --tag-color: gray;
     }
     @media (min-width: 40em) {
       .toc {
@@ -864,6 +825,11 @@ local function gen_css(fname)
       .golden-grid {
         /* Disable grid for narrow viewport (mobile phone). */
         display: block;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --code-color: cyan;
       }
     }
     .toc {
@@ -885,7 +851,7 @@ local function gen_css(fname)
     }
     h1, h2, h3, h4, h5 {
       font-family: sans-serif;
-      border-bottom: 1px solid var(--tag-color); /*rgba(0, 0, 0, .9);*/
+      border-bottom: 1px solid #41464bd6; /*rgba(0, 0, 0, .9);*/
     }
     h3, h4, h5 {
       border-bottom-style: dashed;
@@ -960,7 +926,7 @@ local function gen_css(fname)
     pre {
       /* Tabs are used in codeblocks only for indentation, not alignment, so we can aggressively shrink them. */
       tab-size: 2;
-      white-space: pre-wrap;
+      white-space: pre;
       line-height: 1.3;  /* Important for ascii art. */
       overflow: visible;
       /* font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace; */

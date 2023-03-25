@@ -1,17 +1,11 @@
 #ifndef NVIM_API_PRIVATE_HELPERS_H
 #define NVIM_API_PRIVATE_HELPERS_H
 
-#include <stdbool.h>
-#include <stddef.h>
-
 #include "klib/kvec.h"
 #include "nvim/api/private/defs.h"
 #include "nvim/decoration.h"
 #include "nvim/ex_eval_defs.h"
 #include "nvim/getchar.h"
-#include "nvim/globals.h"
-#include "nvim/macros.h"
-#include "nvim/map.h"
 #include "nvim/memory.h"
 #include "nvim/vim.h"
 
@@ -149,26 +143,14 @@ typedef struct {
 // which would otherwise be ignored.  This pattern is from do_cmdline().
 //
 // TODO(bfredl): prepare error-handling at "top level" (nv_event).
-#define TRY_WRAP(err, code) \
+#define TRY_WRAP(code) \
   do { \
     msglist_T **saved_msg_list = msg_list; \
     msglist_T *private_msg_list; \
     msg_list = &private_msg_list; \
     private_msg_list = NULL; \
-    try_start(); \
-    code; \
-    try_end(err); \
-    msg_list = saved_msg_list;  /* Restore the exception context. */ \
-  } while (0)
-
-// Execute code with cursor position saved and restored and textlock active.
-#define TEXTLOCK_WRAP(code) \
-  do { \
-    const pos_T save_cursor = curwin->w_cursor; \
-    textlock++; \
-    code; \
-    textlock--; \
-    curwin->w_cursor = save_cursor; \
+    code \
+      msg_list = saved_msg_list;  /* Restore the exception context. */ \
   } while (0)
 
 // Useful macro for executing some `code` for each item in an array.
@@ -187,13 +169,11 @@ typedef struct {
 #define WITH_SCRIPT_CONTEXT(channel_id, code) \
   do { \
     const sctx_T save_current_sctx = current_sctx; \
-    const uint64_t save_channel_id = current_channel_id; \
     current_sctx.sc_sid = \
       (channel_id) == LUA_INTERNAL_CALL ? SID_LUA : SID_API_CLIENT; \
     current_sctx.sc_lnum = 0; \
     current_channel_id = channel_id; \
     code; \
-    current_channel_id = save_channel_id; \
     current_sctx = save_current_sctx; \
   } while (0);
 

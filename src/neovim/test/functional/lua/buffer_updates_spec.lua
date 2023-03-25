@@ -317,18 +317,7 @@ describe('lua buffer event callbacks: on_lines', function()
     feed('1G0')
     feed('P')
     eq(meths.get_var('linesev'), { "lines", 1, 6, 0, 3, 3, 9 })
-  end)
 
-  it('calling nvim_buf_call() from callback does not cause Normal mode CTRL-A to misbehave #16729', function()
-    exec_lua([[
-      vim.api.nvim_buf_attach(0, false, {
-        on_lines = function(...)
-          vim.api.nvim_buf_call(0, function() end)
-        end,
-      })
-    ]])
-    feed('itest123<Esc><C-A>')
-    eq('test124', meths.get_current_line())
   end)
 end)
 
@@ -1168,25 +1157,6 @@ describe('lua: nvim_buf_attach on_bytes', function()
       feed("gg0z=4<cr><cr>") -- accepts 'Hello'
       check_events {
         { "test1", "bytes", 1, 3, 0, 0, 0, 0, 2, 2, 0, 2, 2 };
-      }
-    end)
-
-    it('works with :diffput and :diffget', function()
-      local check_events = setup_eventcheck(verify, {"AAA"})
-      command('diffthis')
-      command('new')
-      command('diffthis')
-      meths.buf_set_lines(0, 0, -1, true, {"AAA", "BBB"})
-      feed('G')
-      command('diffput')
-      check_events {
-        { "test1", "bytes", 1, 3, 1, 0, 4, 0, 0, 0, 1, 0, 4 };
-      }
-      meths.buf_set_lines(0, 0, -1, true, {"AAA", "CCC"})
-      feed('<C-w>pG')
-      command('diffget')
-      check_events {
-        { "test1", "bytes", 1, 4, 1, 0, 4, 1, 0, 4, 1, 0, 4 };
       }
     end)
 

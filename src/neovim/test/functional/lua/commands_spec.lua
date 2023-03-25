@@ -8,8 +8,6 @@ local eval = helpers.eval
 local feed = helpers.feed
 local clear = helpers.clear
 local meths = helpers.meths
-local exec_lua = helpers.exec_lua
-local exec_capture = helpers.exec_capture
 local funcs = helpers.funcs
 local source = helpers.source
 local dedent = helpers.dedent
@@ -17,6 +15,7 @@ local command = helpers.command
 local exc_exec = helpers.exc_exec
 local pcall_err = helpers.pcall_err
 local write_file = helpers.write_file
+local exec_capture = helpers.exec_capture
 local curbufmeths = helpers.curbufmeths
 local remove_trace = helpers.remove_trace
 
@@ -143,30 +142,22 @@ describe(':lua command', function()
     ]]}
   end)
 
-  it('prints result of =expr', function()
-    exec_lua("x = 5")
-    eq("5", exec_capture(':lua =x'))
-    eq("5", exec_capture('=x'))
-    exec_lua("function x() return 'hello' end")
-    eq('hello', exec_capture(':lua = x()'))
-    exec_lua("x = {a = 1, b = 2}")
-    eq("{\n  a = 1,\n  b = 2\n}", exec_capture(':lua  =x'))
-    exec_lua([[function x(success)
+  it('Can print results of =expr', function()
+    helpers.exec_lua("x = 5")
+    eq("5", helpers.exec_capture(':lua =x'))
+    helpers.exec_lua("function x() return 'hello' end")
+    eq([["hello"]], helpers.exec_capture(':lua = x()'))
+    helpers.exec_lua("x = {a = 1, b = 2}")
+    eq("{\n  a = 1,\n  b = 2\n}", helpers.exec_capture(':lua  =x'))
+    helpers.exec_lua([[function x(success)
       if success then
         return true, "Return value"
       else
         return false, nil, "Error message"
       end
     end]])
-    eq(dedent[[
-      true
-      Return value]],
-    exec_capture(':lua  =x(true)'))
-    eq(dedent[[
-      false
-      nil
-      Error message]],
-    exec_capture('=x(false)'))
+    eq([[true    "Return value"]], helpers.exec_capture(':lua  =x(true)'))
+    eq([[false    nil    "Error message"]], helpers.exec_capture(':lua  =x(false)'))
   end)
 end)
 

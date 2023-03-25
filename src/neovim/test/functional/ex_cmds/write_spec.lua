@@ -8,9 +8,8 @@ local command = helpers.command
 local feed_command = helpers.feed_command
 local funcs = helpers.funcs
 local meths = helpers.meths
-local skip = helpers.skip
-local is_os = helpers.is_os
-local is_ci = helpers.is_ci
+local iswin = helpers.iswin
+local uname = helpers.uname
 
 local fname = 'Xtest-functional-ex_cmds-write'
 local fname_bak = fname .. '~'
@@ -21,9 +20,6 @@ describe(':write', function()
     os.remove('test_bkc_file.txt')
     os.remove('test_bkc_link.txt')
     os.remove('test_fifo')
-    os.remove('test/write/p_opt.txt')
-    os.remove('test/write')
-    os.remove('test')
     os.remove(fname)
     os.remove(fname_bak)
     os.remove(fname_broken)
@@ -39,7 +35,7 @@ describe(':write', function()
   it('&backupcopy=auto preserves symlinks', function()
     command('set backupcopy=auto')
     write_file('test_bkc_file.txt', 'content0')
-    if is_os('win') then
+    if iswin() then
       command("silent !mklink test_bkc_link.txt test_bkc_file.txt")
     else
       command("silent !ln -s test_bkc_file.txt test_bkc_link.txt")
@@ -57,10 +53,12 @@ describe(':write', function()
   end)
 
   it('&backupcopy=no replaces symlink with new file', function()
-    skip(is_ci('cirrus'))
+    if uname() == 'freebsd' then
+      pending('Failing FreeBSD test')
+    end
     command('set backupcopy=no')
     write_file('test_bkc_file.txt', 'content0')
-    if is_os('win') then
+    if iswin() then
       command("silent !mklink test_bkc_link.txt test_bkc_file.txt")
     else
       command("silent !ln -s test_bkc_file.txt test_bkc_link.txt")
@@ -79,7 +77,7 @@ describe(':write', function()
 
   it("appends FIFO file", function()
     -- mkfifo creates read-only .lnk files on Windows
-    if is_os('win') or eval("executable('mkfifo')") == 0 then
+    if iswin() or eval("executable('mkfifo')") == 0 then
       pending('missing "mkfifo" command')
     end
 
@@ -96,36 +94,14 @@ describe(':write', function()
     fifo:close()
   end)
 
-  it("++p creates missing parent directories", function()
-    eq(0, eval("filereadable('p_opt.txt')"))
-    command("write ++p p_opt.txt")
-    eq(1, eval("filereadable('p_opt.txt')"))
-    os.remove("p_opt.txt")
-
-    eq(0, eval("filereadable('p_opt.txt')"))
-    command("write ++p ./p_opt.txt")
-    eq(1, eval("filereadable('p_opt.txt')"))
-    os.remove("p_opt.txt")
-
-    eq(0, eval("filereadable('test/write/p_opt.txt')"))
-    command("write ++p test/write/p_opt.txt")
-    eq(1, eval("filereadable('test/write/p_opt.txt')"))
-
-    eq(('Vim(write):E32: No file name'), pcall_err(command, 'write ++p test_write/'))
-    if not is_os('win') then
-      eq(('Vim(write):E17: "'..funcs.fnamemodify('.', ':p:h')..'" is a directory'),
-        pcall_err(command, 'write ++p .'))
-      eq(('Vim(write):E17: "'..funcs.fnamemodify('.', ':p:h')..'" is a directory'),
-        pcall_err(command, 'write ++p ./'))
-    end
-  end)
-
   it('errors out correctly', function()
-    skip(is_ci('cirrus'))
+    if uname() == 'freebsd' then
+      pending('Failing FreeBSD test')
+    end
     command('let $HOME=""')
     eq(funcs.fnamemodify('.', ':p:h'), funcs.fnamemodify('.', ':p:h:~'))
     -- Message from check_overwrite
-    if not is_os('win') then
+    if not iswin() then
       eq(('Vim(write):E17: "'..funcs.fnamemodify('.', ':p:h')..'" is a directory'),
         pcall_err(command, 'write .'))
     end
@@ -144,7 +120,7 @@ describe(':write', function()
     funcs.setfperm(fname, 'r--------')
     eq('Vim(write):E505: "Xtest-functional-ex_cmds-write" is read-only (add ! to override)',
        pcall_err(command, 'write'))
-    if is_os('win') then
+    if iswin() then
       eq(0, os.execute('del /q/f ' .. fname))
       eq(0, os.execute('rd /q/s ' .. fname_bak))
     else
@@ -152,7 +128,8 @@ describe(':write', function()
       eq(true, os.remove(fname_bak))
     end
     write_file(fname_bak, 'TTYX')
-    skip(is_os('win'), [[FIXME: exc_exec('write!') outputs 0 in Windows]])
+    -- FIXME: exc_exec('write!') outputs 0 in Windows
+    if iswin() then return end
     lfs.link(fname_bak .. ('/xxxxx'):rep(20), fname, true)
     eq('Vim(write):E166: Can\'t open linked file for writing',
        pcall_err(command, 'write!'))

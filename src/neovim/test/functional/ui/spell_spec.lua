@@ -5,8 +5,8 @@ local Screen = require('test.functional.ui.screen')
 local clear = helpers.clear
 local feed = helpers.feed
 local insert = helpers.insert
+local uname = helpers.uname
 local command = helpers.command
-local is_os = helpers.is_os
 
 describe("'spell'", function()
   local screen
@@ -27,7 +27,7 @@ describe("'spell'", function()
   end)
 
   it('joins long lines #7937', function()
-    if is_os('openbsd') then pending('FIXME #12104', function() end) return end
+    if uname() == 'openbsd' then pending('FIXME #12104', function() end) return end
     command('set spell')
     insert([[
     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
@@ -51,7 +51,6 @@ describe("'spell'", function()
 
   end)
 
-  -- oldtest: Test_spell_screendump()
   it('has correct highlight at start of line', function()
     insert([[
     "This is some text without any spell errors.  Everything",
@@ -71,7 +70,7 @@ describe("'spell'", function()
     "with missing caps here.",                                                      |
     ^                                                                                |
                                                                                     |
-    ]])
+      ]])
   end)
 
   it('"noplainbuffer" and syntax #20385', function()

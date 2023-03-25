@@ -1,37 +1,27 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <string.h>
+#include <assert.h>
 
+#include "klib/kvec.h"
 #include "nvim/ascii.h"
 #include "nvim/autocmd.h"
-#include "nvim/buffer_defs.h"
 #include "nvim/drawscreen.h"
 #include "nvim/eval.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
-#include "nvim/event/defs.h"
-#include "nvim/event/loop.h"
-#include "nvim/event/multiqueue.h"
+#include "nvim/ex_docmd.h"
 #include "nvim/getchar.h"
-#include "nvim/globals.h"
 #include "nvim/insexpand.h"
-#include "nvim/keycodes.h"
 #include "nvim/log.h"
-#include "nvim/macros.h"
 #include "nvim/main.h"
 #include "nvim/option.h"
+#include "nvim/option_defs.h"
 #include "nvim/os/input.h"
 #include "nvim/state.h"
-#include "nvim/strings.h"
-#include "nvim/types.h"
 #include "nvim/ui.h"
 #include "nvim/vim.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
-# include "state.c.generated.h"  // IWYU pragma: export
+# include "state.c.generated.h"
 #endif
 
 void state_enter(VimState *s)
@@ -67,7 +57,7 @@ getkey:
       // Duplicate display updating logic in vgetorpeek()
       if (((State & MODE_INSERT) != 0 || p_lz) && (State & MODE_CMDLINE) == 0
           && must_redraw != 0 && !need_wait_return) {
-        update_screen();
+        update_screen(0);
         setcursor();  // put cursor back where it belongs
       }
       // Flush screen updates before blocking
@@ -91,9 +81,8 @@ getkey:
       may_sync_undo();
     }
 
-#ifdef NVIM_LOG_DEBUG
-    char *keyname = key == K_EVENT ? "K_EVENT" : (char *)get_special_key_name(key, mod_mask);
-    DLOG("input: %s", keyname);
+#if MIN_LOG_LEVEL <= LOGLVL_DBG
+    log_key(LOGLVL_DBG, key);
 #endif
 
     int execute_result = s->execute(s, key);

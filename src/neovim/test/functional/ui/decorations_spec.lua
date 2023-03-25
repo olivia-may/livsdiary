@@ -1045,83 +1045,6 @@ end]]
 
   end)
 
-  it('underline attribute with higher priority takes effect #22371', function()
-    screen:try_resize(50, 3)
-    insert('aaabbbaaa')
-    exec([[
-      hi TestUL gui=underline guifg=Blue
-      hi TestUC gui=undercurl guisp=Red
-      hi TestBold gui=bold
-    ]])
-    screen:set_default_attr_ids({
-      [0] = {bold = true, foreground = Screen.colors.Blue};
-      [1] = {underline = true, foreground = Screen.colors.Blue};
-      [2] = {undercurl = true, special = Screen.colors.Red};
-      [3] = {underline = true, foreground = Screen.colors.Blue, special = Screen.colors.Red};
-      [4] = {undercurl = true, foreground = Screen.colors.Blue, special = Screen.colors.Red};
-      [5] = {bold = true, underline = true, foreground = Screen.colors.Blue};
-      [6] = {bold = true, undercurl = true, special = Screen.colors.Red};
-    })
-
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUL', priority = 20 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestUC', priority = 30 })
-    screen:expect([[
-      {1:aaa}{4:bbb}{1:aa^a}                                         |
-      {0:~                                                 }|
-                                                        |
-    ]])
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUC', priority = 20 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestUL', priority = 30 })
-    screen:expect([[
-      {2:aaa}{3:bbb}{2:aa^a}                                         |
-      {0:~                                                 }|
-                                                        |
-    ]])
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUL', priority = 30 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestUC', priority = 20 })
-    screen:expect([[
-      {1:aaa}{3:bbb}{1:aa^a}                                         |
-      {0:~                                                 }|
-                                                        |
-    ]])
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUC', priority = 30 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestUL', priority = 20 })
-    screen:expect([[
-      {2:aaa}{4:bbb}{2:aa^a}                                         |
-      {0:~                                                 }|
-                                                        |
-    ]])
-
-    -- When only one highlight group has an underline attribute, it should always take effect.
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUL', priority = 20 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestBold', priority = 30 })
-    screen:expect([[
-      {1:aaa}{5:bbb}{1:aa^a}                                         |
-      {0:~                                                 }|
-                                                        |
-    ]])
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUL', priority = 30 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestBold', priority = 20 })
-    screen:expect_unchanged(true)
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUC', priority = 20 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestBold', priority = 30 })
-    screen:expect([[
-      {2:aaa}{6:bbb}{2:aa^a}                                         |
-      {0:~                                                 }|
-                                                        |
-    ]])
-    meths.buf_clear_namespace(0, ns, 0, -1)
-    meths.buf_set_extmark(0, ns, 0, 0, { end_col = 9, hl_group = 'TestUC', priority = 30 })
-    meths.buf_set_extmark(0, ns, 0, 3, { end_col = 6, hl_group = 'TestBold', priority = 20 })
-    screen:expect_unchanged(true)
-  end)
-
 end)
 
 describe('decorations: virtual lines', function()
@@ -1228,7 +1151,7 @@ if (h->n_buckets < new_n_buckets) { // expand
     ]]}
 
     meths.buf_set_extmark(0, ns, 5, 0, {
-      virt_lines = { {{"^^ REVIEW:", "Todo"}, {" new_vals variable seems unnecessary?", "Comment"}} };
+      virt_lines = { {{"^^ REVIEW:", "Todo"}, {" new_vals variable seems unneccesary?", "Comment"}} };
     })
     -- TODO: what about the cursor??
     screen:expect{grid=[[
@@ -1241,13 +1164,12 @@ if (h->n_buckets < new_n_buckets) { // expand
         if (kh_is_map && val_size) {                    |
           ^char *new_vals = {3:krealloc}( h->vals_buf, new_n_|
       buckets * val_size);                              |
-      {5:^^ REVIEW:}{6: new_vals variable seems unnecessary?}   |
+      {5:^^ REVIEW:}{6: new_vals variable seems unneccesary?}   |
           h->vals_buf = new_vals;                       |
                                                         |
     ]]}
 
     meths.buf_clear_namespace(0, ns, 0, -1)
-    -- Cursor should be drawn on the correct line. #22704
     screen:expect{grid=[[
       if (h->n_buckets < new_n_buckets) { // expand     |
         khkey_t *new_keys = (khkey_t *)                 |
@@ -1255,14 +1177,15 @@ if (h->n_buckets < new_n_buckets) { // expand
       hkey_t));                                         |
         h->keys = new_keys;                             |
         if (kh_is_map && val_size) {                    |
-          ^char *new_vals = {3:krealloc}( h->vals_buf, new_n_|
-      buckets * val_size);                              |
+          char *new_vals = {3:krealloc}( h->vals_buf, new_n_|
+      buck^ets * val_size);                              |
           h->vals_buf = new_vals;                       |
         }                                               |
       }                                                 |
                                                         |
     ]]}
   end)
+
 
   it('works with text at the beginning of the buffer', function()
     insert(example_text)
@@ -2186,20 +2109,6 @@ l5
                           |
     ]]}
   end)
-
-  it('does not set signcolumn for signs without text', function()
-    screen:try_resize(20, 3)
-    meths.win_set_option(0, 'signcolumn', 'auto')
-    insert(example_text)
-    feed 'gg'
-    meths.buf_set_extmark(0, ns, 0, -1, {number_hl_group='Error'})
-    screen:expect{grid=[[
-      ^l1                  |
-      l2                  |
-                          |
-    ]]}
-  end)
-
 end)
 
 describe('decorations: virt_text', function()

@@ -2,17 +2,14 @@
 #define NVIM_OPS_H
 
 #include <stdbool.h>
-#include <stddef.h>
 
 #include "nvim/ascii.h"
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
-#include "nvim/ex_cmds_defs.h"
+#include "nvim/ex_cmds_defs.h"  // for exarg_T
 #include "nvim/extmark.h"
 #include "nvim/macros.h"
-#include "nvim/normal.h"
+#include "nvim/normal.h"  // for MotionType and oparg_T
 #include "nvim/os/time.h"
-#include "nvim/pos.h"
 #include "nvim/types.h"
 
 typedef int (*Indenter)(void);

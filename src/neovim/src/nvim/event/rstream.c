@@ -3,18 +3,17 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <uv.h>
 
+#include "nvim/ascii.h"
 #include "nvim/event/loop.h"
 #include "nvim/event/rstream.h"
-#include "nvim/event/stream.h"
 #include "nvim/log.h"
-#include "nvim/macros.h"
 #include "nvim/main.h"
-#include "nvim/os/os_defs.h"
-#include "nvim/rbuffer.h"
+#include "nvim/memory.h"
+#include "nvim/vim.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "event/rstream.c.generated.h"
@@ -155,7 +154,7 @@ static void fread_idle_cb(uv_idle_t *handle)
   uintmax_t fpos_intmax = stream->fpos;
   if (fpos_intmax > INT64_MAX) {
     ELOG("stream offset overflow");
-    preserve_exit("stream offset overflow");
+    preserve_exit();
   }
 
   // Synchronous read

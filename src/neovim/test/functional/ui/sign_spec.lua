@@ -156,12 +156,9 @@ describe('Signs', function()
         {0:~                                                    }|
                                                              |
       ]])
-      -- Check that 'statuscolumn' correctly applies numhl
-      command('set statuscolumn=%s%=%l\\ ')
-      screen:expect_unchanged()
     end)
 
-    it('highlights the cursorline sign with culhl', function()
+    it('higlights the cursorline sign with culhl', function()
       feed('ia<cr>b<cr>c<esc>')
       command('sign define piet text=>> texthl=Search culhl=ErrorMsg')
       command('sign place 1 line=1 name=piet buffer=1')
@@ -236,13 +233,11 @@ describe('Signs', function()
                                                              |
       ]])
       command('set cursorlineopt=number')
-      command('hi! link SignColumn IncSearch')
-      feed('Go<esc>2G')
       screen:expect([[
         {1:>>}a                                                  |
         {8:>>}^b                                                  |
         {1:>>}c                                                  |
-        {5:  }                                                   |
+        {0:~                                                    }|
         {0:~                                                    }|
         {0:~                                                    }|
         {0:~                                                    }|
@@ -254,9 +249,6 @@ describe('Signs', function()
         {0:~                                                    }|
                                                              |
       ]])
-      -- Check that 'statuscolumn' cursorline/signcolumn highlights are the same (#21726)
-      command('set statuscolumn=%s')
-      screen:expect_unchanged()
     end)
 
     it('multiple signs #9295', function()

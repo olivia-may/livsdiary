@@ -3,16 +3,8 @@
 
 /// change.c: functions related to changing text
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-
-#include "nvim/ascii.h"
 #include "nvim/assert.h"
-#include "nvim/autocmd.h"
 #include "nvim/buffer.h"
-#include "nvim/buffer_defs.h"
 #include "nvim/buffer_updates.h"
 #include "nvim/change.h"
 #include "nvim/charset.h"
@@ -21,34 +13,22 @@
 #include "nvim/drawscreen.h"
 #include "nvim/edit.h"
 #include "nvim/eval.h"
-#include "nvim/ex_cmds_defs.h"
 #include "nvim/extmark.h"
+#include "nvim/fileio.h"
 #include "nvim/fold.h"
-#include "nvim/gettext.h"
-#include "nvim/globals.h"
-#include "nvim/grid_defs.h"
-#include "nvim/highlight_defs.h"
 #include "nvim/indent.h"
 #include "nvim/indent_c.h"
 #include "nvim/insexpand.h"
-#include "nvim/macros.h"
 #include "nvim/mark.h"
-#include "nvim/mbyte.h"
 #include "nvim/memline.h"
-#include "nvim/memory.h"
-#include "nvim/message.h"
 #include "nvim/move.h"
 #include "nvim/option.h"
-#include "nvim/os/time.h"
 #include "nvim/plines.h"
-#include "nvim/pos.h"
 #include "nvim/search.h"
 #include "nvim/state.h"
-#include "nvim/strings.h"
 #include "nvim/textformat.h"
 #include "nvim/ui.h"
 #include "nvim/undo.h"
-#include "nvim/vim.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "change.c.generated.h"
@@ -127,7 +107,7 @@ void changed(void)
       // Wait two seconds, to make sure the user reads this unexpected
       // message.  Since we could be anywhere, call wait_return() now,
       // and don't let the emsg() set msg_scroll.
-      if (need_wait_return && emsg_silent == 0 && !in_assert_fails) {
+      if (need_wait_return && emsg_silent == 0) {
         ui_flush();
         os_delay(2002L, true);
         wait_return(true);
@@ -295,9 +275,7 @@ static void changed_common(linenr_T lnum, colnr_T col, linenr_T lnume, linenr_T 
       for (int i = 0; i < wp->w_lines_valid; i++) {
         if (wp->w_lines[i].wl_valid) {
           if (wp->w_lines[i].wl_lnum >= lnum) {
-            // Do not change wl_lnum at index zero, it is used to
-            // compare with w_topline.  Invalidate it instead.
-            if (wp->w_lines[i].wl_lnum < lnume || i == 0) {
+            if (wp->w_lines[i].wl_lnum < lnume) {
               // line included in change
               wp->w_lines[i].wl_valid = false;
             } else if (xtra != 0) {
@@ -419,7 +397,14 @@ void appended_lines(linenr_T lnum, linenr_T count)
 /// Like appended_lines(), but adjust marks first.
 void appended_lines_mark(linenr_T lnum, long count)
 {
-  mark_adjust(lnum + 1, (linenr_T)MAXLNUM, (linenr_T)count, 0L, kExtmarkUndo);
+  // Skip mark_adjust when adding a line after the last one, there can't
+  // be marks there. But it's still needed in diff mode.
+  if (lnum + count < curbuf->b_ml.ml_line_count || curwin->w_p_diff) {
+    mark_adjust(lnum + 1, (linenr_T)MAXLNUM, (linenr_T)count, 0L, kExtmarkUndo);
+  } else {
+    extmark_adjust(curbuf, lnum + 1, (linenr_T)MAXLNUM, (linenr_T)count, 0L,
+                   kExtmarkUndo);
+  }
   changed_lines(lnum + 1, 0, lnum + 1, (linenr_T)count, true);
 }
 
@@ -446,7 +431,6 @@ void deleted_lines_mark(linenr_T lnum, long count)
 }
 
 /// Marks the area to be redrawn after a change.
-/// Consider also calling changed_line_display_buf().
 ///
 /// @param buf the buffer where lines were changed
 /// @param lnum first line with change
@@ -555,7 +539,6 @@ void unchanged(buf_T *buf, int ff, bool always_inc_changedtick)
 void save_file_ff(buf_T *buf)
 {
   buf->b_start_ffc = (unsigned char)(*buf->b_p_ff);
-  buf->b_start_eof = buf->b_p_eof;
   buf->b_start_eol = buf->b_p_eol;
   buf->b_start_bomb = buf->b_p_bomb;
 
@@ -590,8 +573,7 @@ bool file_ff_differs(buf_T *buf, bool ignore_empty)
   if (buf->b_start_ffc != *buf->b_p_ff) {
     return true;
   }
-  if ((buf->b_p_bin || !buf->b_p_fixeol)
-      && (buf->b_start_eof != buf->b_p_eof || buf->b_start_eol != buf->b_p_eol)) {
+  if ((buf->b_p_bin || !buf->b_p_fixeol) && buf->b_start_eol != buf->b_p_eol) {
     return true;
   }
   if (!buf->b_p_bin && buf->b_start_bomb != buf->b_p_bomb) {
@@ -872,7 +854,7 @@ int del_bytes(colnr_T count, bool fixpos_arg, bool use_delcombine)
   bool was_alloced = ml_line_alloced();     // check if oldp was allocated
   char *newp;
   if (was_alloced) {
-    ml_add_deleted_len(curbuf->b_ml.ml_line_ptr, oldlen);
+    ml_add_deleted_len((char *)curbuf->b_ml.ml_line_ptr, oldlen);
     newp = oldp;                            // use same allocated memory
   } else {                                  // need to allocate a new line
     newp = xmalloc((size_t)(oldlen + 1 - count));
@@ -1162,16 +1144,12 @@ int open_line(int dir, int flags, int second_line_indent, bool *did_do_comment)
               if (p[0] == '/' && p[-1] == '*') {
                 // End of C comment, indent should line up
                 // with the line containing the start of
-                // the comment.
+                // the comment
                 curwin->w_cursor.col = (colnr_T)(p - ptr);
                 if ((pos = findmatch(NULL, NUL)) != NULL) {
                   curwin->w_cursor.lnum = pos->lnum;
                   newindent = get_indent();
-                  break;
                 }
-                // this may make "ptr" invalid, get it again
-                ptr = ml_get(curwin->w_cursor.lnum);
-                p = ptr + curwin->w_cursor.col;
               }
             }
           }
@@ -1341,7 +1319,7 @@ int open_line(int dir, int flags, int second_line_indent, bool *did_do_comment)
         // the comment leader.
         if (dir == FORWARD) {
           for (p = saved_line + lead_len; *p; p++) {
-            if (strncmp(p, lead_end, n) == 0) {
+            if (STRNCMP(p, lead_end, n) == 0) {
               comment_end = p;
               lead_len = 0;
               break;
@@ -1432,7 +1410,7 @@ int open_line(int dir, int flags, int second_line_indent, bool *did_do_comment)
       leader = xmalloc((size_t)bytes);
       allocated = leader;  // remember to free it later
 
-      xstrlcpy(leader, saved_line, (size_t)lead_len + 1);
+      STRLCPY(leader, saved_line, lead_len + 1);
 
       // TODO(vim): handle multi-byte and double width chars
       for (int li = 0; li < comment_start; li++) {
@@ -1693,7 +1671,13 @@ int open_line(int dir, int flags, int second_line_indent, bool *did_do_comment)
     }
     // Postpone calling changed_lines(), because it would mess up folding
     // with markers.
-    mark_adjust(curwin->w_cursor.lnum + 1, (linenr_T)MAXLNUM, 1L, 0L, kExtmarkNOOP);
+    // Skip mark_adjust when adding a line after the last one, there can't
+    // be marks there. But still needed in diff mode.
+    if (curwin->w_cursor.lnum + 1 < curbuf->b_ml.ml_line_count
+        || curwin->w_p_diff) {
+      mark_adjust(curwin->w_cursor.lnum + 1, (linenr_T)MAXLNUM, 1L, 0L,
+                  kExtmarkNOOP);
+    }
     did_append = true;
   } else {
     // In MODE_VREPLACE state we are starting to replace the next line.
@@ -1830,19 +1814,19 @@ int open_line(int dir, int flags, int second_line_indent, bool *did_do_comment)
     vreplace_mode = 0;
   }
 
-  if (!p_paste) {
-    if (leader == NULL
-        && !use_indentexpr_for_lisp()
-        && curbuf->b_p_lisp
-        && curbuf->b_p_ai) {
-      // do lisp indenting
-      fixthisline(get_lisp_indent);
-      ai_col = (colnr_T)getwhitecols_curline();
-    } else if (do_cindent || (curbuf->b_p_ai && use_indentexpr_for_lisp())) {
-      // do 'cindent' or 'indentexpr' indenting
-      do_c_expr_indent();
-      ai_col = (colnr_T)getwhitecols_curline();
-    }
+  // May do lisp indenting.
+  if (!p_paste
+      && leader == NULL
+      && curbuf->b_p_lisp
+      && curbuf->b_p_ai) {
+    fixthisline(get_lisp_indent);
+    ai_col = (colnr_T)getwhitecols_curline();
+  }
+
+  // May do indenting after opening a new line.
+  if (do_cindent) {
+    do_c_expr_indent();
+    ai_col = (colnr_T)getwhitecols_curline();
   }
 
   if (vreplace_mode != 0) {
@@ -2210,7 +2194,7 @@ int get_last_leader_offset(char *line, char **flags)
         // beginning the com_leader.
         for (off = (len2 > i ? i : len2); off > 0 && off + len1 > len2;) {
           off--;
-          if (!strncmp(string + off, com_leader, (size_t)(len2 - off))) {
+          if (!STRNCMP(string + off, com_leader, len2 - off)) {
             if (i - off < lower_check_bound) {
               lower_check_bound = i - off;
             }

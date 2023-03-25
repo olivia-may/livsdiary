@@ -40,15 +40,15 @@ requires a namespace.
 
                                                         *diagnostic-structure*
 A diagnostic is a Lua table with the following keys. Required keys are
-indicated with (+):
+indicated with (*):
 
     bufnr: Buffer number
-    lnum(+): The starting line of the diagnostic
+    lnum(*): The starting line of the diagnostic
     end_lnum: The final line of the diagnostic
-    col(+): The starting column of the diagnostic
+    col(*): The starting column of the diagnostic
     end_col: The final column of the diagnostic
     severity: The severity of the diagnostic |vim.diagnostic.severity|
-    message(+): The diagnostic text
+    message(*): The diagnostic text
     source: The source of the diagnostic
     code: The diagnostic code
     user_data: Arbitrary data plugins or users can add
@@ -68,11 +68,11 @@ The "severity" key in a diagnostic is one of the values defined in
 Functions that take a severity as an optional parameter (e.g.
 |vim.diagnostic.get()|) accept one of two forms:
 
-1. A single |vim.diagnostic.severity| value: >lua
+1. A single |vim.diagnostic.severity| value: >
 
     vim.diagnostic.get(0, { severity = vim.diagnostic.severity.WARN })
 
-2. A table with a "min" or "max" key (or both): >lua
+2. A table with a "min" or "max" key (or both): >
 
     vim.diagnostic.get(0, { severity = { min = vim.diagnostic.severity.WARN } })
 
@@ -107,7 +107,7 @@ Nvim provides these handlers by default: "virtual_text", "signs", and
 
                                                 *diagnostic-handlers-example*
 The example below creates a new handler that notifies the user of diagnostics
-with |vim.notify()|: >lua
+with |vim.notify()|: >
 
     -- It's good practice to namespace custom handlers to avoid collisions
     vim.diagnostic.handlers["my/notify"] = {
@@ -135,7 +135,7 @@ In this example, there is nothing to do when diagnostics are hidden, so we
 omit the "hide" function.
 
 Existing handlers can be overridden. For example, use the following to only
-show a sign for the highest severity diagnostic on a given line: >lua
+show a sign for the highest severity diagnostic on a given line: >
 
     -- Create a custom namespace. This will aggregate signs from all other
     -- namespaces and only show the one with the highest severity on a
@@ -185,7 +185,7 @@ own default highlight groups.
 
 For example, the default highlighting for |hl-DiagnosticSignError| is linked
 to |hl-DiagnosticError|. To change the default (and therefore the linked
-highlights), use the |:highlight| command: >vim
+highlights), use the |:highlight| command: >
 
     highlight DiagnosticError guifg="BrightRed"
 <
@@ -209,11 +209,6 @@ DiagnosticHint
     Used as the base highlight group.
     Other Diagnostic highlights link to this by default (except Underline)
 
-                                                        *hl-DiagnosticOk*
-DiagnosticOk
-    Used as the base highlight group.
-    Other Diagnostic highlights link to this by default (except Underline)
-
                                         *hl-DiagnosticVirtualTextError*
 DiagnosticVirtualTextError
     Used for "Error" diagnostic virtual text.
@@ -230,10 +225,6 @@ DiagnosticVirtualTextInfo
 DiagnosticVirtualTextHint
     Used for "Hint" diagnostic virtual text.
 
-                                                *hl-DiagnosticVirtualTextOk*
-DiagnosticVirtualTextOk
-    Used for "Ok" diagnostic virtual text.
-
                                                 *hl-DiagnosticUnderlineError*
 DiagnosticUnderlineError
     Used to underline "Error" diagnostics.
@@ -249,10 +240,6 @@ DiagnosticUnderlineInfo
                                                 *hl-DiagnosticUnderlineHint*
 DiagnosticUnderlineHint
     Used to underline "Hint" diagnostics.
-
-                                                *hl-DiagnosticUnderlineOk*
-DiagnosticUnderlineOk
-    Used to underline "Ok" diagnostics.
 
                                                 *hl-DiagnosticFloatingError*
 DiagnosticFloatingError
@@ -271,10 +258,6 @@ DiagnosticFloatingInfo
 DiagnosticFloatingHint
     Used to color "Hint" diagnostic messages in diagnostics float.
 
-                                                *hl-DiagnosticFloatingOk*
-DiagnosticFloatingOk
-    Used to color "Ok" diagnostic messages in diagnostics float.
-
                                                 *hl-DiagnosticSignError*
 DiagnosticSignError
     Used for "Error" signs in sign column.
@@ -291,16 +274,12 @@ DiagnosticSignInfo
 DiagnosticSignHint
     Used for "Hint" signs in sign column.
 
-                                                *hl-DiagnosticSignOk*
-DiagnosticSignOk
-    Used for "Ok" signs in sign column.
-
 ==============================================================================
 SIGNS                                                   *diagnostic-signs*
 
 Signs are defined for each diagnostic severity. The default text for each sign
 is the first letter of the severity name (for example, "E" for ERROR). Signs
-can be customized using the following: >vim
+can be customized using the following: >
 
     sign define DiagnosticSignError text=E texthl=DiagnosticSignError linehl= numhl=
     sign define DiagnosticSignWarn text=W texthl=DiagnosticSignWarn linehl= numhl=
@@ -320,12 +299,12 @@ DiagnosticChanged       After diagnostics have changed. When used from Lua,
                         the new diagnostics are passed to the autocmd
                         callback in the "data" table.
 
-Example: >lua
+Example: >
 
     vim.api.nvim_create_autocmd('DiagnosticChanged', {
       callback = function(args)
         local diagnostics = args.data.diagnostics
-        vim.print(diagnostics)
+        vim.pretty_print(diagnostics)
       end,
     })
 <
@@ -341,12 +320,12 @@ config({opts}, {namespace})                          *vim.diagnostic.config()*
     |vim.diagnostic.show()|). Ephemeral configuration has highest priority,
     followed by namespace configuration, and finally global configuration.
 
-    For example, if a user enables virtual text globally with >lua
+    For example, if a user enables virtual text globally with >
 
        vim.diagnostic.config({ virtual_text = true })
 <
 
-    and a diagnostic producer sets diagnostics with >lua
+    and a diagnostic producer sets diagnostics with >
 
        vim.diagnostic.set(ns, 0, diagnostics, { virtual_text = false })
 <
@@ -386,21 +365,16 @@ config({opts}, {namespace})                          *vim.diagnostic.config()*
                          the beginning of the virtual text.
                        • prefix: (string) Prepend diagnostic message with
                          prefix.
-                       • suffix: (string or function) Append diagnostic
-                         message with suffix. If a function, it must have the
-                         signature (diagnostic) -> string, where {diagnostic}
-                         is of type |diagnostic-structure|. This can be used
-                         to render an LSP diagnostic error code.
                        • format: (function) A function that takes a diagnostic
                          as input and returns a string. The return value is
-                         the text used to display the diagnostic. Example: >lua
+                         the text used to display the diagnostic. Example: >
 
-                             function(diagnostic)
-                               if diagnostic.severity == vim.diagnostic.severity.ERROR then
-                                 return string.format("E: %s", diagnostic.message)
-                               end
-                               return diagnostic.message
+                           function(diagnostic)
+                             if diagnostic.severity == vim.diagnostic.severity.ERROR then
+                               return string.format("E: %s", diagnostic.message)
                              end
+                             return diagnostic.message
+                           end
 <
 
                      • signs: (default true) Use signs for diagnostics.
@@ -423,25 +397,25 @@ config({opts}, {namespace})                          *vim.diagnostic.config()*
                        severities are displayed before lower severities (e.g.
                        ERROR is displayed before WARN). Options:
                        • reverse: (boolean) Reverse sort order
-      • {namespace}  (integer|nil) Update the options for the given namespace.
+      • {namespace}  (number|nil) Update the options for the given namespace.
                      When omitted, update the global diagnostic options.
 
 disable({bufnr}, {namespace})                       *vim.diagnostic.disable()*
     Disable diagnostics in the given buffer.
 
     Parameters: ~
-      • {bufnr}      (integer|nil) Buffer number, or 0 for current buffer.
-                     When omitted, disable diagnostics in all buffers.
-      • {namespace}  (integer|nil) Only disable diagnostics for the given
+      • {bufnr}      (number|nil) Buffer number, or 0 for current buffer. When
+                     omitted, disable diagnostics in all buffers.
+      • {namespace}  (number|nil) Only disable diagnostics for the given
                      namespace.
 
 enable({bufnr}, {namespace})                         *vim.diagnostic.enable()*
     Enable diagnostics in the given buffer.
 
     Parameters: ~
-      • {bufnr}      (integer|nil) Buffer number, or 0 for current buffer.
-                     When omitted, enable diagnostics in all buffers.
-      • {namespace}  (integer|nil) Only enable diagnostics for the given
+      • {bufnr}      (number|nil) Buffer number, or 0 for current buffer. When
+                     omitted, enable diagnostics in all buffers.
+      • {namespace}  (number|nil) Only enable diagnostics for the given
                      namespace.
 
 fromqflist({list})                               *vim.diagnostic.fromqflist()*
@@ -452,14 +426,14 @@ fromqflist({list})                               *vim.diagnostic.fromqflist()*
                 |getloclist()|.
 
     Return: ~
-        Diagnostic [] array of |diagnostic-structure|
+        array of diagnostics |diagnostic-structure|
 
 get({bufnr}, {opts})                                    *vim.diagnostic.get()*
     Get current diagnostics.
 
     Parameters: ~
-      • {bufnr}  (integer|nil) Buffer number to get diagnostics from. Use 0
-                 for current buffer or nil for all buffers.
+      • {bufnr}  (number|nil) Buffer number to get diagnostics from. Use 0 for
+                 current buffer or nil for all buffers.
       • {opts}   (table|nil) A table with the following keys:
                  • namespace: (number) Limit diagnostics to the given
                    namespace.
@@ -467,13 +441,13 @@ get({bufnr}, {opts})                                    *vim.diagnostic.get()*
                  • severity: See |diagnostic-severity|.
 
     Return: ~
-        Diagnostic [] table A list of diagnostic items |diagnostic-structure|.
+        (table) A list of diagnostic items |diagnostic-structure|.
 
 get_namespace({namespace})                    *vim.diagnostic.get_namespace()*
     Get namespace metadata.
 
     Parameters: ~
-      • {namespace}  (integer) Diagnostic namespace
+      • {namespace}  (number) Diagnostic namespace
 
     Return: ~
         (table) Namespace metadata
@@ -488,39 +462,37 @@ get_next({opts})                                   *vim.diagnostic.get_next()*
     Get the next diagnostic closest to the cursor position.
 
     Parameters: ~
-      • {opts}  (table|nil) See |vim.diagnostic.goto_next()|
+      • {opts}  (table) See |vim.diagnostic.goto_next()|
 
     Return: ~
-        Diagnostic|nil Next diagnostic
+        (table) Next diagnostic
 
 get_next_pos({opts})                           *vim.diagnostic.get_next_pos()*
     Return the position of the next diagnostic in the current buffer.
 
     Parameters: ~
-      • {opts}  (table|nil) See |vim.diagnostic.goto_next()|
+      • {opts}  (table) See |vim.diagnostic.goto_next()|
 
     Return: ~
-        table|false Next diagnostic position as a (row, col) tuple or false if
-        no next diagnostic.
+        (table) Next diagnostic position as a (row, col) tuple.
 
 get_prev({opts})                                   *vim.diagnostic.get_prev()*
     Get the previous diagnostic closest to the cursor position.
 
     Parameters: ~
-      • {opts}  nil|table See |vim.diagnostic.goto_next()|
+      • {opts}  (table) See |vim.diagnostic.goto_next()|
 
     Return: ~
-        Diagnostic|nil Previous diagnostic
+        (table) Previous diagnostic
 
 get_prev_pos({opts})                           *vim.diagnostic.get_prev_pos()*
     Return the position of the previous diagnostic in the current buffer.
 
     Parameters: ~
-      • {opts}  (table|nil) See |vim.diagnostic.goto_next()|
+      • {opts}  (table) See |vim.diagnostic.goto_next()|
 
     Return: ~
-        table|false Previous diagnostic position as a (row, col) tuple or
-        false if there is no prior diagnostic
+        (table) Previous diagnostic position as a (row, col) tuple.
 
 goto_next({opts})                                 *vim.diagnostic.goto_next()*
     Move to the next diagnostic.
@@ -547,7 +519,7 @@ goto_prev({opts})                                 *vim.diagnostic.goto_prev()*
     Move to the previous diagnostic in the current buffer.
 
     Parameters: ~
-      • {opts}  (table|nil) See |vim.diagnostic.goto_next()|
+      • {opts}  (table) See |vim.diagnostic.goto_next()|
 
 hide({namespace}, {bufnr})                             *vim.diagnostic.hide()*
     Hide currently displayed diagnostics.
@@ -560,22 +532,10 @@ hide({namespace}, {bufnr})                             *vim.diagnostic.hide()*
     |vim.diagnostic.disable()|.
 
     Parameters: ~
-      • {namespace}  (integer|nil) Diagnostic namespace. When omitted, hide diagnostics from all
-                     namespaces.
-      • {bufnr}      (integer|nil) Buffer number, or 0 for current buffer.
-                     When omitted, hide diagnostics in all buffers.
-
-is_disabled({bufnr}, {namespace})               *vim.diagnostic.is_disabled()*
-    Check whether diagnostics are disabled in a given buffer.
-
-    Parameters: ~
-      • {bufnr}      (integer|nil) Buffer number, or 0 for current buffer.
-      • {namespace}  (integer|nil) Diagnostic namespace. When omitted, checks if all diagnostics are
-                     disabled in {bufnr}. Otherwise, only checks if
-                     diagnostics from {namespace} are disabled.
-
-    Return: ~
-        (boolean)
+      • {namespace}  (number|nil) Diagnostic namespace. When omitted, hide
+                     diagnostics from all namespaces.
+      • {bufnr}      (number|nil) Buffer number, or 0 for current buffer. When
+                     omitted, hide diagnostics in all buffers.
 
                                                       *vim.diagnostic.match()*
 match({str}, {pat}, {groups}, {severity_map}, {defaults})
@@ -586,12 +546,12 @@ match({str}, {pat}, {groups}, {severity_map}, {defaults})
      WARNING filename:27:3: Variable 'foo' does not exist
 <
 
-    This can be parsed into a diagnostic |diagnostic-structure| with: >lua
+    This can be parsed into a diagnostic |diagnostic-structure| with: >
 
-       local s = "WARNING filename:27:3: Variable 'foo' does not exist"
-       local pattern = "^(%w+) %w+:(%d+):(%d+): (.+)$"
-       local groups = { "severity", "lnum", "col", "message" }
-       vim.diagnostic.match(s, pattern, groups, { WARNING = vim.diagnostic.WARN })
+     local s = "WARNING filename:27:3: Variable 'foo' does not exist"
+     local pattern = "^(%w+) %w+:(%d+):(%d+): (.+)$"
+     local groups = { "severity", "lnum", "col", "message" }
+     vim.diagnostic.match(s, pattern, groups, { WARNING = vim.diagnostic.WARN })
 <
 
     Parameters: ~
@@ -606,8 +566,8 @@ match({str}, {pat}, {groups}, {severity_map}, {defaults})
                         default to 0 and "severity" defaults to ERROR.
 
     Return: ~
-        Diagnostic|nil: |diagnostic-structure| or `nil` if {pat} fails to
-        match {str}.
+        diagnostic |diagnostic-structure| or `nil` if {pat} fails to match
+        {str}.
 
 open_float({opts}, {...})                        *vim.diagnostic.open_float()*
     Show diagnostics in a floating window.
@@ -658,12 +618,9 @@ open_float({opts}, {...})                        *vim.diagnostic.open_float()*
                   {prefix} is a string, it is prepended to each diagnostic in
                   the window with no highlight. Overrides the setting from
                   |vim.diagnostic.config()|.
-                • suffix: Same as {prefix}, but appends the text to the
-                  diagnostic instead of prepending it. Overrides the setting
-                  from |vim.diagnostic.config()|.
 
     Return: ~
-        integer|nil, integer|nil: ({float_bufnr}, {win_id})
+        tuple ({float_bufnr}, {win_id})
 
 reset({namespace}, {bufnr})                           *vim.diagnostic.reset()*
     Remove all diagnostics from the given namespace.
@@ -674,17 +631,17 @@ reset({namespace}, {bufnr})                           *vim.diagnostic.reset()*
     re-displayed, use |vim.diagnostic.hide()|.
 
     Parameters: ~
-      • {namespace}  (integer|nil) Diagnostic namespace. When omitted, remove diagnostics from all
-                     namespaces.
-      • {bufnr}      (integer|nil) Remove diagnostics for the given buffer.
+      • {namespace}  (number|nil) Diagnostic namespace. When omitted, remove
+                     diagnostics from all namespaces.
+      • {bufnr}      (number|nil) Remove diagnostics for the given buffer.
                      When omitted, diagnostics are removed for all buffers.
 
 set({namespace}, {bufnr}, {diagnostics}, {opts})        *vim.diagnostic.set()*
     Set diagnostics for the given namespace and buffer.
 
     Parameters: ~
-      • {namespace}    (integer) The diagnostic namespace
-      • {bufnr}        (integer) Buffer number
+      • {namespace}    (number) The diagnostic namespace
+      • {bufnr}        (number) Buffer number
       • {diagnostics}  (table) A list of diagnostic items
                        |diagnostic-structure|
       • {opts}         (table|nil) Display options to pass to
@@ -723,9 +680,9 @@ show({namespace}, {bufnr}, {diagnostics}, {opts})
     Display diagnostics for the given namespace and buffer.
 
     Parameters: ~
-      • {namespace}    (integer|nil) Diagnostic namespace. When omitted, show diagnostics from all
-                       namespaces.
-      • {bufnr}        (integer|nil) Buffer number, or 0 for current buffer.
+      • {namespace}    (number|nil) Diagnostic namespace. When omitted, show
+                       diagnostics from all namespaces.
+      • {bufnr}        (number|nil) Buffer number, or 0 for current buffer.
                        When omitted, show diagnostics in all buffers.
       • {diagnostics}  (table|nil) The diagnostics to display. When omitted,
                        use the saved diagnostics for the given namespace and
@@ -744,6 +701,6 @@ toqflist({diagnostics})                            *vim.diagnostic.toqflist()*
       • {diagnostics}  (table) List of diagnostics |diagnostic-structure|.
 
     Return: ~
-        table[] of quickfix list items |setqflist-what|
+        array of quickfix list items |setqflist-what|
 
  vim:tw=78:ts=8:sw=4:sts=4:et:ft=help:norl:

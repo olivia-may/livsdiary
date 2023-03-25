@@ -53,10 +53,9 @@ with these (optional) keys:
 - `term_name`		Sets the name of the terminal 'term'.
 - `term_colors`		Sets the number of supported colors 't_Co'.
 - `term_background`	Sets the default value of 'background'.
-- `stdin_fd`		Read buffer 1 from this fd as if it were stdin |--|.
-			Only from |--embed| UI on startup. |ui-startup-stdin|
-- `stdin_tty`		Tells if `stdin` is a `tty` or not.
-- `stdout_tty`		Tells if `stdout` is a `tty` or not.
+- `stdin_fd`		Read buffer from `fd` as if it was a stdin pipe
+			This option can only used by |--embed| ui,
+			see |ui-startup-stdin|.
 
 Specifying an unknown option is an error; UIs can check the |api-metadata|
 `ui_options` key for supported options.
@@ -120,7 +119,7 @@ for forward-compatibility. |api-contract|
 UI startup							   *ui-startup*
 
 UI embedders (clients that start Nvim with |--embed| and later call
-|nvim_ui_attach()|) must start Nvim without |--headless|: >bash
+|nvim_ui_attach()|) must start Nvim without |--headless|: >
     nvim --embed
 Nvim will pause before loading startup files and reading buffers, so the UI
 has a chance to invoke requests and do early initialization. Startup will
@@ -139,7 +138,7 @@ procedure:
    to set |g:| variables visible to init.vim
 
 3. If the UI wants to do additional setup after user config is loaded,
-   register a VimEnter autocmd: >vim
+   register a VimEnter autocmd: >
       nvim_command("autocmd VimEnter * call rpcrequest(1, 'vimenter')")
 
 4. Now invoke |nvim_ui_attach()|. The UI must handle user input by now:
@@ -153,11 +152,11 @@ procedure:
 An UI can support the native read from stdin feature as invoked with
 `command | nvim -` for the builtin TUI. |--|
 The embedding process can detect that its stdin is open to a file which
-not is a terminal, just like Nvim does. It then needs to forward this fd
+not is a terminal, just like nvim does. It then needs to forward this fd
 to Nvim. As fd=0 is already is used to send rpc data from the embedder to
 Nvim, it needs to use some other file descriptor, like fd=3 or higher.
 
-Then, `stdin_fd` option should be passed to `nvim_ui_attach` and Nvim will
+Then, `stdin_fd` option should be passed to `nvim_ui_attach` and nvim will
 implicitly read it as a buffer. This option can only be used when Nvim is
 launched with `--embed` option, as described above.
 
@@ -323,7 +322,6 @@ numerical highlight ids to the actual attributes.
 	`underdouble`:		double underlined text. The lines have `special` color.
 	`underdotted`:		underdotted text. The dots have `special` color.
 	`underdashed`:		underdashed text. The dashes have `special` color.
-	`altfont`:		alternative font.
 	`blend`:		Blend level (0-100). Could be used by UIs to
 				support blending floating windows to the
 				background or to signal a transparent cursor.
@@ -355,8 +353,8 @@ numerical highlight ids to the actual attributes.
 	The bulitin highlight group `name` was set to use the attributes `hl_id`
 	defined by a previous `hl_attr_define` call. This event is not needed
 	to render the grids which use attribute ids directly, but is useful
-	for a UI who want to render its own elements with consistent
-	highlighting. For instance a UI using |ui-popupmenu| events, might
+	for an UI who want to render its own elements with consistent
+	highlighting. For instance an UI using |ui-popupmenu| events, might
 	use the |hl-Pmenu| family of builtin highlights.
 
 							    *ui-event-grid_line*
@@ -531,7 +529,7 @@ is not active. New UIs should implement |ui-linegrid| instead.
 		+-------------------------+
 <
 ==============================================================================
-Detailed highlight state Extension				  *ui-hlstate*
+Detailed highlight state Extension 				  *ui-hlstate*
 
 Activated by the `ext_hlstate` |ui-option|.
 Activates |ui-linegrid| implicitly.
@@ -565,7 +563,7 @@ highlight group is cleared, so `ui_name` can always be used to reliably identify
 screen elements, even if no attributes have been applied.
 
 ==============================================================================
-Multigrid Events						 *ui-multigrid*
+Multigrid Events 	  					 *ui-multigrid*
 
 Activated by the `ext_multigrid` |ui-option|.
 Activates |ui-linegrid| implicitly.
@@ -616,25 +614,21 @@ tabs.
 	Close the window.
 
 ["msg_set_pos", grid, row, scrolled, sep_char] ~
-	Display messages on `grid`.  The grid will be displayed at `row` on
-	the default grid (grid=1), covering the full column width. `scrolled`
+	Display messages on `grid`.  The grid will be displayed at `row` on the
+	default grid (grid=1), covering the full column width. `scrolled`
 	indicates whether the message area has been scrolled to cover other
-	grids. It can be useful to draw a separator then |msgsep|. The Builtin
-	TUI draws a full line filled with `sep_char` ('fillchars' msgsep
-	field) and |hl-MsgSeparator| highlight.
+	grids. It can be useful to draw a separator then ('display' msgsep
+	flag). The Builtin TUI draws a full line filled with `sep_char` and
+	|hl-MsgSeparator| highlight.
 
 	When |ui-messages| is active, no message grid is used, and this event
 	will not be sent.
 
-["win_viewport", grid, win, topline, botline, curline, curcol, line_count, scroll_delta] ~
+["win_viewport", grid, win, topline, botline, curline, curcol] ~
 	Indicates the range of buffer text displayed in the window, as well
 	as the cursor position in the buffer. All positions are zero-based.
 	`botline` is set to one more than the line count of the buffer, if
-	there are filler lines past the end. `scroll_delta` contains how much
-	the top line of a window moved since `win_viewport` was last emitted.
-	It is intended to be used to implement smooth scrolling. For this
-	purpose it only counts "virtual" or "displayed" lines, so folds
-	only count as one line.
+	there are filler lines past the end.
 
 ["win_extmark", grid, win, ns_id, mark_id, row, col] ~
 	Updates the position of an extmark which is currently visible in a
@@ -728,7 +722,7 @@ For command-line 'wildmenu' UI events, activate |ui-popupmenu|.
 
 ["cmdline_block_show", lines] ~
 	Show a block of context to the current command line. For example if
-	the user defines a |:function| interactively: >vim
+	the user defines a |:function| interactively: >
 	    :function Foo()
 	    :  echo "foo"
 	    :
@@ -811,9 +805,6 @@ events, which the UI must handle.
 ["msg_history_show", entries] ~
 	Sent when |:messages| command is invoked. History is sent as a list of
 	entries, where each entry is a `[kind, content]` tuple.
-
-["msg_history_clear"] ~
-	Clear the |:messages| history.
 
 ==============================================================================
  vim:tw=78:ts=8:noet:ft=help:norl:

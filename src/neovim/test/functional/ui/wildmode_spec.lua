@@ -1,13 +1,13 @@
 local helpers = require('test.functional.helpers')(after_each)
 local Screen = require('test.functional.ui.screen')
 local clear, feed, command = helpers.clear, helpers.feed, helpers.command
+local iswin = helpers.iswin
 local funcs = helpers.funcs
 local meths = helpers.meths
 local eq = helpers.eq
 local eval = helpers.eval
 local retry = helpers.retry
 local testprg = helpers.testprg
-local is_os = helpers.is_os
 
 describe("'wildmenu'", function()
   local screen
@@ -159,7 +159,7 @@ describe("'wildmenu'", function()
     -- must wait the full timeout. So make it reasonable.
     screen.timeout = 1000
 
-    if not is_os('win') then
+    if not iswin() then
       command('set shell=sh')  -- Need a predictable "$" prompt.
       command('let $PS1 = "$"')
     end
@@ -169,7 +169,7 @@ describe("'wildmenu'", function()
 
     -- Check for a shell prompt to verify that the terminal loaded.
     retry(nil, nil, function()
-      if is_os('win') then
+      if iswin() then
         eq('Microsoft', eval("matchstr(join(getline(1, '$')), 'Microsoft')"))
       else
         eq('$', eval([[matchstr(getline(1), '\$')]]))
@@ -184,10 +184,11 @@ describe("'wildmenu'", function()
     screen:expect_unchanged()
   end)
 
-  it('wildmode=list,full and messages interaction #10092', function()
+  it('wildmode=list,full and display+=msgsep interaction #10092', function()
     -- Need more than 5 rows, else tabline is covered and will be redrawn.
     screen:try_resize(25, 7)
 
+    command('set display+=msgsep')
     command('set wildmenu wildmode=list,full')
     command('set showtabline=2')
     feed(':set wildm<tab>')
@@ -214,6 +215,44 @@ describe("'wildmenu'", function()
     screen:expect([[
        [No Name]               |
       ^                         |
+      ~                        |
+      ~                        |
+      ~                        |
+      ~                        |
+                               |
+    ]])
+  end)
+
+  it('wildmode=list,full and display-=msgsep interaction', function()
+    -- Need more than 5 rows, else tabline is covered and will be redrawn.
+    screen:try_resize(25, 7)
+
+    command('set display-=msgsep')
+    command('set wildmenu wildmode=list,full')
+    feed(':set wildm<tab>')
+    screen:expect([[
+      ~                        |
+      ~                        |
+      ~                        |
+      ~                        |
+      :set wildm               |
+      wildmenu  wildmode       |
+      :set wildm^               |
+    ]])
+    feed('<tab>') -- trigger wildmode full
+    screen:expect([[
+      ~                        |
+      ~                        |
+      ~                        |
+      :set wildm               |
+      wildmenu  wildmode       |
+      wildmenu  wildmode       |
+      :set wildmenu^            |
+    ]])
+    feed('<Esc>')
+    screen:expect([[
+      ^                         |
+      ~                        |
       ~                        |
       ~                        |
       ~                        |
@@ -326,6 +365,7 @@ describe("'wildmenu'", function()
     screen:try_resize(25, 7)
 
     command('set laststatus=2')
+    command('set display+=msgsep')
     feed(':set wildm')
     feed('<c-d>')
     screen:expect([[

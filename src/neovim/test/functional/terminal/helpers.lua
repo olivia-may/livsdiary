@@ -4,31 +4,19 @@
 local helpers = require('test.functional.helpers')(nil)
 local Screen = require('test.functional.ui.screen')
 local testprg = helpers.testprg
-local exec_lua = helpers.exec_lua
 local feed_command, nvim = helpers.feed_command, helpers.nvim
 
 local function feed_data(data)
-  if type(data) == 'table' then
-      data = table.concat(data, '\n')
-  end
-  exec_lua('vim.api.nvim_chan_send(vim.b.terminal_job_id, ...)', data)
+  -- A string containing NUL bytes is not converted to a Blob when
+  -- calling nvim_set_var() API, so convert it using Lua instead.
+  nvim('exec_lua', 'vim.g.term_data = ...', {data})
+  nvim('command', 'call jobsend(b:terminal_job_id, term_data)')
 end
 
 local function feed_termcode(data)
-  feed_data('\027' .. data)
+  -- feed with the job API
+  nvim('command', 'call jobsend(b:terminal_job_id, "\\x1b'..data..'")')
 end
-
-local function make_lua_executor(session)
-  return function(code, ...)
-    local status, rv = session:request('nvim_exec_lua', code, {...})
-    if not status then
-      session:stop()
-      error(rv[2])
-    end
-    return rv
-  end
-end
-
 -- some helpers for controlling the terminal. the codes were taken from
 -- infocmp xterm-256color which is less what libvterm understands
 -- civis/cnorm
@@ -74,10 +62,7 @@ local function screen_setup(extra_rows, command, cols, opts)
     [9] = {foreground = 4},
     [10] = {foreground = 121},  -- "Press ENTER" in embedded :terminal session.
     [11] = {foreground = tonumber('0x00000b')},
-    [12] = {underline = true},
-    [13] = {underline = true, reverse = true},
-    [14] = {underline = true, reverse = true, bold = true},
-    [15] = {underline = true, foreground = 12},
+    [12] = {reverse = true, foreground = tonumber('0x000079')},
   })
 
   screen:attach(opts or {rgb=false})
@@ -124,7 +109,6 @@ end
 return {
   feed_data = feed_data,
   feed_termcode = feed_termcode,
-  make_lua_executor = make_lua_executor,
   hide_cursor = hide_cursor,
   show_cursor = show_cursor,
   enter_altscreen = enter_altscreen,

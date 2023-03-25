@@ -1,31 +1,17 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <inttypes.h>
-#include <stdbool.h>
-#include <stddef.h>
-
-#include "klib/kvec.h"
-#include "lauxlib.h"
-#include "nvim/api/buffer.h"
-#include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
 #include "nvim/assert.h"
 #include "nvim/buffer.h"
-#include "nvim/buffer_defs.h"
 #include "nvim/buffer_updates.h"
 #include "nvim/extmark.h"
-#include "nvim/globals.h"
-#include "nvim/log.h"
 #include "nvim/lua/executor.h"
 #include "nvim/memline.h"
-#include "nvim/memory.h"
 #include "nvim/msgpack_rpc/channel.h"
-#include "nvim/pos.h"
-#include "nvim/types.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
-# include "buffer_updates.c.generated.h"  // IWYU pragma: export
+# include "buffer_updates.c.generated.h"
 #endif
 
 // Register a channel. Return True if the channel was added, or already added.
@@ -48,10 +34,12 @@ bool buf_updates_register(buf_T *buf, uint64_t channel_id, BufUpdateCallbacks cb
 
   // count how many channels are currently watching the buffer
   size_t size = kv_size(buf->update_channels);
-  for (size_t i = 0; i < size; i++) {
-    if (kv_A(buf->update_channels, i) == channel_id) {
-      // buffer is already registered ... nothing to do
-      return true;
+  if (size) {
+    for (size_t i = 0; i < size; i++) {
+      if (kv_A(buf->update_channels, i) == channel_id) {
+        // buffer is already registered ... nothing to do
+        return true;
+      }
     }
   }
 
@@ -81,14 +69,13 @@ bool buf_updates_register(buf_T *buf, uint64_t channel_id, BufUpdateCallbacks cb
       linedata.size = line_count;
       linedata.items = xcalloc(line_count, sizeof(Object));
 
-      buf_collect_lines(buf, line_count, 1, 0, true, &linedata, NULL, NULL);
+      buf_collect_lines(buf, line_count, 1, true, &linedata, NULL);
     }
 
     args.items[4] = ARRAY_OBJ(linedata);
     args.items[5] = BOOLEAN_OBJ(false);
 
     rpc_send_event(channel_id, "nvim_buf_lines_event", args);
-    api_free_array(args);  // TODO(bfredl): no
   } else {
     buf_updates_changedtick_single(buf, channel_id);
   }
@@ -104,8 +91,10 @@ bool buf_updates_active(buf_T *buf)
 
 void buf_updates_send_end(buf_T *buf, uint64_t channelid)
 {
-  MAXSIZE_TEMP_ARRAY(args, 1);
-  ADD_C(args, BUFFER_OBJ(buf->handle));
+  Array args = ARRAY_DICT_INIT;
+  args.size = 1;
+  args.items = xcalloc(args.size, sizeof(Object));
+  args.items[0] = BUFFER_OBJ(buf->handle);
   rpc_send_event(channelid, "nvim_buf_detach_event", args);
 }
 
@@ -188,9 +177,9 @@ void buf_updates_unload(buf_T *buf, bool can_reload)
       // the first argument is always the buffer handle
       args.items[0] = BUFFER_OBJ(buf->handle);
 
-      TEXTLOCK_WRAP({
-        nlua_call_ref(thecb, keep ? "reload" : "detach", args, false, NULL);
-      });
+      textlock++;
+      nlua_call_ref(thecb, keep ? "reload" : "detach", args, false, NULL);
+      textlock--;
     }
 
     if (keep) {
@@ -250,8 +239,8 @@ void buf_updates_send_changes(buf_T *buf, linenr_T firstline, int64_t num_added,
       STATIC_ASSERT(SIZE_MAX >= MAXLNUM, "size_t smaller than MAXLNUM");
       linedata.size = (size_t)num_added;
       linedata.items = xcalloc((size_t)num_added, sizeof(Object));
-      buf_collect_lines(buf, (size_t)num_added, firstline, 0, true, &linedata,
-                        NULL, NULL);
+      buf_collect_lines(buf, (size_t)num_added, firstline, true, &linedata,
+                        NULL);
     }
     args.items[4] = ARRAY_OBJ(linedata);
     args.items[5] = BOOLEAN_OBJ(false);
@@ -261,7 +250,6 @@ void buf_updates_send_changes(buf_T *buf, linenr_T firstline, int64_t num_added,
       // the end.
       badchannelid = channelid;
     }
-    api_free_array(args);  // TODO(bfredl): no
   }
 
   // We can only ever remove one dead channel at a time. This is OK because the
@@ -305,11 +293,9 @@ void buf_updates_send_changes(buf_T *buf, linenr_T firstline, int64_t num_added,
         args.items[6] = INTEGER_OBJ((Integer)deleted_codepoints);
         args.items[7] = INTEGER_OBJ((Integer)deleted_codeunits);
       }
-
-      Object res;
-      TEXTLOCK_WRAP({
-        res = nlua_call_ref(cb.on_lines, "lines", args, false, NULL);
-      });
+      textlock++;
+      Object res = nlua_call_ref(cb.on_lines, "lines", args, false, NULL);
+      textlock--;
 
       if (res.type == kObjectTypeBoolean && res.data.boolean == true) {
         buffer_update_callbacks_free(cb);
@@ -356,10 +342,9 @@ void buf_updates_send_splice(buf_T *buf, int start_row, colnr_T start_col, bcoun
       ADD_C(args, INTEGER_OBJ(new_col));
       ADD_C(args, INTEGER_OBJ(new_byte));
 
-      Object res;
-      TEXTLOCK_WRAP({
-        res = nlua_call_ref(cb.on_bytes, "bytes", args, false, NULL);
-      });
+      textlock++;
+      Object res = nlua_call_ref(cb.on_bytes, "bytes", args, false, NULL);
+      textlock--;
 
       if (res.type == kObjectTypeBoolean && res.data.boolean == true) {
         buffer_update_callbacks_free(cb);
@@ -392,10 +377,10 @@ void buf_updates_changedtick(buf_T *buf)
       // next argument is b:changedtick
       ADD_C(args, INTEGER_OBJ(buf_get_changedtick(buf)));
 
-      Object res;
-      TEXTLOCK_WRAP({
-        res = nlua_call_ref(cb.on_changedtick, "changedtick", args, false, NULL);
-      });
+      textlock++;
+      Object res = nlua_call_ref(cb.on_changedtick, "changedtick",
+                                 args, false, NULL);
+      textlock--;
 
       if (res.type == kObjectTypeBoolean && res.data.boolean == true) {
         buffer_update_callbacks_free(cb);
@@ -411,13 +396,15 @@ void buf_updates_changedtick(buf_T *buf)
 
 void buf_updates_changedtick_single(buf_T *buf, uint64_t channel_id)
 {
-  MAXSIZE_TEMP_ARRAY(args, 2);
+  Array args = ARRAY_DICT_INIT;
+  args.size = 2;
+  args.items = xcalloc(args.size, sizeof(Object));
 
   // the first argument is always the buffer handle
-  ADD_C(args, BUFFER_OBJ(buf->handle));
+  args.items[0] = BUFFER_OBJ(buf->handle);
 
   // next argument is b:changedtick
-  ADD_C(args, INTEGER_OBJ(buf_get_changedtick(buf)));
+  args.items[1] = INTEGER_OBJ(buf_get_changedtick(buf));
 
   // don't try and clean up dead channels here
   rpc_send_event(channel_id, "nvim_buf_changedtick_event", args);

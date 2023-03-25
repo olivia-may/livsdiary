@@ -181,7 +181,7 @@ function M.cls(bufnr)
     return vim.g.filetype_cls
   end
   local line = getlines(bufnr, 1)
-  if line:find('^[%%\\]') then
+  if line:find('^%%') then
     return 'tex'
   elseif line:find('^#') and line:lower():find('rexx') then
     return 'rexx'
@@ -634,19 +634,6 @@ function M.lpc(bufnr)
   return 'c'
 end
 
-function M.lsl(bufnr)
-  if vim.g.filetype_lsl then
-    return vim.g.filetype_lsl
-  end
-
-  local line = nextnonblank(bufnr, 1)
-  if findany(line, { '^%s*%%', ':%s*trait%s*$' }) then
-    return 'larch'
-  else
-    return 'lsl'
-  end
-end
-
 function M.m(bufnr)
   if vim.g.filetype_m then
     return vim.g.filetype_m
@@ -1097,10 +1084,11 @@ function M.sc(bufnr)
   for _, line in ipairs(getlines(bufnr, 1, 25)) do
     if
       findany(line, {
+        '[A-Za-z0-9]*%s:%s[A-Za-z0-9]',
         'var%s<',
         'classvar%s<',
         '%^this.*',
-        '|%w+|',
+        '|%w*|',
         '%+%s%w*%s{',
         '%*ar%s',
       })
@@ -1165,14 +1153,13 @@ function M.sh(path, contents, name)
       vim.b[b].is_bash = nil
       vim.b[b].is_sh = nil
     end
-  elseif vim.g.bash_is_sh or matchregex(name, [[\<\(bash\|bash2\)\>]]) then
+  elseif vim.g.bash_is_sh or matchregex(name, [[\<bash\>]]) or matchregex(name, [[\<bash2\>]]) then
     on_detect = function(b)
       vim.b[b].is_bash = 1
       vim.b[b].is_kornshell = nil
       vim.b[b].is_sh = nil
     end
-    -- Ubuntu links sh to dash
-  elseif matchregex(name, [[\<\(sh\|dash\)\>]]) then
+  elseif matchregex(name, [[\<sh\>]]) then
     on_detect = function(b)
       vim.b[b].is_sh = 1
       vim.b[b].is_kornshell = nil
@@ -1256,15 +1243,17 @@ end
 -- 2. Check the first 1000 non-comment lines for LaTeX or ConTeXt keywords.
 -- 3. Default to "plain" or to g:tex_flavor, can be set in user's vimrc.
 function M.tex(path, bufnr)
-  local matched, _, format = getlines(bufnr, 1):find('^%%&%s*(%a+)')
-  if matched then
+  local format = getlines(bufnr, 1):find('^%%&%s*(%a+)')
+  if format then
     format = format:lower():gsub('pdf', '', 1)
+    if format == 'tex' then
+      return 'tex'
+    elseif format == 'plaintex' then
+      return 'plaintex'
+    end
   elseif path:lower():find('tex/context/.*/.*%.tex') then
     return 'context'
   else
-    -- Default value, may be changed later:
-    format = vim.g.tex_flavor or 'plaintex'
-
     local lpat = [[documentclass\>\|usepackage\>\|begin{\|newcommand\>\|renewcommand\>]]
     local cpat =
       [[start\a\+\|setup\a\+\|usemodule\|enablemode\|enableregime\|setvariables\|useencoding\|usesymbols\|stelle\a\+\|verwende\a\+\|stel\a\+\|gebruik\a\+\|usa\a\+\|imposta\a\+\|regle\a\+\|utilisemodule\>]]
@@ -1273,25 +1262,26 @@ function M.tex(path, bufnr)
       -- Find first non-comment line
       if not l:find('^%s*%%%S') then
         -- Check the next thousand lines for a LaTeX or ConTeXt keyword.
-        for _, line in ipairs(getlines(bufnr, i, i + 1000)) do
-          if matchregex(line, [[\c^\s*\\\%(]] .. lpat .. [[\)]]) then
+        for _, line in ipairs(getlines(bufnr, i + 1, i + 1000)) do
+          local lpat_match, cpat_match =
+            matchregex(line, [[\c^\s*\\\%(]] .. lpat .. [[\)\|^\s*\\\(]] .. cpat .. [[\)]])
+          if lpat_match then
             return 'tex'
-          elseif matchregex(line, [[\c^\s*\\\%(]] .. cpat .. [[\)]]) then
+          elseif cpat_match then
             return 'context'
           end
         end
       end
     end
-  end -- if matched
-
-  -- Translation from formats to file types.  TODO:  add AMSTeX, RevTex, others?
-  if format == 'plain' then
-    return 'plaintex'
-  elseif format == 'plaintex' or format == 'context' then
-    return format
-  else
-    -- Probably LaTeX
-    return 'tex'
+    -- TODO: add AMSTeX, RevTex, others?
+    if not vim.g.tex_flavor or vim.g.tex_flavor == 'plain' then
+      return 'plaintex'
+    elseif vim.g.tex_flavor == 'context' then
+      return 'context'
+    else
+      -- Probably LaTeX
+      return 'tex'
+    end
   end
 end
 
@@ -1420,7 +1410,7 @@ local patterns_hashbang = {
 
 ---@private
 -- File starts with "#!".
-local function match_from_hashbang(contents, path, dispatch_extension)
+local function match_from_hashbang(contents, path)
   local first_line = contents[1]
   -- Check for a line like "#!/usr/bin/env {options} bash".  Turn it into
   -- "#!/usr/bin/bash" to make matching easier.
@@ -1457,8 +1447,8 @@ local function match_from_hashbang(contents, path, dispatch_extension)
     name = 'wish'
   end
 
-  if matchregex(name, [[^\(bash\d*\|dash\|ksh\d*\|sh\)\>]]) then
-    -- Bourne-like shell scripts: bash bash2 dash ksh ksh93 sh
+  if matchregex(name, [[^\(bash\d*\|\|ksh\d*\|sh\)\>]]) then
+    -- Bourne-like shell scripts: bash bash2 ksh ksh93 sh
     return require('vim.filetype.detect').sh(path, contents, first_line)
   elseif matchregex(name, [[^csh\>]]) then
     return require('vim.filetype.detect').shell(path, contents, vim.g.filetype_csh or 'csh')
@@ -1473,11 +1463,6 @@ local function match_from_hashbang(contents, path, dispatch_extension)
       return ft
     end
   end
-
-  -- If nothing matched, check the extension table. For a hashbang like
-  -- '#!/bin/env foo', this will set the filetype to 'fooscript' assuming
-  -- the filetype for the 'foo' extension is 'fooscript' in the extension table.
-  return dispatch_extension(name)
 end
 
 local patterns_text = {
@@ -1657,10 +1642,10 @@ local function match_from_text(contents, path)
   return cvs_diff(path, contents)
 end
 
-function M.match_contents(contents, path, dispatch_extension)
+M.match_contents = function(contents, path)
   local first_line = contents[1]
   if first_line:find('^#!') then
-    return match_from_hashbang(contents, path, dispatch_extension)
+    return match_from_hashbang(contents, path)
   else
     return match_from_text(contents, path)
   end

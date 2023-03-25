@@ -6,11 +6,8 @@
 #include <stdint.h>
 
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/types.h"
 #include "nvim/viml/parser/parser.h"
-
-struct expr_ast_node;
 
 // Defines whether to ignore case:
 //    ==   kCCStrategyUseOption
@@ -360,7 +357,7 @@ typedef struct {
   int arg_len;
 } ExprASTError;
 
-/// Structure representing complete AST for one expression
+/// Structure representing complety AST for one expression
 typedef struct {
   /// When AST is not correct this message will be printed.
   ///

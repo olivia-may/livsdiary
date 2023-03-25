@@ -11,9 +11,6 @@ local ok = helpers.ok
 local assert_alive = helpers.assert_alive
 
 describe('API: highlight',function()
-  clear()
-  Screen.new() -- initialize Screen.colors
-
   local expected_rgb = {
     background = Screen.colors.Yellow,
     foreground = Screen.colors.Red,
@@ -32,15 +29,12 @@ describe('API: highlight',function()
     italic = true,
     reverse = true,
     underline = true,
-    strikethrough = true,
-    altfont = true,
-    nocombine = true,
-  }
-  local expected_undercurl = {
-    background = Screen.colors.Yellow,
-    foreground = Screen.colors.Red,
-    special = Screen.colors.Blue,
     undercurl = true,
+    underdouble = true,
+    underdotted = true,
+    underdashed = true,
+    strikethrough = true,
+    nocombine = true,
   }
 
   before_each(function()
@@ -57,25 +51,31 @@ describe('API: highlight',function()
     eq(expected_rgb, nvim("get_hl_by_id", hl_id, true))
 
     -- Test invalid id.
-    eq('Invalid highlight id: 30000', pcall_err(meths.get_hl_by_id, 30000, false))
+    local err, emsg = pcall(meths.get_hl_by_id, 30000, false)
+    eq(false, err)
+    eq('Invalid highlight id: 30000', string.match(emsg, 'Invalid.*'))
 
     -- Test all highlight properties.
-    command('hi NewHighlight gui=underline,bold,italic,reverse,strikethrough,altfont,nocombine')
+    command('hi NewHighlight gui=underline,bold,undercurl,underdouble,underdotted,underdashed,italic,reverse,strikethrough,nocombine')
     eq(expected_rgb2, nvim("get_hl_by_id", hl_id, true))
 
-    -- Test undercurl
-    command('hi NewHighlight gui=undercurl')
-    eq(expected_undercurl, nvim("get_hl_by_id", hl_id, true))
-
     -- Test nil argument.
+    err, emsg = pcall(meths.get_hl_by_id, { nil }, false)
+    eq(false, err)
     eq('Wrong type for argument 1 when calling nvim_get_hl_by_id, expecting Integer',
-       pcall_err(meths.get_hl_by_id, { nil }, false))
+       string.match(emsg, 'Wrong.*'))
 
     -- Test 0 argument.
-    eq('Invalid highlight id: 0', pcall_err(meths.get_hl_by_id, 0, false))
+    err, emsg = pcall(meths.get_hl_by_id, 0, false)
+    eq(false, err)
+    eq('Invalid highlight id: 0',
+       string.match(emsg, 'Invalid.*'))
 
     -- Test -1 argument.
-    eq('Invalid highlight id: -1', pcall_err(meths.get_hl_by_id, -1, false))
+    err, emsg = pcall(meths.get_hl_by_id, -1, false)
+    eq(false, err)
+    eq('Invalid highlight id: -1',
+       string.match(emsg, 'Invalid.*'))
 
     -- Test highlight group without ctermbg value.
     command('hi Normal ctermfg=red ctermbg=yellow')
@@ -109,16 +109,22 @@ describe('API: highlight',function()
     eq(expected_normal, nvim("get_hl_by_name", 'Normal', true))
 
     -- Test invalid name.
-    eq("Invalid highlight name: 'unknown_highlight'",
-       pcall_err(meths.get_hl_by_name , 'unknown_highlight', false))
+    local err, emsg = pcall(meths.get_hl_by_name , 'unknown_highlight', false)
+    eq(false, err)
+    eq('Invalid highlight name: unknown_highlight',
+       string.match(emsg, 'Invalid.*'))
 
     -- Test nil argument.
+    err, emsg = pcall(meths.get_hl_by_name , { nil }, false)
+    eq(false, err)
     eq('Wrong type for argument 1 when calling nvim_get_hl_by_name, expecting String',
-       pcall_err(meths.get_hl_by_name , { nil }, false))
+       string.match(emsg, 'Wrong.*'))
 
     -- Test empty string argument.
-    eq('Invalid highlight name',
-       pcall_err(meths.get_hl_by_name , '', false))
+    err, emsg = pcall(meths.get_hl_by_name , '', false)
+    eq(false, err)
+    eq('Invalid highlight name: ',
+       string.match(emsg, 'Invalid.*'))
 
     -- Test "standout" attribute. #8054
     eq({ underline = true, },
@@ -139,7 +145,7 @@ describe('API: highlight',function()
 
   it('nvim_get_hl_id_by_name', function()
     -- precondition: use a hl group that does not yet exist
-    eq("Invalid highlight name: 'Shrubbery'", pcall_err(meths.get_hl_by_name, "Shrubbery", true))
+    eq('Invalid highlight name: Shrubbery', pcall_err(meths.get_hl_by_name, "Shrubbery", true))
     eq(0, funcs.hlID("Shrubbery"))
 
     local hl_id = meths.get_hl_id_by_name("Shrubbery")
@@ -198,14 +204,17 @@ describe("API: set highlight", function()
     bold = true,
     italic = true,
     reverse = true,
+    undercurl = true,
+    underline = true,
     underdashed = true,
+    underdotted = true,
+    underdouble = true,
     strikethrough = true,
-    altfont = true,
     cterm = {
       italic = true,
       reverse = true,
+      undercurl = true,
       strikethrough = true,
-      altfont = true,
       nocombine = true,
     }
   }
@@ -215,17 +224,20 @@ describe("API: set highlight", function()
     bold = true,
     italic = true,
     reverse = true,
+    undercurl = true,
+    underline = true,
     underdashed = true,
+    underdotted = true,
+    underdouble = true,
     strikethrough = true,
-    altfont = true,
   }
   local highlight3_result_cterm = {
     background = highlight_color.ctermbg,
     foreground = highlight_color.ctermfg,
     italic = true,
     reverse = true,
+    undercurl = true,
     strikethrough = true,
-    altfont = true,
     nocombine = true,
   }
 
@@ -237,32 +249,25 @@ describe("API: set highlight", function()
 
   before_each(clear)
 
-  it('validation', function()
-    eq("Invalid 'blend': out of range",
-      pcall_err(meths.set_hl, 0, 'Test_hl3', {fg='#FF00FF', blend=999}))
-    eq("Invalid 'blend': expected Integer, got Array",
-      pcall_err(meths.set_hl, 0, 'Test_hl3', {fg='#FF00FF', blend={}}))
-  end)
-
-  it("can set gui highlight", function()
+  it ("can set gui highlight", function()
     local ns = get_ns()
     meths.set_hl(ns, 'Test_hl', highlight1)
     eq(highlight1, meths.get_hl_by_name('Test_hl', true))
   end)
 
-  it("can set cterm highlight", function()
+  it ("can set cterm highlight", function()
     local ns = get_ns()
     meths.set_hl(ns, 'Test_hl', highlight2_config)
     eq(highlight2_result, meths.get_hl_by_name('Test_hl', false))
   end)
 
-  it("can set empty cterm attr", function()
+  it ("can set empty cterm attr", function()
     local ns = get_ns()
     meths.set_hl(ns, 'Test_hl', { cterm = {} })
     eq({}, meths.get_hl_by_name('Test_hl', false))
   end)
 
-  it("cterm attr defaults to gui attr", function()
+  it ("cterm attr defaults to gui attr", function()
     local ns = get_ns()
     meths.set_hl(ns, 'Test_hl', highlight1)
     eq({
@@ -271,28 +276,14 @@ describe("API: set highlight", function()
     }, meths.get_hl_by_name('Test_hl', false))
   end)
 
-  it("can overwrite attr for cterm", function()
+  it ("can overwrite attr for cterm", function()
     local ns = get_ns()
     meths.set_hl(ns, 'Test_hl', highlight3_config)
     eq(highlight3_result_gui, meths.get_hl_by_name('Test_hl', true))
     eq(highlight3_result_cterm, meths.get_hl_by_name('Test_hl', false))
   end)
 
-  it("only allows one underline attribute #22371", function()
-    local ns = get_ns()
-    meths.set_hl(ns, 'Test_hl', {
-      underdouble = true,
-      underdotted = true,
-      cterm = {
-        underline = true,
-        undercurl = true,
-      },
-    })
-    eq({ undercurl = true }, meths.get_hl_by_name('Test_hl', false))
-    eq({ underdotted = true }, meths.get_hl_by_name('Test_hl', true))
-  end)
-
-  it("can set a highlight in the global namespace", function()
+  it ("can set a highlight in the global namespace", function()
     meths.set_hl(0, 'Test_hl', highlight2_config)
     eq('Test_hl        xxx cterm=underline,reverse ctermfg=8 ctermbg=15 gui=underline,reverse',
       exec_capture('highlight Test_hl'))
@@ -302,7 +293,7 @@ describe("API: set highlight", function()
       exec_capture('highlight Test_hl'))
 
     meths.set_hl(0, 'Test_hl2', highlight3_config)
-    eq('Test_hl2       xxx cterm=italic,reverse,strikethrough,altfont,nocombine ctermfg=8 ctermbg=15 gui=bold,underdashed,italic,reverse,strikethrough,altfont guifg=#ff0000 guibg=#0032aa',
+    eq('Test_hl2       xxx cterm=undercurl,italic,reverse,strikethrough,nocombine ctermfg=8 ctermbg=15 gui=bold,underline,undercurl,underdouble,underdotted,underdashed,italic,reverse,strikethrough guifg=#ff0000 guibg=#0032aa',
       exec_capture('highlight Test_hl2'))
 
     -- Colors are stored with the name they are defined, but
@@ -312,7 +303,7 @@ describe("API: set highlight", function()
       exec_capture('highlight Test_hl3'))
   end)
 
-  it("can modify a highlight in the global namespace", function()
+  it ("can modify a highlight in the global namespace", function()
     meths.set_hl(0, 'Test_hl3', { bg = 'red', fg = 'blue'})
     eq('Test_hl3       xxx guifg=Blue guibg=Red',
       exec_capture('highlight Test_hl3'))
@@ -333,17 +324,17 @@ describe("API: set highlight", function()
     eq('Test_hl3       xxx ctermbg=9',
       exec_capture('highlight Test_hl3'))
 
-    eq("Invalid highlight color: 'redd'",
+    eq("'redd' is not a valid color",
       pcall_err(meths.set_hl, 0, 'Test_hl3', {fg='redd'}))
 
-    eq("Invalid highlight color: 'bleu'",
+    eq("'bleu' is not a valid color",
       pcall_err(meths.set_hl, 0, 'Test_hl3', {ctermfg='bleu'}))
 
     meths.set_hl(0, 'Test_hl3', {fg='#FF00FF'})
     eq('Test_hl3       xxx guifg=#ff00ff',
       exec_capture('highlight Test_hl3'))
 
-    eq("Invalid highlight color: '#FF00FF'",
+    eq("'#FF00FF' is not a valid color",
       pcall_err(meths.set_hl, 0, 'Test_hl3', {ctermfg='#FF00FF'}))
 
     for _, fg_val in ipairs{ nil, 'NONE', 'nOnE', '', -1 } do
@@ -358,14 +349,14 @@ describe("API: set highlight", function()
 
   end)
 
-  it("correctly sets 'Normal' internal properties", function()
+  it ("correctly sets 'Normal' internal properties", function()
     -- Normal has some special handling internally. #18024
     meths.set_hl(0, 'Normal', {fg='#000083', bg='#0000F3'})
     eq({foreground = 131, background = 243}, nvim("get_hl_by_name", 'Normal', true))
   end)
 
   it('does not segfault on invalid group name #20009', function()
-    eq("Invalid highlight name: 'foo bar'", pcall_err(meths.set_hl, 0, 'foo bar', {bold = true}))
+    eq('Invalid highlight name: foo bar', pcall_err(meths.set_hl, 0, 'foo bar', {bold = true}))
     assert_alive()
   end)
 end)

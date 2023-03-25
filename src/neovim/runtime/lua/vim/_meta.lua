@@ -1,3 +1,6 @@
+-- prevents luacheck from making lints for setting things on vim
+local vim = assert(vim)
+
 local a = vim.api
 
 -- TODO(tjdevries): Improve option metadata so that this doesn't have to be hardcoded.
@@ -526,7 +529,7 @@ local function create_option_accessor(scope)
 
   return setmetatable({}, {
     __index = function(_, k)
-      return make_option(k, a.nvim_get_option_value(k, {}))
+      return make_option(k, a.nvim_get_option_value(k, { scope = scope }))
     end,
 
     __newindex = function(_, k, v)

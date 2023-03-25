@@ -3,9 +3,6 @@
 
 #include <sys/param.h>
 #include <unistd.h>
-#if defined(HAVE_TERMIOS_H)
-# include <termios.h>
-#endif
 
 // POSIX.1-2008 says that NAME_MAX should be in here
 #include <limits.h>

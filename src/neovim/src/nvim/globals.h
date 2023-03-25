@@ -75,10 +75,6 @@
 # define VIMRC_FILE     ".nvimrc"
 #endif
 
-#ifndef VIMRC_LUA_FILE
-# define VIMRC_LUA_FILE ".nvim.lua"
-#endif
-
 EXTERN struct nvim_stats_s {
   int64_t fsync;
   int64_t redraw;
@@ -198,18 +194,13 @@ EXTERN int emsg_skip INIT(= 0);             // don't display errors for
                                             // expression that is skipped
 EXTERN bool emsg_severe INIT(= false);      // use message of next of several
                                             //  emsg() calls for throw
-// used by assert_fails()
-EXTERN char *emsg_assert_fails_msg INIT(= NULL);
-EXTERN long emsg_assert_fails_lnum INIT(= 0);
-EXTERN char *emsg_assert_fails_context INIT(= NULL);
-
 EXTERN bool did_endif INIT(= false);        // just had ":endif"
 EXTERN dict_T vimvardict;                   // Dictionary with v: variables
 EXTERN dict_T globvardict;                  // Dictionary with g: variables
 /// g: value
 #define globvarht globvardict.dv_hashtab
-EXTERN int did_emsg;                        // incremented by emsg() when a
-                                            // message is displayed or thrown
+EXTERN bool did_emsg;                       // set by emsg() when the message
+                                            // is displayed or thrown
 EXTERN bool called_vim_beep;                // set if vim_beep() is called
 EXTERN bool did_emsg_syntax;                // did_emsg set because of a
                                             // syntax error
@@ -324,9 +315,12 @@ EXTERN int garbage_collect_at_exit INIT(= false);
 #define SID_STR         (-10)     // for sourcing a string with no script item
 
 // Script CTX being sourced or was sourced to define the current function.
-EXTERN sctx_T current_sctx INIT(= { 0, 0, 0 });
+EXTERN sctx_T current_sctx INIT(= { 0 COMMA 0 COMMA 0 });
 // ID of the current channel making a client API call
 EXTERN uint64_t current_channel_id INIT(= 0);
+
+// ID of the client channel. Used by ui client
+EXTERN uint64_t ui_client_channel_id INIT(= 0);
 
 EXTERN bool did_source_packages INIT(= false);
 
@@ -419,22 +413,12 @@ EXTERN win_T *prevwin INIT(= NULL);  // previous window
 // -V:FOR_ALL_WINDOWS_IN_TAB:501
 #define FOR_ALL_WINDOWS_IN_TAB(wp, tp) \
   for (win_T *wp = ((tp) == curtab) \
-       ? firstwin : (tp)->tp_firstwin; wp != NULL; wp = wp->w_next)
+              ? firstwin : (tp)->tp_firstwin; wp != NULL; wp = wp->w_next)
 
 EXTERN win_T *curwin;        // currently active window
 
-typedef struct {
-  win_T *auc_win;     ///< Window used in aucmd_prepbuf().  When not NULL the
-                      ///< window has been allocated.
-  bool auc_win_used;  ///< This auc_win is being used.
-} aucmdwin_T;
-
-/// When executing autocommands for a buffer that is not in any window, a
-/// special window is created to handle the side effects.  When autocommands
-/// nest we may need more than one.
-EXTERN kvec_t(aucmdwin_T) aucmd_win_vec INIT(= KV_INITIAL_VALUE);
-#define aucmd_win (aucmd_win_vec.items)
-#define AUCMD_WIN_COUNT ((int)aucmd_win_vec.size)
+EXTERN win_T *aucmd_win;     // window used in aucmd_prepbuf()
+EXTERN int aucmd_win_used INIT(= false);  // aucmd_win is being used
 
 // The window layout is kept in a tree of frames.  topframe points to the top
 // of the tree.
@@ -491,19 +475,17 @@ EXTERN bool exiting INIT(= false);
 // internal value of v:dying
 EXTERN int v_dying INIT(= 0);
 // is stdin a terminal?
-EXTERN bool stdin_isatty INIT(= true);
+EXTERN int stdin_isatty INIT(= true);
 // is stdout a terminal?
-EXTERN bool stdout_isatty INIT(= true);
-// is stderr a terminal?
-EXTERN bool stderr_isatty INIT(= true);
-
+EXTERN int stdout_isatty INIT(= true);
 /// filedesc set by embedder for reading first buffer like `cmd | nvim -`
 EXTERN int stdin_fd INIT(= -1);
 
 // true when doing full-screen output, otherwise only writing some messages.
 EXTERN int full_screen INIT(= false);
 
-/// Non-zero when only "safe" commands are allowed
+/// Non-zero when only "safe" commands are allowed, e.g. when sourcing .exrc or
+/// .vimrc in current directory.
 EXTERN int secure INIT(= 0);
 
 /// Non-zero when changing text and jumping to another window or editing another buffer is not
@@ -518,7 +500,7 @@ EXTERN int allbuf_lock INIT(= 0);
 /// not allowed then.
 EXTERN int sandbox INIT(= 0);
 
-/// Batch-mode: "-es", "-Es", "-l" commandline argument was given.
+/// Batch-mode: "-es" or "-Es" commandline argument was given.
 EXTERN int silent_mode INIT(= false);
 
 /// Start position of active Visual selection.
@@ -631,7 +613,7 @@ EXTERN int State INIT(= MODE_NORMAL);
 EXTERN bool debug_mode INIT(= false);
 EXTERN bool finish_op INIT(= false);    // true while an operator is pending
 EXTERN long opcount INIT(= 0);          // count for pending operator
-EXTERN int motion_force INIT(= 0);       // motion force for pending operator
+EXTERN int motion_force INIT(=0);       // motion force for pending operator
 
 // Ex Mode (Q) state
 EXTERN bool exmode_active INIT(= false);  // true if Ex mode is active
@@ -639,7 +621,7 @@ EXTERN bool exmode_active INIT(= false);  // true if Ex mode is active
 /// Flag set when normal_check() should return 0 when entering Ex mode.
 EXTERN bool pending_exmode_active INIT(= false);
 
-EXTERN bool ex_no_reprint INIT(= false);   // No need to print after z or p.
+EXTERN bool ex_no_reprint INIT(=false);   // No need to print after z or p.
 
 // 'inccommand' command preview state
 EXTERN bool cmdpreview INIT(= false);
@@ -679,8 +661,6 @@ EXTERN int emsg_silent INIT(= 0);        // don't print error messages
 EXTERN bool emsg_noredir INIT(= false);  // don't redirect error messages
 EXTERN bool cmd_silent INIT(= false);    // don't echo the command line
 
-EXTERN bool in_assert_fails INIT(= false);  // assert_fails() active
-
 // Values for swap_exists_action: what to do when swap file already exists
 #define SEA_NONE        0       // don't use dialog
 #define SEA_DIALOG      1       // use dialog when possible
@@ -715,7 +695,7 @@ EXTERN typebuf_T typebuf INIT(= { NULL, NULL, 0, 0, 0, 0, 0, 0, 0 });
 EXTERN bool typebuf_was_empty INIT(= false);
 
 EXTERN int ex_normal_busy INIT(= 0);     // recursiveness of ex_normal()
-EXTERN int expr_map_lock INIT(= 0);      // running expr mapping, prevent use of ex_normal() and text changes
+EXTERN int ex_normal_lock INIT(= 0);     // forbid use of ex_normal()
 EXTERN int ignore_script INIT(= false);  // ignore script input
 EXTERN int stop_insert_mode;             // for ":stopinsert"
 EXTERN bool KeyTyped;                    // true if user typed current char
@@ -774,7 +754,7 @@ EXTERN bool g_tag_at_cursor INIT(= false);  // whether the tag command comes
 
 EXTERN int replace_offset INIT(= 0);        // offset for replace_push()
 
-EXTERN char *escape_chars INIT(= " \t\\\"|");  // need backslash in cmd line
+EXTERN char_u *escape_chars INIT(= (char_u *)" \t\\\"|");  // need backslash in cmd line
 
 EXTERN int keep_help_flag INIT(= false);  // doing :ta from help file
 
@@ -789,7 +769,7 @@ EXTERN int redir_reg INIT(= 0);             // message redirection register
 EXTERN int redir_vname INIT(= 0);           // message redirection variable
 EXTERN garray_T *capture_ga INIT(= NULL);   // captured output for execute()
 
-EXTERN uint8_t langmap_mapchar[256];     // mapping for language keys
+EXTERN char_u langmap_mapchar[256];     // mapping for language keys
 
 EXTERN int save_p_ls INIT(= -1);        // Save 'laststatus' setting
 EXTERN int save_p_wmh INIT(= -1);       // Save 'winminheight' setting
@@ -806,6 +786,8 @@ enum {
 extern char *default_vim_dir;
 extern char *default_vimruntime_dir;
 extern char *default_lib_dir;
+extern char_u *compiled_user;
+extern char_u *compiled_sys;
 #endif
 
 // When a window has a local directory, the absolute path of the global
@@ -823,7 +805,7 @@ EXTERN int cmdwin_type INIT(= 0);    ///< type of cmdline window or 0
 EXTERN int cmdwin_result INIT(= 0);  ///< result of cmdline window or 0
 EXTERN int cmdwin_level INIT(= 0);   ///< cmdline recursion level
 
-EXTERN char no_lines_msg[] INIT(= N_("--No lines in buffer--"));
+EXTERN char_u no_lines_msg[] INIT(= N_("--No lines in buffer--"));
 
 // When ":global" is used to number of substitutions and changed lines is
 // accumulated until it's finished.
@@ -832,7 +814,7 @@ EXTERN long sub_nsubs;       // total number of substitutions
 EXTERN linenr_T sub_nlines;  // total number of lines changed
 
 // table to store parsed 'wildmode'
-EXTERN uint8_t wim_flags[4];
+EXTERN char_u wim_flags[4];
 
 // whether titlestring and iconstring contains statusline syntax
 #define STL_IN_ICON    1
@@ -841,6 +823,9 @@ EXTERN int stl_syntax INIT(= 0);
 
 // don't use 'hlsearch' temporarily
 EXTERN bool no_hlsearch INIT(= false);
+
+// Page number used for %N in 'pageheader' and 'guitablabel'.
+EXTERN linenr_T printer_page_num;
 
 EXTERN bool typebuf_was_filled INIT(= false);     // received text from client
                                                   // or from feedkeys()
@@ -872,7 +857,7 @@ EXTERN char e_api_spawn_failed[] INIT(= N_("E903: Could not spawn API job"));
 EXTERN char e_argreq[] INIT(= N_("E471: Argument required"));
 EXTERN char e_backslash[] INIT(= N_("E10: \\ should be followed by /, ? or &"));
 EXTERN char e_cmdwin[] INIT(= N_("E11: Invalid in command-line window; <CR> executes, CTRL-C quits"));
-EXTERN char e_curdir[] INIT(= N_("E12: Command not allowed in secure mode in current dir or tag search"));
+EXTERN char e_curdir[] INIT(= N_("E12: Command not allowed from exrc/vimrc in current dir or tag search"));
 EXTERN char e_command_too_recursive[] INIT(= N_("E169: Command too recursive"));
 EXTERN char e_endif[] INIT(= N_("E171: Missing :endif"));
 EXTERN char e_endtry[] INIT(= N_("E600: Missing :endtry"));
@@ -1000,6 +985,7 @@ EXTERN char e_fnametoolong[] INIT(= N_("E856: Filename too long"));
 EXTERN char e_float_as_string[] INIT(= N_("E806: using Float as a String"));
 EXTERN char e_cannot_edit_other_buf[] INIT(= N_("E788: Not allowed to edit another buffer now"));
 
+EXTERN char e_autocmd_err[] INIT(= N_("E5500: autocmd has thrown an exception: %s"));
 EXTERN char e_cmdmap_err[] INIT(= N_("E5520: <Cmd> mapping must end with <CR>"));
 EXTERN char e_cmdmap_repeated[]
 INIT(= N_("E5521: <Cmd> mapping must end with <CR> before second <Cmd>"));
@@ -1010,6 +996,8 @@ EXTERN char e_luv_api_disabled[] INIT(= N_("E5560: %s must not be called in a lu
 
 EXTERN char e_floatonly[] INIT(= N_("E5601: Cannot close window, only floating window would remain"));
 EXTERN char e_floatexchange[] INIT(= N_("E5602: Cannot exchange or rotate float"));
+
+EXTERN char e_non_empty_string_required[] INIT(= N_("E1142: Non-empty string required"));
 
 EXTERN char e_cannot_define_autocommands_for_all_events[] INIT(= N_("E1155: Cannot define autocommands for ALL events"));
 
@@ -1026,12 +1014,13 @@ EXTERN char e_invalid_line_number_nr[] INIT(= N_("E966: Invalid line number: %ld
 EXTERN char e_undobang_cannot_redo_or_move_branch[]
 INIT(= N_("E5767: Cannot use :undo! to redo or move to a different undo branch"));
 
-EXTERN char e_trustfile[] INIT(= N_("E5570: Cannot update trust file: %s"));
-
 EXTERN char top_bot_msg[] INIT(= N_("search hit TOP, continuing at BOTTOM"));
 EXTERN char bot_top_msg[] INIT(= N_("search hit BOTTOM, continuing at TOP"));
 
 EXTERN char line_msg[] INIT(= N_(" line "));
+
+// For undo we need to know the lowest time possible.
+EXTERN time_t starttime;
 
 EXTERN FILE *time_fd INIT(= NULL);  // where to write startup timing
 
@@ -1042,7 +1031,7 @@ EXTERN int vim_ignored;
 
 // stdio is an RPC channel (--embed).
 EXTERN bool embedded_mode INIT(= false);
-// Do not start UI (--headless, -l) nor read/write to stdio (unless embedding).
+// Do not start a UI nor read/write to stdio (unless embedding).
 EXTERN bool headless_mode INIT(= false);
 
 // uncrustify:on
@@ -1082,15 +1071,6 @@ typedef enum {
 // Only filled for Win32.
 EXTERN char windowsVersion[20] INIT(= { 0 });
 
-/// While executing a regexp and set to OPTION_MAGIC_ON or OPTION_MAGIC_OFF this
-/// overrules p_magic.  Otherwise set to OPTION_MAGIC_NOT_SET.
-EXTERN optmagic_T magic_overruled INIT(= OPTION_MAGIC_NOT_SET);
-
-/// Skip win_fix_cursor() call for 'splitkeep' when cmdwin is closed.
-EXTERN bool skip_win_fix_cursor INIT(= false);
-/// Skip win_fix_scroll() call for 'splitkeep' when closing tab page.
-EXTERN bool skip_win_fix_scroll INIT(= false);
-/// Skip update_topline() call while executing win_fix_scroll().
-EXTERN bool skip_update_topline INIT(= false);
+EXTERN int exit_need_delay INIT(= 0);
 
 #endif  // NVIM_GLOBALS_H

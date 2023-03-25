@@ -16,16 +16,12 @@ local lfs = require('lfs')
 local clear = helpers.clear
 local eq = helpers.eq
 local exc_exec = helpers.exc_exec
-local exec_lua = helpers.exec_lua
-local exec_capture = helpers.exec_capture
+local exec = helpers.exec
 local eval = helpers.eval
 local command = helpers.command
 local write_file = helpers.write_file
 local meths = helpers.meths
 local sleep = helpers.sleep
-local matches = helpers.matches
-local pcall_err = helpers.pcall_err
-local assert_alive = helpers.assert_alive
 local poke_eventloop = helpers.poke_eventloop
 local feed = helpers.feed
 
@@ -71,13 +67,13 @@ describe("backtick expansion", function()
   end)
 
   it("with default 'shell'", function()
-    if helpers.is_os('win') then
+    if helpers.iswin() then
       command(":silent args `dir /b *2`")
     else
       command(":silent args `echo ***2`")
     end
     eq({ "file2", }, eval("argv()"))
-    if helpers.is_os('win') then
+    if helpers.iswin() then
       command(":silent args `dir /s/b *4`")
       eq({ "subdir\\file4", }, eval("map(argv(), 'fnamemodify(v:val, \":.\")')"))
     else
@@ -151,6 +147,79 @@ describe('List support code', function()
   end)
 end)
 
+-- oldtest: Test_deep_nest()
+it('Error when if/for/while/try/function is nested too deep',function()
+  clear()
+  local screen = Screen.new(80, 24)
+  screen:attach()
+  meths.set_option('laststatus', 2)
+  exec([[
+    " Deep nesting of if ... endif
+    func Test1()
+      let @a = join(repeat(['if v:true'], 51), "\n")
+      let @a ..= "\n"
+      let @a ..= join(repeat(['endif'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of for ... endfor
+    func Test2()
+      let @a = join(repeat(['for i in [1]'], 51), "\n")
+      let @a ..= "\n"
+      let @a ..= join(repeat(['endfor'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of while ... endwhile
+    func Test3()
+      let @a = join(repeat(['while v:true'], 51), "\n")
+      let @a ..= "\n"
+      let @a ..= join(repeat(['endwhile'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of try ... endtry
+    func Test4()
+      let @a = join(repeat(['try'], 51), "\n")
+      let @a ..= "\necho v:true\n"
+      let @a ..= join(repeat(['endtry'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of function ... endfunction
+    func Test5()
+      let @a = join(repeat(['function X()'], 51), "\n")
+      let @a ..= "\necho v:true\n"
+      let @a ..= join(repeat(['endfunction'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+  ]])
+  screen:expect({any = '%[No Name%]'})
+  feed(':call Test1()<CR>')
+  screen:expect({any = 'E579: '})
+  feed('<C-C>')
+  screen:expect({any = '%[No Name%]'})
+  feed(':call Test2()<CR>')
+  screen:expect({any = 'E585: '})
+  feed('<C-C>')
+  screen:expect({any = '%[No Name%]'})
+  feed(':call Test3()<CR>')
+  screen:expect({any = 'E585: '})
+  feed('<C-C>')
+  screen:expect({any = '%[No Name%]'})
+  feed(':call Test4()<CR>')
+  screen:expect({any = 'E601: '})
+  feed('<C-C>')
+  screen:expect({any = '%[No Name%]'})
+  feed(':call Test5()<CR>')
+  screen:expect({any = 'E1058: '})
+end)
+
 describe("uncaught exception", function()
   before_each(clear)
   after_each(function()
@@ -176,47 +245,5 @@ describe("uncaught exception", function()
     command('set runtimepath+=. | let result = ""')
     eq('throw1', exc_exec('try | runtime! throw*.vim | endtry'))
     eq('123', eval('result'))
-  end)
-end)
-
-describe('listing functions using :function', function()
-  before_each(clear)
-
-  it('works for lambda functions with <lambda> #20466', function()
-    command('let A = {-> 1}')
-    local num = exec_capture('echo A'):match("function%('<lambda>(%d+)'%)")
-    eq(([[
-   function <lambda>%s(...)
-1  return 1
-   endfunction]]):format(num), exec_capture(('function <lambda>%s'):format(num)))
-  end)
-
-  -- FIXME: If the same function is deleted, the crash still happens. #20790
-  it('does not crash if another function is deleted while listing', function()
-    local screen = Screen.new(80, 24)
-    screen:attach()
-    matches('Vim%(function%):E454: function list was modified', pcall_err(exec_lua, [=[
-      vim.cmd([[
-        func Func1()
-        endfunc
-        func Func2()
-        endfunc
-        func Func3()
-        endfunc
-      ]])
-
-      local ns = vim.api.nvim_create_namespace('test')
-
-      vim.ui_attach(ns, { ext_messages = true }, function(event, _, content)
-        if event == 'msg_show' and content[1][2] == 'function Func1()'  then
-          vim.cmd('delfunc Func3')
-        end
-      end)
-
-      vim.cmd('function')
-
-      vim.ui_detach(ns)
-    ]=]))
-    assert_alive()
   end)
 end)

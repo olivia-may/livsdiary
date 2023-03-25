@@ -1,34 +1,22 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <inttypes.h>
+#include <assert.h>
 #include <limits.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
 #include <uv.h>
 
-#include "auto/config.h"
+#include "nvim/assert.h"
 #include "nvim/event/loop.h"
-#include "nvim/gettext.h"
-#include "nvim/globals.h"
-#include "nvim/log.h"
-#include "nvim/macros.h"
 #include "nvim/main.h"
-#include "nvim/memory.h"
 #include "nvim/os/input.h"
 #include "nvim/os/os.h"
 #include "nvim/os/time.h"
-
-struct tm;
 
 static uv_mutex_t delay_mutex;
 static uv_cond_t delay_cond;
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
-# include "os/time.c.generated.h"  // IWYU pragma: export
+# include "os/time.c.generated.h"
 #endif
 
 /// Initializes the time module
@@ -79,7 +67,7 @@ void os_delay(uint64_t ms, bool ignoreinput)
     }
     LOOP_PROCESS_EVENTS_UNTIL(&main_loop, NULL, (int)ms, got_int);
   } else {
-    os_microdelay(ms * 1000U, ignoreinput);
+    os_microdelay(ms * 1000u, ignoreinput);
   }
 }
 
@@ -92,10 +80,10 @@ void os_delay(uint64_t ms, bool ignoreinput)
 ///                    If false, waiting is aborted on any input.
 void os_microdelay(uint64_t us, bool ignoreinput)
 {
-  uint64_t elapsed = 0U;
+  uint64_t elapsed = 0u;
   uint64_t base = uv_hrtime();
   // Convert microseconds to nanoseconds, or UINT64_MAX on overflow.
-  const uint64_t ns = (us < UINT64_MAX / 1000U) ? us * 1000U : UINT64_MAX;
+  const uint64_t ns = (us < UINT64_MAX / 1000u) ? us * 1000u : UINT64_MAX;
 
   uv_mutex_lock(&delay_mutex);
 
@@ -104,7 +92,7 @@ void os_microdelay(uint64_t us, bool ignoreinput)
     // Else we check for input in ~100ms intervals.
     const uint64_t ns_delta = ignoreinput
                               ? ns - elapsed
-                              : MIN(ns - elapsed, 100000000U);  // 100ms
+                              : MIN(ns - elapsed, 100000000u);  // 100ms
 
     const int rv = uv_cond_timedwait(&delay_cond, &delay_mutex, ns_delta);
     if (0 != rv && UV_ETIMEDOUT != rv) {
@@ -179,28 +167,18 @@ struct tm *os_localtime(struct tm *result) FUNC_ATTR_NONNULL_ALL
 /// @param result[out] Pointer to a 'char' where the result should be placed
 /// @param result_len length of result buffer
 /// @return human-readable string of current local time
-char *os_ctime_r(const time_t *restrict clock, char *restrict result, size_t result_len,
-                 bool add_newline)
+char *os_ctime_r(const time_t *restrict clock, char *restrict result, size_t result_len)
   FUNC_ATTR_NONNULL_ALL FUNC_ATTR_NONNULL_RET
 {
   struct tm clock_local;
   struct tm *clock_local_ptr = os_localtime_r(clock, &clock_local);
   // MSVC returns NULL for an invalid value of seconds.
   if (clock_local_ptr == NULL) {
-    xstrlcpy(result, _("(Invalid)"), result_len - 1);
+    xstrlcpy(result, _("(Invalid)"), result_len);
   } else {
-    // xgettext:no-c-format
-    if (strftime(result, result_len - 1, _("%a %b %d %H:%M:%S %Y"), clock_local_ptr) == 0) {
-      // Quoting "man strftime":
-      // > If the length of the result string (including the terminating
-      // > null byte) would exceed max bytes, then strftime() returns 0,
-      // > and the contents of the array are undefined.
-      xstrlcpy(result, _("(Invalid)"), result_len - 1);
-    }
+    strftime(result, result_len, _("%a %b %d %H:%M:%S %Y"), clock_local_ptr);
   }
-  if (add_newline) {
-    xstrlcat(result, "\n", result_len);
-  }
+  xstrlcat(result, "\n", result_len);
   return result;
 }
 
@@ -209,11 +187,11 @@ char *os_ctime_r(const time_t *restrict clock, char *restrict result, size_t res
 /// @param result[out] Pointer to a 'char' where the result should be placed
 /// @param result_len length of result buffer
 /// @return human-readable string of current local time
-char *os_ctime(char *result, size_t result_len, bool add_newline)
+char *os_ctime(char *result, size_t result_len)
   FUNC_ATTR_NONNULL_ALL FUNC_ATTR_NONNULL_RET
 {
   time_t rawtime = time(NULL);
-  return os_ctime_r(&rawtime, result, result_len, add_newline);
+  return os_ctime_r(&rawtime, result, result_len);
 }
 
 /// Portable version of POSIX strptime()

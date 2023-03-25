@@ -3,33 +3,25 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <uv.h>
 
 #include "nvim/api/private/defs.h"
 #include "nvim/ascii.h"
 #include "nvim/autocmd.h"
-#include "nvim/buffer_defs.h"
 #include "nvim/event/loop.h"
-#include "nvim/event/multiqueue.h"
 #include "nvim/event/rstream.h"
-#include "nvim/event/stream.h"
 #include "nvim/getchar.h"
-#include "nvim/gettext.h"
-#include "nvim/globals.h"
 #include "nvim/keycodes.h"
-#include "nvim/log.h"
-#include "nvim/macros.h"
 #include "nvim/main.h"
+#include "nvim/mbyte.h"
+#include "nvim/memory.h"
 #include "nvim/msgpack_rpc/channel.h"
-#include "nvim/option_defs.h"
 #include "nvim/os/input.h"
-#include "nvim/os/time.h"
 #include "nvim/profile.h"
-#include "nvim/rbuffer.h"
+#include "nvim/screen.h"
 #include "nvim/state.h"
+#include "nvim/ui.h"
 #include "nvim/vim.h"
 
 #define READ_BUFFER_SIZE 0xfff
@@ -44,6 +36,7 @@ typedef enum {
 static Stream read_stream = { .closed = true };  // Input before UI starts.
 static RBuffer *input_buffer = NULL;
 static bool input_eof = false;
+static int global_fd = -1;
 static bool blocking = false;
 static int cursorhold_time = 0;  ///< time waiting for CursorHold event
 static int cursorhold_tb_change_cnt = 0;  ///< tb_change_cnt when waiting started
@@ -57,14 +50,25 @@ void input_init(void)
   input_buffer = rbuffer_new(INPUT_BUFFER_SIZE + MAX_KEY_CODE_LEN);
 }
 
-void input_start(void)
+void input_global_fd_init(int fd)
+{
+  global_fd = fd;
+}
+
+/// Global TTY (or pipe for "-es") input stream, before UI starts.
+int input_global_fd(void)
+{
+  return global_fd;
+}
+
+void input_start(int fd)
 {
   if (!read_stream.closed) {
     return;
   }
 
-  used_stdin = true;
-  rstream_init_fd(&main_loop, &read_stream, STDIN_FILENO, READ_BUFFER_SIZE);
+  input_global_fd_init(fd);
+  rstream_init_fd(&main_loop, &read_stream, fd, READ_BUFFER_SIZE);
   rstream_start(&read_stream, input_read_cb, NULL);
 }
 
@@ -254,8 +258,7 @@ size_t input_enqueue(String keys)
     uint8_t buf[19] = { 0 };
     // Do not simplify the keys here. Simplification will be done later.
     unsigned int new_size
-      = trans_special((const char **)&ptr, (size_t)(end - ptr), (char *)buf, FSK_KEYCODE, true,
-                      NULL);
+      = trans_special((const uint8_t **)&ptr, (size_t)(end - ptr), buf, FSK_KEYCODE, true, NULL);
 
     if (new_size) {
       new_size = handle_mouse_event(&ptr, buf, new_size);
@@ -466,8 +469,14 @@ static InbufPollResult inbuf_poll(int ms, MultiQueue *events)
 
   if (input_ready(events)) {
     return kInputAvail;
+  } else {
+    return input_eof ? kInputEof : kInputNone;
   }
-  return input_eof ? kInputEof : kInputNone;
+}
+
+void input_done(void)
+{
+  input_eof = true;
 }
 
 bool input_available(void)
@@ -478,7 +487,7 @@ bool input_available(void)
 static void input_read_cb(Stream *stream, RBuffer *buf, size_t c, void *data, bool at_eof)
 {
   if (at_eof) {
-    input_eof = true;
+    input_done();
   }
 
   assert(rbuffer_space(input_buffer) >= rbuffer_size(buf));
@@ -545,7 +554,8 @@ static void read_error_exit(void)
   if (silent_mode) {  // Normal way to exit for "nvim -es".
     getout(0);
   }
-  preserve_exit(_("Vim: Error reading input, exiting...\n"));
+  STRCPY(IObuff, _("Vim: Error reading input, exiting...\n"));
+  preserve_exit();
 }
 
 static bool pending_events(MultiQueue *events)

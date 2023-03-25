@@ -4,19 +4,14 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <string.h>
 
 #include "nvim/eval/typval_defs.h"
 #include "nvim/func_attr.h"
-#include "nvim/garray.h"
 #include "nvim/gettext.h"
-#include "nvim/hashtab.h"
-#include "nvim/lib/queue.h"
 #include "nvim/macros.h"
 #include "nvim/mbyte_defs.h"
 #include "nvim/message.h"
-#include "nvim/types.h"
 
 #ifdef LOG_LIST_ACTIONS
 # include "nvim/memory.h"
@@ -48,8 +43,10 @@ static inline ListLog *list_log_new(const size_t size)
   return ret;
 }
 
-static inline void list_log(const list_T *const l, const listitem_T *const li1,
-                            const listitem_T *const li2, const char *const action)
+static inline void list_log(const list_T *const l,
+                            const listitem_T *const li1,
+                            const listitem_T *const li2,
+                            const char *const action)
   REAL_FATTR_ALWAYS_INLINE;
 
 /// Add new entry to log
@@ -93,7 +90,7 @@ static inline void list_log(const list_T *const l, const listitem_T *const li1,
 #define TV_DICT_HI2DI(hi) \
   ((dictitem_T *)((hi)->hi_key - offsetof(dictitem_T, di_key)))
 
-static inline void tv_list_ref(list_T *l)
+static inline void tv_list_ref(list_T *const l)
   REAL_FATTR_ALWAYS_INLINE;
 
 /// Increase reference count for a given list
@@ -109,7 +106,7 @@ static inline void tv_list_ref(list_T *const l)
   l->lv_refcount++;
 }
 
-static inline void tv_list_set_ret(typval_T *tv, list_T *l)
+static inline void tv_list_set_ret(typval_T *const tv, list_T *const l)
   REAL_FATTR_ALWAYS_INLINE REAL_FATTR_NONNULL_ARG(1);
 
 /// Set a list as the return value.  Increments the reference count.
@@ -123,7 +120,7 @@ static inline void tv_list_set_ret(typval_T *const tv, list_T *const l)
   tv_list_ref(l);
 }
 
-static inline VarLockStatus tv_list_locked(const list_T *l)
+static inline VarLockStatus tv_list_locked(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get list lock status
@@ -166,7 +163,7 @@ static inline void tv_list_set_copyid(list_T *const l, const int copyid)
   l->lv_copyID = copyid;
 }
 
-static inline int tv_list_len(const list_T *l)
+static inline int tv_list_len(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get the number of items in a list
@@ -181,7 +178,7 @@ static inline int tv_list_len(const list_T *const l)
   return l->lv_len;
 }
 
-static inline int tv_list_copyid(const list_T *l)
+static inline int tv_list_copyid(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT REAL_FATTR_NONNULL_ALL;
 
 /// Get list copyID
@@ -194,7 +191,7 @@ static inline int tv_list_copyid(const list_T *const l)
   return l->lv_copyID;
 }
 
-static inline list_T *tv_list_latest_copy(const list_T *l)
+static inline list_T *tv_list_latest_copy(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT REAL_FATTR_NONNULL_ALL;
 
 /// Get latest list copy
@@ -209,7 +206,7 @@ static inline list_T *tv_list_latest_copy(const list_T *const l)
   return l->lv_copylist;
 }
 
-static inline int tv_list_uidx(const list_T *l, int n)
+static inline int tv_list_uidx(const list_T *const l, int n)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Normalize index: that is, return either -1 or non-negative index
@@ -232,7 +229,7 @@ static inline int tv_list_uidx(const list_T *const l, int n)
   return n;
 }
 
-static inline bool tv_list_has_watchers(const list_T *l)
+static inline bool tv_list_has_watchers(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Check whether list has watchers
@@ -247,7 +244,7 @@ static inline bool tv_list_has_watchers(const list_T *const l)
   return l && l->lv_watch;
 }
 
-static inline listitem_T *tv_list_first(const list_T *l)
+static inline listitem_T *tv_list_first(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get first list item
@@ -265,7 +262,7 @@ static inline listitem_T *tv_list_first(const list_T *const l)
   return l->lv_first;
 }
 
-static inline listitem_T *tv_list_last(const list_T *l)
+static inline listitem_T *tv_list_last(const list_T *const l)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get last list item
@@ -283,7 +280,7 @@ static inline listitem_T *tv_list_last(const list_T *const l)
   return l->lv_last;
 }
 
-static inline void tv_dict_set_ret(typval_T *tv, dict_T *d)
+static inline void tv_dict_set_ret(typval_T *const tv, dict_T *const d)
   REAL_FATTR_ALWAYS_INLINE REAL_FATTR_NONNULL_ARG(1);
 
 /// Set a dictionary as the return value
@@ -299,7 +296,7 @@ static inline void tv_dict_set_ret(typval_T *const tv, dict_T *const d)
   }
 }
 
-static inline long tv_dict_len(const dict_T *d)
+static inline long tv_dict_len(const dict_T *const d)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get the number of items in a Dictionary
@@ -313,7 +310,7 @@ static inline long tv_dict_len(const dict_T *const d)
   return (long)d->dv_hashtab.ht_used;
 }
 
-static inline bool tv_dict_is_watched(const dict_T *d)
+static inline bool tv_dict_is_watched(const dict_T *const d)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Check if dictionary is watched
@@ -326,7 +323,7 @@ static inline bool tv_dict_is_watched(const dict_T *const d)
   return d && !QUEUE_EMPTY(&d->watchers);
 }
 
-static inline void tv_blob_set_ret(typval_T *tv, blob_T *b)
+static inline void tv_blob_set_ret(typval_T *const tv, blob_T *const b)
   REAL_FATTR_ALWAYS_INLINE REAL_FATTR_NONNULL_ARG(1);
 
 /// Set a blob as the return value.
@@ -344,7 +341,7 @@ static inline void tv_blob_set_ret(typval_T *const tv, blob_T *const b)
   }
 }
 
-static inline int tv_blob_len(const blob_T *b)
+static inline int tv_blob_len(const blob_T *const b)
   REAL_FATTR_PURE REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get the length of the data in the blob, in bytes.
@@ -358,7 +355,7 @@ static inline int tv_blob_len(const blob_T *const b)
   return b->bv_ga.ga_len;
 }
 
-static inline uint8_t tv_blob_get(const blob_T *b, int idx)
+static inline char_u tv_blob_get(const blob_T *const b, int idx)
   REAL_FATTR_ALWAYS_INLINE REAL_FATTR_NONNULL_ALL REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get the byte at index `idx` in the blob.
@@ -367,12 +364,12 @@ static inline uint8_t tv_blob_get(const blob_T *b, int idx)
 /// @param[in]  idx  Index in a blob. Must be valid.
 ///
 /// @return Byte value at the given index.
-static inline uint8_t tv_blob_get(const blob_T *const b, int idx)
+static inline char_u tv_blob_get(const blob_T *const b, int idx)
 {
-  return ((uint8_t *)b->bv_ga.ga_data)[idx];
+  return ((char_u *)b->bv_ga.ga_data)[idx];
 }
 
-static inline void tv_blob_set(blob_T *blob, int idx, uint8_t c)
+static inline void tv_blob_set(blob_T *const b, int idx, char_u c)
   REAL_FATTR_ALWAYS_INLINE REAL_FATTR_NONNULL_ALL;
 
 /// Store the byte `c` at index `idx` in the blob.
@@ -380,9 +377,9 @@ static inline void tv_blob_set(blob_T *blob, int idx, uint8_t c)
 /// @param[in]  b  Blob to index. Cannot be NULL.
 /// @param[in]  idx  Index in a blob. Must be valid.
 /// @param[in]  c  Value to store.
-static inline void tv_blob_set(blob_T *const blob, int idx, uint8_t c)
+static inline void tv_blob_set(blob_T *const b, int idx, char_u c)
 {
-  ((uint8_t *)blob->bv_ga.ga_data)[idx] = c;
+  ((char_u *)b->bv_ga.ga_data)[idx] = c;
 }
 
 /// Initialize VimL object
@@ -434,7 +431,7 @@ extern bool tv_in_free_unref_items;
 /// @param  li  Name of the variable with current listitem_T entry.
 /// @param  code  Cycle body.
 #define TV_LIST_ITER(l, li, code) \
-  _TV_LIST_ITER_MOD( , l, li, code)  // NOLINT(whitespace/parens)
+  _TV_LIST_ITER_MOD( , l, li, code)
 
 /// Iterate over a list
 ///
@@ -491,7 +488,8 @@ extern bool tv_in_free_unref_items;
     } \
   })
 
-static inline bool tv_get_float_chk(const typval_T *tv, float_T *ret_f)
+static inline bool tv_get_float_chk(const typval_T *const tv,
+                                    float_T *const ret_f)
   REAL_FATTR_NONNULL_ALL REAL_FATTR_WARN_UNUSED_RESULT;
 
 /// Get the float value
@@ -518,20 +516,18 @@ static inline bool tv_get_float_chk(const typval_T *const tv, float_T *const ret
 
 static inline DictWatcher *tv_dict_watcher_node_data(QUEUE *q)
   REAL_FATTR_NONNULL_ALL REAL_FATTR_NONNULL_RET REAL_FATTR_PURE
-  REAL_FATTR_WARN_UNUSED_RESULT REAL_FATTR_ALWAYS_INLINE
-  FUNC_ATTR_NO_SANITIZE_ADDRESS;
+  REAL_FATTR_WARN_UNUSED_RESULT REAL_FATTR_ALWAYS_INLINE;
 
 /// Compute the `DictWatcher` address from a QUEUE node.
 ///
 /// This only exists for .asan-blacklist (ASAN doesn't handle QUEUE_DATA pointer
 /// arithmetic).
 static inline DictWatcher *tv_dict_watcher_node_data(QUEUE *q)
-  FUNC_ATTR_NO_SANITIZE_ADDRESS
 {
   return QUEUE_DATA(q, DictWatcher, node);
 }
 
-static inline bool tv_is_func(typval_T tv)
+static inline bool tv_is_func(const typval_T tv)
   FUNC_ATTR_WARN_UNUSED_RESULT FUNC_ATTR_ALWAYS_INLINE FUNC_ATTR_CONST;
 
 /// Check whether given typval_T contains a function
@@ -566,9 +562,4 @@ EXTERN const size_t kTVTranslate INIT(= TV_TRANSLATE);
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "eval/typval.h.generated.h"
 #endif
-
-#define tv_get_bool tv_get_number
-#define tv_get_bool_chk tv_get_number_chk
-#define tv_dict_get_bool tv_dict_get_number_def
-
 #endif  // NVIM_EVAL_TYPVAL_H

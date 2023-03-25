@@ -22,7 +22,8 @@ let s:maxoff = 50       " maximum number of lines to look backwards for ()
 function s:SearchBracket(fromlnum, flags)
   return searchpairpos('[[({]', '', '[])}]', a:flags,
           \ {-> synstack('.', col('.'))
-          \ ->indexof({_, id -> synIDattr(id, 'name') =~ '\%(Comment\|Todo\|String\)$'}) >= 0},
+          \   ->map({_, id -> id->synIDattr('name')})
+          \   ->match('\%(Comment\|Todo\|String\)$') >= 0},
           \ [0, a:fromlnum - s:maxoff]->max(), g:python_indent.searchpair_timeout)
 endfunction
 
@@ -156,13 +157,15 @@ function python#GetIndent(lnum, ...)
     " the start of the comment.  synID() is slow, a linear search would take
     " too long on a long line.
     if synstack(plnum, pline_len)
-    \ ->indexof({_, id -> synIDattr(id, 'name') =~ '\%(Comment\|Todo\)$'}) >= 0
+    \ ->map({_, id -> id->synIDattr('name')})
+    \ ->match('\%(Comment\|Todo\)$') >= 0
       let min = 1
       let max = pline_len
       while min < max
 	let col = (min + max) / 2
         if synstack(plnum, col)
-        \ ->indexof({_, id -> synIDattr(id, 'name') =~ '\%(Comment\|Todo\)$'}) >= 0
+        \ ->map({_, id -> id->synIDattr('name')})
+        \ ->match('\%(Comment\|Todo\)$') >= 0
 	  let max = col
 	else
 	  let min = col + 1

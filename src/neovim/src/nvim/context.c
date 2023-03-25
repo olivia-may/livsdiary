@@ -3,26 +3,14 @@
 
 // Context: snapshot of the entire editor state as one big object/map
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "nvim/api/private/converter.h"
 #include "nvim/api/private/helpers.h"
+#include "nvim/api/vim.h"
 #include "nvim/api/vimscript.h"
 #include "nvim/context.h"
 #include "nvim/eval/encode.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/eval/userfunc.h"
 #include "nvim/ex_docmd.h"
-#include "nvim/gettext.h"
-#include "nvim/hashtab.h"
-#include "nvim/keycodes.h"
-#include "nvim/memory.h"
-#include "nvim/message.h"
 #include "nvim/option.h"
 #include "nvim/shada.h"
 
@@ -143,7 +131,7 @@ bool ctx_restore(Context *ctx, const int flags)
   }
 
   char *op_shada;
-  get_option_value("shada", NULL, &op_shada, NULL, OPT_GLOBAL);
+  get_option_value("shada", NULL, &op_shada, OPT_GLOBAL);
   set_option_value("shada", 0L, "!,'100,%", OPT_GLOBAL);
 
   if (flags & kCtxRegs) {
@@ -263,12 +251,12 @@ static inline void ctx_save_funcs(Context *ctx, bool scriptonly)
   Error err = ERROR_INIT;
 
   HASHTAB_ITER(func_tbl_get(), hi, {
-    const char *const name = hi->hi_key;
-    bool islambda = (strncmp(name, "<lambda>", 8) == 0);
-    bool isscript = ((uint8_t)name[0] == K_SPECIAL);
+    const char_u *const name = hi->hi_key;
+    bool islambda = (STRNCMP(name, "<lambda>", 8) == 0);
+    bool isscript = (name[0] == K_SPECIAL);
 
     if (!islambda && (!scriptonly || isscript)) {
-      size_t cmd_len = sizeof("func! ") + strlen(name);
+      size_t cmd_len = sizeof("func! ") + STRLEN(name);
       char *cmd = xmalloc(cmd_len);
       snprintf(cmd, cmd_len, "func! %s", name);
       String func_body = nvim_exec(VIML_INTERNAL_CALL, cstr_as_string(cmd),

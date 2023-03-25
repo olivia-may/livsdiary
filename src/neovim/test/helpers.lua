@@ -1,7 +1,6 @@
 require('test.compat')
-local shared = vim
+local shared = require('vim.shared')
 local assert = require('luassert')
-local busted = require('busted')
 local luv = require('luv')
 local lfs = require('lfs')
 local relpath = require('pl.path').relpath
@@ -46,28 +45,6 @@ function module.sleep(ms)
   luv.sleep(ms)
 end
 
--- Calls fn() until it succeeds, up to `max` times or until `max_ms`
--- milliseconds have passed.
-function module.retry(max, max_ms, fn)
-  assert(max == nil or max > 0)
-  assert(max_ms == nil or max_ms > 0)
-  local tries = 1
-  local timeout = (max_ms and max_ms or 10000)
-  local start_time = luv.now()
-  while true do
-    local status, result = pcall(fn)
-    if status then
-      return result
-    end
-    luv.update_time()  -- Update cached value of luv.now() (libuv: uv_now()).
-    if (max and tries >= max) or (luv.now() - start_time > timeout) then
-      busted.fail(string.format("retry() attempts: %d\n%s", tries, tostring(result)), 2)
-    end
-    tries = tries + 1
-    luv.sleep(20)  -- Avoid hot loop...
-  end
-end
-
 local check_logs_useless_lines = {
   ['Warning: noted but unhandled ioctl']=1,
   ['could cause spurious value errors to appear']=2,
@@ -110,8 +87,6 @@ end
 
 --- Asserts that `pat` matches (or *not* if inverse=true) any line in the tail of `logfile`.
 ---
---- Retries for 1 second in case of filesystem delay.
----
 ---@param pat (string) Lua pattern to match lines in the log file
 ---@param logfile (string) Full path to log file (default=$NVIM_LOG_FILE)
 ---@param nrlines (number) Search up to this many log lines
@@ -121,52 +96,22 @@ function module.assert_log(pat, logfile, nrlines, inverse)
   assert(logfile ~= nil, 'no logfile')
   nrlines = nrlines or 10
   inverse = inverse or false
-
-  module.retry(nil, 1000, function()
-    local lines = module.read_file_list(logfile, -nrlines) or {}
-    local msg = string.format('Pattern %q %sfound in log (last %d lines): %s:\n%s',
-      pat, (inverse and '' or 'not '), nrlines, logfile, '    '..table.concat(lines, '\n    '))
-    for _,line in ipairs(lines) do
-      if line:match(pat) then
-        if inverse then error(msg) else return end
-      end
+  local lines = module.read_file_list(logfile, -nrlines) or {}
+  local msg = string.format('Pattern %q %sfound in log (last %d lines): %s:\n%s',
+    pat, (inverse and '' or 'not '), nrlines, logfile, '    '..table.concat(lines, '\n    '))
+  for _,line in ipairs(lines) do
+    if line:match(pat) then
+      if inverse then error(msg) else return end
     end
-    if not inverse then error(msg) end
-  end)
+  end
+  if not inverse then error(msg) end
 end
 
---- Asserts that `pat` does NOT match any line in the tail of `logfile`.
+--- Asserts that `pat` does NOT matche any line in the tail of `logfile`.
 ---
 --- @see assert_log
 function module.assert_nolog(pat, logfile, nrlines)
   return module.assert_log(pat, logfile, nrlines, true)
-end
-
-function module.pcall(fn, ...)
-  assert(type(fn) == 'function')
-  local status, rv = pcall(fn, ...)
-  if status then
-    return status, rv
-  end
-
-  -- From:
-  --    C:/long/path/foo.lua:186: Expected string, got number
-  -- to:
-  --    .../foo.lua:0: Expected string, got number
-  local errmsg = tostring(rv):gsub('([%s<])vim[/\\]([^%s:/\\]+):%d+', '%1\xffvim\xff%2:0')
-                             :gsub('[^%s<]-[/\\]([^%s:/\\]+):%d+', '.../%1:0')
-                             :gsub('\xffvim\xff', 'vim/')
-  -- Scrub numbers in paths/stacktraces:
-  --    shared.lua:0: in function 'gsplit'
-  --    shared.lua:0: in function <shared.lua:0>'
-  errmsg = errmsg:gsub('([^%s]):%d+', '%1:0')
-  -- Scrub tab chars:
-  errmsg = errmsg:gsub('\t', '    ')
-  -- In Lua 5.1, we sometimes get a "(tail call): ?" on the last line.
-  --    We remove this so that the tests are not lua dependent.
-  errmsg = errmsg:gsub('%s*%(tail call%): %?', '')
-
-  return status, errmsg
 end
 
 -- Invokes `fn` and returns the error string (with truncated paths), or raises
@@ -184,19 +129,34 @@ end
 --
 function module.pcall_err_withfile(fn, ...)
   assert(type(fn) == 'function')
-  local status, rv = module.pcall(fn, ...)
+  local status, rv = pcall(fn, ...)
   if status == true then
     error('expected failure, but got success')
   end
-  return rv
+  -- From:
+  --    C:/long/path/foo.lua:186: Expected string, got number
+  -- to:
+  --    .../foo.lua:0: Expected string, got number
+  local errmsg = tostring(rv):gsub('([%s<])vim[/\\]([^%s:/\\]+):%d+', '%1\xffvim\xff%2:0')
+                             :gsub('[^%s<]-[/\\]([^%s:/\\]+):%d+', '.../%1:0')
+                             :gsub('\xffvim\xff', 'vim/')
+  -- Scrub numbers in paths/stacktraces:
+  --    shared.lua:0: in function 'gsplit'
+  --    shared.lua:0: in function <shared.lua:0>'
+  errmsg = errmsg:gsub('([^%s]):%d+', '%1:0')
+  -- Scrub tab chars:
+  errmsg = errmsg:gsub('\t', '    ')
+  -- In Lua 5.1, we sometimes get a "(tail call): ?" on the last line.
+  --    We remove this so that the tests are not lua dependent.
+  errmsg = errmsg:gsub('%s*%(tail call%): %?', '')
+
+  return errmsg
 end
 
 function module.pcall_err_withtrace(fn, ...)
   local errmsg = module.pcall_err_withfile(fn, ...)
 
-  return errmsg:gsub('^%.%.%./helpers%.lua:0: ', '')
-               :gsub('^Error executing lua:- ' ,'')
-               :gsub('^%[string "<nvim>"%]:0: ' ,'')
+  return errmsg:gsub('.../helpers.lua:0: ', '')
 end
 
 function module.pcall_err(...)
@@ -297,26 +257,43 @@ function module.check_logs()
     table.concat(runtime_errors, ', ')))
 end
 
-function module.sysname()
-  local platform = luv.os_uname()
-  if platform and platform.sysname then
-    return platform.sysname:lower()
-  end
+function module.iswin()
+  return package.config:sub(1,1) == '\\'
 end
 
+-- Gets (lowercase) OS name from CMake, uname, or "win" if iswin().
+module.uname = (function()
+  local platform = nil
+  return (function()
+    if platform then
+      return platform
+    end
+
+    if os.getenv("SYSTEM_NAME") then  -- From CMAKE_HOST_SYSTEM_NAME.
+      platform = string.lower(os.getenv("SYSTEM_NAME"))
+      return platform
+    end
+
+    local status, f = pcall(module.popen_r, 'uname', '-s')
+    if status then
+      platform = string.lower(f:read("*l"))
+      f:close()
+    elseif module.iswin() then
+      platform = 'windows'
+    else
+      error('unknown platform')
+    end
+    return platform
+  end)
+end)()
+
 function module.is_os(s)
-  if not (s == 'win'
-    or s == 'mac'
-    or s == 'freebsd'
-    or s == 'openbsd'
-    or s == 'bsd') then
+  if not (s == 'win' or s == 'mac' or s == 'unix') then
     error('unknown platform: '..tostring(s))
   end
-  return not not ((s == 'win' and (module.sysname():find('windows') or module.sysname():find('mingw')))
-    or (s == 'mac' and module.sysname() == 'darwin')
-    or (s == 'freebsd' and module.sysname() == 'freebsd')
-    or (s == 'openbsd' and module.sysname() == 'openbsd')
-    or (s == 'bsd' and module.sysname():find('bsd')))
+  return ((s == 'win' and module.iswin())
+    or (s == 'mac' and module.uname() == 'darwin')
+    or (s == 'unix'))
 end
 
 local function tmpdir_get()
@@ -342,11 +319,11 @@ module.tmpname = (function()
       return fname
     else
       local fname = os.tmpname()
-      if module.is_os('win') and fname:sub(1, 2) == '\\s' then
+      if module.uname() == 'windows' and fname:sub(1, 2) == '\\s' then
         -- In Windows tmpname() returns a filename starting with
         -- special sequence \s, prepend $TEMP path
         return tmpdir..fname
-      elseif fname:match('^/tmp') and module.is_os('mac') then
+      elseif fname:match('^/tmp') and module.uname() == 'darwin' then
         -- In OS X /tmp links to /private/tmp
         return '/private'..fname
       else
@@ -371,12 +348,8 @@ end
 
 local tests_skipped = 0
 
-function module.check_cores(app, force) -- luacheck: ignore
-  -- Temporary workaround: skip core check as it interferes with CI.
-  if true then
-    return
-  end
-  app = app or 'build/bin/nvim' -- luacheck: ignore
+function module.check_cores(app, force)
+  app = app or 'build/bin/nvim'
   local initial_path, re, exc_re
   local gdb_db_cmd = 'gdb -n -batch -ex "thread apply all bt full" "$_NVIM_TEST_APP" -c "$_NVIM_TEST_CORE"'
   local lldb_db_cmd = 'lldb -Q -o "bt all" -f "$_NVIM_TEST_APP" -c "$_NVIM_TEST_CORE"'
@@ -393,14 +366,14 @@ function module.check_cores(app, force) -- luacheck: ignore
     exc_re = { os.getenv('NVIM_TEST_CORE_EXC_RE'), local_tmpdir }
     db_cmd = os.getenv('NVIM_TEST_CORE_DB_CMD') or gdb_db_cmd
     random_skip = os.getenv('NVIM_TEST_CORE_RANDOM_SKIP')
-  elseif module.is_os('mac') then
+  elseif 'darwin' == module.uname() then
     initial_path = '/cores'
     re = nil
     exc_re = { local_tmpdir }
     db_cmd = lldb_db_cmd
   else
     initial_path = '.'
-    if module.is_os('freebsd') then
+    if 'freebsd' == module.uname() then
       re = '/nvim.core$'
     else
       re = '/core[^/]*$'
@@ -815,19 +788,19 @@ function module.write_file(name, text, no_dedent, append)
   file:close()
 end
 
-function module.is_ci(name)
+function module.isCI(name)
   local any = (name == nil)
-  assert(any or name == 'github' or name == 'cirrus')
+  assert(any or name == 'github')
   local gh = ((any or name == 'github') and nil ~= os.getenv('GITHUB_ACTIONS'))
-  local cirrus = ((any or name == 'cirrus') and nil ~= os.getenv('CIRRUS_CI'))
-  return gh or cirrus
+  return gh
+
 end
 
 -- Gets the (tail) contents of `logfile`.
 -- Also moves the file to "${NVIM_LOG_FILE}.displayed" on CI environments.
 function module.read_nvim_log(logfile, ci_rename)
   logfile = logfile or os.getenv('NVIM_LOG_FILE') or '.nvimlog'
-  local is_ci = module.is_ci()
+  local is_ci = module.isCI()
   local keep = is_ci and 100 or 10
   local lines = module.read_file_list(logfile, -keep) or {}
   local log = (('-'):rep(78)..'\n'

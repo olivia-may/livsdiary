@@ -8,42 +8,31 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <string.h>
 
 #include "nvim/ascii.h"
-#include "nvim/buffer_defs.h"
 #include "nvim/charset.h"
 #include "nvim/digraph.h"
 #include "nvim/drawscreen.h"
-#include "nvim/eval.h"
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
-#include "nvim/ex_cmds_defs.h"
 #include "nvim/ex_docmd.h"
 #include "nvim/ex_getln.h"
 #include "nvim/garray.h"
 #include "nvim/getchar.h"
-#include "nvim/gettext.h"
-#include "nvim/globals.h"
-#include "nvim/highlight_defs.h"
-#include "nvim/keycodes.h"
 #include "nvim/mapping.h"
 #include "nvim/mbyte.h"
 #include "nvim/memory.h"
 #include "nvim/message.h"
 #include "nvim/normal.h"
-#include "nvim/option_defs.h"
 #include "nvim/os/input.h"
 #include "nvim/runtime.h"
 #include "nvim/strings.h"
-#include "nvim/types.h"
 #include "nvim/vim.h"
 
 typedef int result_T;
 
 typedef struct digraph {
-  uint8_t char1;
-  uint8_t char2;
+  char_u char1;
+  char_u char2;
   result_T result;
 } digr_T;
 
@@ -63,6 +52,7 @@ static garray_T user_digraphs = { 0, 0, (int)sizeof(digr_T), 10, NULL };
 /// Note: Characters marked with XX are not included literally, because some
 /// compilers cannot handle them (Amiga SAS/C is the most picky one).
 static digr_T digraphdefault[] =
+
 // digraphs for Unicode from RFC1345
 // (also work for ISO-8859-1 aka latin1)
 {
@@ -1490,11 +1480,11 @@ int do_digraph(int c)
 
 /// Find a digraph for "val".  If found return the string to display it.
 /// If not found return NULL.
-char *get_digraph_for_char(int val_arg)
+char_u *get_digraph_for_char(int val_arg)
 {
   const int val = val_arg;
   const digr_T *dp;
-  static char r[3];
+  static char_u r[3];
 
   for (int use_defaults = 0; use_defaults <= 1; use_defaults++) {
     if (use_defaults == 0) {
@@ -1504,8 +1494,8 @@ char *get_digraph_for_char(int val_arg)
     }
     for (int i = 0; use_defaults ? dp->char1 != NUL : i < user_digraphs.ga_len; i++) {
       if (dp->result == val) {
-        r[0] = (char)dp->char1;
-        r[1] = (char)dp->char2;
+        r[0] = dp->char1;
+        r[1] = dp->char2;
         r[2] = NUL;
         return r;
       }
@@ -1529,31 +1519,30 @@ int get_digraph(bool cmdline)
   no_mapping--;
   allow_keys--;
 
-  if (c == ESC) {  // ESC cancels CTRL-K
-    return NUL;
-  }
-
-  if (IS_SPECIAL(c)) {
-    // insert special key code
-    return c;
-  }
-
-  if (cmdline) {
-    if ((char2cells(c) == 1) && c < 128 && (cmdline_star == 0)) {
-      putcmdline((char)c, true);
-    }
-  } else {
-    add_to_showcmd(c);
-  }
-  no_mapping++;
-  allow_keys++;
-  int cc = plain_vgetc();
-  no_mapping--;
-  allow_keys--;
-
-  if (cc != ESC) {
+  if (c != ESC) {
     // ESC cancels CTRL-K
-    return digraph_get(c, cc, true);
+    if (IS_SPECIAL(c)) {
+      // insert special key code
+      return c;
+    }
+
+    if (cmdline) {
+      if ((char2cells(c) == 1) && c < 128 && (cmdline_star == 0)) {
+        putcmdline((char)c, true);
+      }
+    } else {
+      add_to_showcmd(c);
+    }
+    no_mapping++;
+    allow_keys++;
+    int cc = plain_vgetc();
+    no_mapping--;
+    allow_keys--;
+
+    if (cc != ESC) {
+      // ESC cancels CTRL-K
+      return digraph_get(c, cc, true);
+    }
   }
   return NUL;
 }
@@ -1646,8 +1635,8 @@ static void registerdigraph(int char1, int char2, int n)
 
   // Add a new digraph to the table.
   dp = GA_APPEND_VIA_PTR(digr_T, &user_digraphs);
-  dp->char1 = (uint8_t)char1;
-  dp->char2 = (uint8_t)char2;
+  dp->char1 = (char_u)char1;
+  dp->char2 = (char_u)char2;
   dp->result = n;
 }
 
@@ -1657,8 +1646,8 @@ static void registerdigraph(int char1, int char2, int n)
 bool check_digraph_chars_valid(int char1, int char2)
 {
   if (char2 == 0) {
-    char msg[MB_MAXBYTES + 1];
-    msg[utf_char2bytes(char1, msg)] = NUL;
+    char_u msg[MB_MAXBYTES + 1];
+    msg[utf_char2bytes(char1, (char *)msg)] = NUL;
     semsg(_(e_digraph_must_be_just_two_characters_str), msg);
     return false;
   }
@@ -1750,16 +1739,16 @@ static void digraph_getlist_appendpair(const digr_T *dp, list_T *l)
   list_T *l2 = tv_list_alloc(2);
   tv_list_append_list(l, l2);
 
-  char buf[30];
-  buf[0] = (char)dp->char1;
-  buf[1] = (char)dp->char2;
+  char_u buf[30];
+  buf[0] = dp->char1;
+  buf[1] = dp->char2;
   buf[2] = NUL;
-  tv_list_append_string(l2, buf, -1);
+  tv_list_append_string(l2, (char *)buf, -1);
 
-  char *p = buf;
-  p += utf_char2bytes(dp->result, p);
+  char_u *p = buf;
+  p += utf_char2bytes(dp->result, (char *)p);
   *p = NUL;
-  tv_list_append_string(l2, buf, -1);
+  tv_list_append_string(l2, (char *)buf, -1);
 }
 
 void digraph_getlist_common(bool list_all, typval_T *rettv)
@@ -1825,59 +1814,57 @@ struct dg_header_entry {
 static void printdigraph(const digr_T *dp, result_T *previous)
   FUNC_ATTR_NONNULL_ARG(1)
 {
-  char buf[30];
+  char_u buf[30];
   int list_width = 13;
 
-  if (dp->result == 0) {
-    return;
-  }
+  if (dp->result != 0) {
+    if (previous != NULL) {
+      for (int i = 0; header_table[i].dg_header != NULL; i++) {
+        if (*previous < header_table[i].dg_start
+            && dp->result >= header_table[i].dg_start
+            && dp->result < header_table[i + 1].dg_start) {
+          digraph_header(_(header_table[i].dg_header));
+          break;
+        }
+      }
+      *previous = dp->result;
+    }
+    if (msg_col > Columns - list_width) {
+      msg_putchar('\n');
+    }
 
-  if (previous != NULL) {
-    for (int i = 0; header_table[i].dg_header != NULL; i++) {
-      if (*previous < header_table[i].dg_start
-          && dp->result >= header_table[i].dg_start
-          && dp->result < header_table[i + 1].dg_start) {
-        digraph_header(_(header_table[i].dg_header));
-        break;
+    // Make msg_col a multiple of list_width by using spaces.
+    if (msg_col % list_width != 0) {
+      int spaces = (msg_col / list_width + 1) * list_width - msg_col;
+      while (spaces--) {
+        msg_putchar(' ');
       }
     }
-    *previous = dp->result;
-  }
-  if (msg_col > Columns - list_width) {
-    msg_putchar('\n');
-  }
 
-  // Make msg_col a multiple of list_width by using spaces.
-  if (msg_col % list_width != 0) {
-    int spaces = (msg_col / list_width + 1) * list_width - msg_col;
-    while (spaces--) {
-      msg_putchar(' ');
+    char_u *p = &buf[0];
+    *p++ = dp->char1;
+    *p++ = dp->char2;
+    *p++ = ' ';
+    *p = NUL;
+    msg_outtrans((char *)buf);
+    p = buf;
+
+    // add a space to draw a composing char on
+    if (utf_iscomposing(dp->result)) {
+      *p++ = ' ';
     }
-  }
+    p += utf_char2bytes(dp->result, (char *)p);
 
-  char *p = &buf[0];
-  *p++ = (char)dp->char1;
-  *p++ = (char)dp->char2;
-  *p++ = ' ';
-  *p = NUL;
-  msg_outtrans(buf);
-  p = buf;
-
-  // add a space to draw a composing char on
-  if (utf_iscomposing(dp->result)) {
-    *p++ = ' ';
+    *p = NUL;
+    msg_outtrans_attr((char *)buf, HL_ATTR(HLF_8));
+    p = buf;
+    if (char2cells(dp->result) == 1) {
+      *p++ = ' ';
+    }
+    assert(p >= buf);
+    vim_snprintf((char *)p, sizeof(buf) - (size_t)(p - buf), " %3d", dp->result);
+    msg_outtrans((char *)buf);
   }
-  p += utf_char2bytes(dp->result, p);
-
-  *p = NUL;
-  msg_outtrans_attr(buf, HL_ATTR(HLF_8));
-  p = buf;
-  if (char2cells(dp->result) == 1) {
-    *p++ = ' ';
-  }
-  assert(p >= buf);
-  vim_snprintf(p, sizeof(buf) - (size_t)(p - buf), " %3d", dp->result);
-  msg_outtrans(buf);
 }
 
 /// Get the two digraph characters from a typval.
@@ -1886,7 +1873,7 @@ static int get_digraph_chars(const typval_T *arg, int *char1, int *char2)
 {
   char buf_chars[NUMBUFLEN];
   const char *chars = tv_get_string_buf_chk(arg, buf_chars);
-  const char *p = chars;
+  const char_u *p = (const char_u *)chars;
 
   if (p != NULL) {
     if (*p != NUL) {
@@ -1918,7 +1905,7 @@ static bool digraph_set_common(const typval_T *argchars, const typval_T *argdigr
   if (digraph == NULL) {
     return false;
   }
-  const char *p = digraph;
+  const char_u *p = (const char_u *)digraph;
   int n = mb_cptr2char_adv(&p);
   if (*p != NUL) {
     semsg(_(e_digraph_argument_must_be_one_character_str), digraph);
@@ -2134,7 +2121,7 @@ void ex_loadkeymap(exarg_T *eap)
     vim_snprintf(buf, sizeof(buf), "<buffer> %s %s",
                  ((kmap_T *)curbuf->b_kmap_ga.ga_data)[i].from,
                  ((kmap_T *)curbuf->b_kmap_ga.ga_data)[i].to);
-    (void)do_map(MAPTYPE_MAP, buf, MODE_LANGMAP, false);
+    (void)do_map(MAPTYPE_MAP, (char_u *)buf, MODE_LANGMAP, false);
   }
 
   p_cpo = save_cpo;
@@ -2171,7 +2158,7 @@ static void keymap_unload(void)
 
   for (int i = 0; i < curbuf->b_kmap_ga.ga_len; i++) {
     vim_snprintf(buf, sizeof(buf), "<buffer> %s", kp[i].from);
-    (void)do_map(MAPTYPE_UNMAP, buf, MODE_LANGMAP, false);
+    (void)do_map(MAPTYPE_UNMAP, (char_u *)buf, MODE_LANGMAP, false);
   }
   keymap_ga_clear(&curbuf->b_kmap_ga);
 
@@ -2180,43 +2167,4 @@ static void keymap_unload(void)
   ga_clear(&curbuf->b_kmap_ga);
   curbuf->b_kmap_state &= ~KEYMAP_LOADED;
   status_redraw_curbuf();
-}
-
-/// Get the value to show for the language mappings, active 'keymap'.
-///
-/// @param fmt  format string containing one %s item
-/// @param buf  buffer for the result
-/// @param len  length of buffer
-bool get_keymap_str(win_T *wp, char *fmt, char *buf, int len)
-{
-  char *p;
-
-  if (wp->w_buffer->b_p_iminsert != B_IMODE_LMAP) {
-    return false;
-  }
-
-  buf_T *old_curbuf = curbuf;
-  win_T *old_curwin = curwin;
-  char *s;
-
-  curbuf = wp->w_buffer;
-  curwin = wp;
-  STRCPY(buf, "b:keymap_name");       // must be writable
-  emsg_skip++;
-  s = p = eval_to_string(buf, NULL, false);
-  emsg_skip--;
-  curbuf = old_curbuf;
-  curwin = old_curwin;
-  if (p == NULL || *p == NUL) {
-    if (wp->w_buffer->b_kmap_state & KEYMAP_LOADED) {
-      p = wp->w_buffer->b_p_keymap;
-    } else {
-      p = "lang";
-    }
-  }
-  if (vim_snprintf(buf, (size_t)len, fmt, p) > len - 1) {
-    buf[0] = NUL;
-  }
-  xfree(s);
-  return buf[0] != NUL;
 }

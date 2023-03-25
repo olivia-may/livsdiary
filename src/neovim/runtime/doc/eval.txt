@@ -4,7 +4,7 @@
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
 
 
-Expression evaluation		*vimscript* *expression* *expr* *E15* *eval*
+Expression evaluation			*expression* *expr* *E15* *eval*
 
 Using expressions is introduced in chapter 41 of the user manual |usr_41.txt|.
 
@@ -229,13 +229,13 @@ is not available it returns zero or the default value you specify: >
 
 
 List concatenation ~
-							*list-concatenation*
+
 Two lists can be concatenated with the "+" operator: >
 	:let longlist = mylist + [5, 6]
 	:let mylist += [7, 8]
 
-To prepend or append an item, turn the item into a list by putting [] around
-it.  To change a list in-place, refer to |list-modification| below.
+To prepend or append an item turn the item into a list by putting [] around
+it.  To change a list in-place see |list-modification| below.
 
 
 Sublist ~
@@ -840,8 +840,8 @@ Example: >
 All expressions within one level are parsed from left to right.
 
 
-------------------------------------------------------------------------------
 expr1							*expr1* *ternary* *E109*
+-----
 
 expr2 ? expr1 : expr1
 
@@ -867,8 +867,8 @@ You should always put a space before the ':', otherwise it can be mistaken for
 use in a variable such as "a:1".
 
 
-------------------------------------------------------------------------------
 expr2 and expr3						*expr2* *expr3*
+---------------
 
 expr3 || expr3 ..	logical OR		*expr-barbar*
 expr4 && expr4 ..	logical AND		*expr-&&*
@@ -906,8 +906,8 @@ This is valid whether "b" has been defined or not.  The second clause will
 only be evaluated if "b" has been defined.
 
 
-------------------------------------------------------------------------------
 expr4							*expr4*
+-----
 
 expr5 {cmp} expr5
 
@@ -1010,9 +1010,8 @@ can be matched like an ordinary character.  Examples:
 	"foo\nbar" =~ "\\n"	evaluates to 0
 
 
-------------------------------------------------------------------------------
 expr5 and expr6						*expr5* *expr6*
-
+---------------
 expr6 + expr6   Number addition, |List| or |Blob| concatenation	*expr-+*
 expr6 - expr6   Number subtraction				*expr--*
 expr6 . expr6   String concatenation				*expr-.*
@@ -1065,9 +1064,8 @@ None of these work for |Funcref|s.
 . and % do not work for Float. *E804*
 
 
-------------------------------------------------------------------------------
 expr7							*expr7*
-
+-----
 ! expr7			logical NOT		*expr-!*
 - expr7			unary minus		*expr-unary--*
 + expr7			unary plus		*expr-unary-+*
@@ -1084,9 +1082,8 @@ These three can be repeated and mixed.  Examples:
 	--9	    == 9
 
 
-------------------------------------------------------------------------------
 expr8							*expr8*
-
+-----
 This expression is either |expr9| or a sequence of the alternatives below,
 in any order.  E.g., these are all possible:
 	expr8[expr1].name
@@ -1237,9 +1234,8 @@ When using the lambda form there must be no white space between the } and the
 
 
 							*expr9*
-------------------------------------------------------------------------------
 number
-
+------
 number			number constant			*expr-number*
 
 			*0x* *hex-number* *0o* *octal-number* *binary-number*
@@ -1301,9 +1297,9 @@ function.  Example: >
 <	7.853981633974483e-01
 
 
-------------------------------------------------------------------------------
-string					*string* *String* *expr-string* *E114*
 
+string					*string* *String* *expr-string* *E114*
+------
 "string"		string constant		*expr-quote*
 
 Note that double quotes are used.
@@ -1342,17 +1338,16 @@ encodings.  Use "\u00ff" to store character 255 correctly as UTF-8.
 Note that "\000" and "\x00" force the end of the string.
 
 
-------------------------------------------------------------------------------
 blob-literal				*blob-literal* *E973*
+------------
 
 Hexadecimal starting with 0z or 0Z, with an arbitrary number of bytes.
 The sequence must be an even number of hex characters.  Example: >
 	:let b = 0zFF00ED015DAF
 
 
-------------------------------------------------------------------------------
 literal-string						*literal-string* *E115*
-
+---------------
 'string'		string constant			*expr-'*
 
 Note that single quotes are used.
@@ -1366,9 +1361,8 @@ to be doubled.  These two commands are equivalent: >
 	if a =~ '\s*'
 
 
-------------------------------------------------------------------------------
 option						*expr-option* *E112* *E113*
-
+------
 &option			option value, local value if possible
 &g:option		global option value
 &l:option		local option value
@@ -1382,9 +1376,8 @@ and there is no buffer-local or window-local value, the global value is used
 anyway.
 
 
-------------------------------------------------------------------------------
 register						*expr-register* *@r*
-
+--------
 @r			contents of register 'r'
 
 The result is the contents of the named register, as a single string.
@@ -1401,9 +1394,8 @@ nesting							*expr-nesting* *E110*
 (expr1)			nested expression
 
 
-------------------------------------------------------------------------------
 environment variable					*expr-env*
-
+--------------------
 $VAR			environment variable
 
 The String value of any environment variable.  When it is not defined, the
@@ -1428,24 +1420,21 @@ The first one probably doesn't echo anything, the second echoes the $shell
 variable (if your shell supports it).
 
 
-------------------------------------------------------------------------------
 internal variable					*expr-variable*
-
+-----------------
 variable		internal variable
 See below |internal-variables|.
 
 
-------------------------------------------------------------------------------
 function call		*expr-function* *E116* *E118* *E119* *E120*
-
+-------------
 function(expr1, ...)	function call
 See below |functions|.
 
 
-------------------------------------------------------------------------------
 lambda expression				*expr-lambda* *lambda*
-
-{args -> expr1}		lambda expression			*E451*
+-----------------
+{args -> expr1}		lambda expression
 
 A lambda expression creates a new unnamed function which returns the result of
 evaluating |expr1|.  Lambda expressions differ from |user-function|s in
@@ -1535,7 +1524,7 @@ specified by what is prepended:
 |tabpage-variable|   t:	  Local to the current tab page.
 |global-variable|    g:	  Global.
 |local-variable|     l:	  Local to a function.
-|script-variable|    s:	  Local to a |:source|d Vim script.
+|script-variable|    s:	  Local to a |:source|'ed Vim script.
 |function-argument|  a:	  Function argument (only inside a function).
 |vim-variable|       v:	  Global, predefined by Vim.
 
@@ -1670,6 +1659,38 @@ v:argv		The command line arguments Vim was invoked with.  This is a
 		list of strings.  The first item is the Vim command.
 		See |v:progpath| for the command with full path.
 
+					*v:beval_col* *beval_col-variable*
+v:beval_col	The number of the column, over which the mouse pointer is.
+		This is the byte index in the |v:beval_lnum| line.
+		Only valid while evaluating the 'balloonexpr' option.
+
+					*v:beval_bufnr* *beval_bufnr-variable*
+v:beval_bufnr	The number of the buffer, over which the mouse pointer is. Only
+		valid while evaluating the 'balloonexpr' option.
+
+					*v:beval_lnum* *beval_lnum-variable*
+v:beval_lnum	The number of the line, over which the mouse pointer is. Only
+		valid while evaluating the 'balloonexpr' option.
+
+					*v:beval_text* *beval_text-variable*
+v:beval_text	The text under or after the mouse pointer.  Usually a word as
+		it is useful for debugging a C program.  'iskeyword' applies,
+		but a dot and "->" before the position is included.  When on a
+		']' the text before it is used, including the matching '[' and
+		word before it.  When on a Visual area within one line the
+		highlighted text is used.  Also see |<cexpr>|.
+		Only valid while evaluating the 'balloonexpr' option.
+
+					*v:beval_winnr* *beval_winnr-variable*
+v:beval_winnr	The number of the window, over which the mouse pointer is. Only
+		valid while evaluating the 'balloonexpr' option.  The first
+		window has number zero (unlike most other places where a
+		window gets a number).
+
+					*v:beval_winid* *beval_winid-variable*
+v:beval_winid	The |window-ID| of the window, over which the mouse pointer
+		is.  Otherwise like v:beval_winnr.
+
 					*v:char* *char-variable*
 v:char		Argument for evaluating 'formatexpr' and used for the typed
 		character when using <expr> in an abbreviation |:map-<expr>|.
@@ -1686,13 +1707,17 @@ v:charconvert_to
 		Only valid while evaluating the 'charconvert' option.
 
 					*v:cmdarg* *cmdarg-variable*
-v:cmdarg
-		The extra arguments ("++p", "++enc=", "++ff=") given to a file
-		read/write command.  This is set before an autocommand event
-		for a file read/write command is triggered.  There is a
-		leading space to make it possible to append this variable
-		directly after the read/write command. Note: "+cmd" isn't
-		included here, because it will be executed anyway.
+v:cmdarg	This variable is used for two purposes:
+		1. The extra arguments given to a file read/write command.
+		   Currently these are "++enc=" and "++ff=".  This variable is
+		   set before an autocommand event for a file read/write
+		   command is triggered.  There is a leading space to make it
+		   possible to append this variable directly after the
+		   read/write command.  Note: The "+cmd" argument isn't
+		   included here, because it will be executed anyway.
+		2. When printing a PostScript file with ":hardcopy" this is
+		   the argument for the ":hardcopy" command.  This can be used
+		   in 'printexpr'.
 
 						*v:collate* *collate-variable*
 v:collate	The current locale setting for collation order of the runtime
@@ -1755,7 +1780,7 @@ v:exiting	Exit code, or |v:null| before invoking the |VimLeavePre|
 		and |VimLeave| autocmds.  See |:q|, |:x| and |:cquit|.
 		Example: >
 			:au VimLeave * echo "Exit value is " .. v:exiting
-<
+
 					*v:echospace* *echospace-variable*
 v:echospace	Number of screen cells that can be used for an `:echo` message
 		in the last screen line before causing the |hit-enter-prompt|.
@@ -1794,7 +1819,7 @@ v:event		Dictionary of event data for the current |autocommand|.  Valid
 			abort		Whether the event triggered during
 					an aborting condition (e.g. |c_Esc| or
 					|c_CTRL-C| for |CmdlineLeave|).
-			chan		|channel-id|
+			chan		|channel-id| or 0 for "internal".
 			cmdlevel	Level of cmdline.
 			cmdtype		Type of cmdline, |cmdline-char|.
 			cwd		Current working directory.
@@ -1817,18 +1842,18 @@ v:event		Dictionary of event data for the current |autocommand|.  Valid
 			completed_item    Current selected complete item on
 					|CompleteChanged|, Is `{}` when no complete
 					item selected.
-			height		Height of popup menu on |CompleteChanged|
-			width		width of popup menu on |CompleteChanged|
-			row		Row count of popup menu on |CompleteChanged|,
+			height 		Height of popup menu on |CompleteChanged|
+			width   	width of popup menu on |CompleteChanged|
+			row  	 	Row count of popup menu on |CompleteChanged|,
 					relative to screen.
-			col		Col count of popup menu on |CompleteChanged|,
+			col  	 	Col count of popup menu on |CompleteChanged|,
 					relative to screen.
-			size		Total number of completion items on
+			size 		Total number of completion items on
 					|CompleteChanged|.
-			scrollbar	Is |v:true| if popup menu have scrollbar, or
+			scrollbar 	Is |v:true| if popup menu have scrollbar, or
 					|v:false| if not.
-			changed_window	Is |v:true| if the event fired while
-					changing window (or tab) on |DirChanged|.
+			changed_window 	Is |v:true| if the the event fired
+					while changing window (or tab) on |DirChanged|.
 			status		Job status or exit code, -1 means "unknown". |TermClose|
 
 					*v:exception* *exception-variable*
@@ -1890,16 +1915,17 @@ v:fname_in	The name of the input file.  Valid while evaluating:
 			'charconvert'	file to be converted
 			'diffexpr'	original file
 			'patchexpr'	original file
+			'printexpr'	file to be printed
 		And set to the swap file name for |SwapExists|.
 
 					*v:fname_out* *fname_out-variable*
 v:fname_out	The name of the output file.  Only valid while
 		evaluating:
 			option		used for ~
-			'charconvert'	resulting converted file [1]
+			'charconvert'	resulting converted file (*)
 			'diffexpr'	output of diff
 			'patchexpr'	resulting patched file
-		[1] When doing conversion for a write command (e.g., ":w
+		(*) When doing conversion for a write command (e.g., ":w
 		file") it will be equal to v:fname_in.  When doing conversion
 		for a read command (e.g., ":e file") it will be a temporary
 		file and different from v:fname_in.
@@ -1969,20 +1995,15 @@ v:lc_time	The current locale setting for time messages of the runtime
 		command.  See |multi-lang|.
 
 						*v:lnum* *lnum-variable*
-v:lnum		Line number for the 'foldexpr' |fold-expr|, 'formatexpr',
-		'indentexpr' and 'statuscolumn' expressions, tab page number
-		for 'guitablabel' and 'guitabtooltip'.  Only valid while one of
-		these expressions is being evaluated.  Read-only when in the
+v:lnum		Line number for the 'foldexpr' |fold-expr|, 'formatexpr' and
+		'indentexpr' expressions, tab page number for 'guitablabel'
+		and 'guitabtooltip'.  Only valid while one of these
+		expressions is being evaluated.  Read-only when in the
 		|sandbox|.
 
 						*v:lua* *lua-variable*
 v:lua		Prefix for calling Lua functions from expressions.
 		See |v:lua-call| for more information.
-
-						*v:maxcol* *maxcol-variable*
-v:maxcol	Maximum line length.  Depending on where it is used it can be
-		screen columns, characters or bytes.  The value currently is
-		2147483647 on all systems.
 
 					*v:mouse_win* *mouse_win-variable*
 v:mouse_win	Window number for a mouse click obtained with |getchar()|.
@@ -2110,10 +2131,6 @@ v:register	The name of the register in effect for the current normal mode
 		'clipboard' contains "unnamed" or "unnamedplus", then it is
 		'*' or '+'.
 		Also see |getreg()| and |setreg()|
-
-					*v:relnum* *relnum-variable*
-v:relnum	Relative line number for the 'statuscolumn' expression.
-		Read-only.
 
 					*v:scrollstart* *scrollstart-variable*
 v:scrollstart	String describing the script or function that caused the
@@ -2267,13 +2284,6 @@ v:version	Vim version number: major version times 100 plus minor
 		Use |has()| to check the Nvim (not Vim) version: >
 			:if has("nvim-0.2.1")
 <
-
-						*v:virtnum* *virtnum-variable*
-v:virtnum	Virtual line number for the 'statuscolumn' expression.
-	        Negative when drawing the status column for virtual lines, zero
-		when drawing an actual buffer line, and positive when drawing
-		the wrapped part of a buffer line.
-		Read-only.
 
 				*v:vim_did_enter* *vim_did_enter-variable*
 v:vim_did_enter	0 during startup, 1 just before |VimEnter|.
@@ -2654,8 +2664,6 @@ text...
 
 			[depth] is relevant when locking a |List| or
 			|Dictionary|.  It specifies how deep the locking goes:
-				0	Lock the variable {name} but not its
-					value.
 				1	Lock the |List| or |Dictionary| itself,
 					cannot add or remove items, but can
 					still change their values.
@@ -2669,14 +2677,7 @@ text...
 					|Dictionary|, one level deeper.
 			The default [depth] is 2, thus when {name} is a |List|
 			or |Dictionary| the values cannot be changed.
-
-			Example with [depth] 0: >
-				let mylist = [1, 2, 3]
-				lockvar 0 mylist
-				let mylist[0] = 77	" OK
-				call add(mylist, 4]	" OK
-				let mylist = [7, 8, 9]  " Error!
-<								*E743*
+								*E743*
 			For unlimited depth use [!] and omit [depth].
 			However, there is a maximum depth of 100 to catch
 			loops.
@@ -2696,8 +2697,6 @@ text...
 :unlo[ckvar][!] [depth] {name} ...			*:unlockvar* *:unlo*
 			Unlock the internal variable {name}.  Does the
 			opposite of |:lockvar|.
-
-			No error is given if {name} does not exist.
 
 :if {expr1}			*:if* *:end* *:endif* *:en* *E171* *E579* *E580*
 :en[dif]		Execute the commands until the next matching `:else`
@@ -3178,7 +3177,7 @@ this pending exception or command is discarded.
 For examples see |throw-catch| and |try-finally|.
 
 
-NESTING OF TRY CONDITIONALS				*try-nesting*
+NESTING	OF TRY CONDITIONALS				*try-nesting*
 
 Try conditionals can be nested arbitrarily.  That is, a complete try
 conditional can be put into the try block, a catch clause, or the finally
@@ -4217,8 +4216,8 @@ Textlock							*textlock*
 In a few situations it is not allowed to change the text in the buffer, jump
 to another window and some other things that might confuse or break what Vim
 is currently doing.  This mostly applies to things that happen when Vim is
-actually doing something else.  For example, a TextYankPost autocommand cannot
-edit the text it is yanking.
+actually doing something else.  For example, evaluating the 'balloonexpr' may
+happen any moment the mouse cursor is resting at some position.
 
 This is not allowed when the textlock is active:
 	- changing the buffer text

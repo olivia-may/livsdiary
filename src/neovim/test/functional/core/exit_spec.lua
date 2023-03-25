@@ -25,34 +25,30 @@ describe('v:exiting', function()
     eq(1, eval('v:exiting is v:null'))
   end)
 
-  local function test_exiting(setup_fn)
+  it('is 0 on normal exit', function()
     local function on_setup()
-      command('autocmd VimLeavePre * call rpcrequest('..cid..', "exit", "VimLeavePre")')
-      command('autocmd VimLeave    * call rpcrequest('..cid..', "exit", "VimLeave")')
-      setup_fn()
+      command('autocmd VimLeavePre * call rpcrequest('..cid..', "")')
+      command('autocmd VimLeave    * call rpcrequest('..cid..', "")')
+      command('quit')
     end
-    local requests_args = {}
-    local function on_request(name, args)
-      eq('exit', name)
-      table.insert(requests_args, args)
+    local function on_request()
       eq(0, eval('v:exiting'))
       return ''
     end
     run(on_request, nil, on_setup)
-    eq({{'VimLeavePre'}, {'VimLeave'}}, requests_args)
-  end
-
-  it('is 0 on normal exit', function()
-    test_exiting(function()
-      command('quit')
-    end)
   end)
-
   it('is 0 on exit from Ex mode involving try-catch vim-patch:8.0.0184', function()
-    test_exiting(function()
+    local function on_setup()
+      command('autocmd VimLeavePre * call rpcrequest('..cid..', "")')
+      command('autocmd VimLeave    * call rpcrequest('..cid..', "")')
       feed('gQ')
       feed_command('try', 'call NoFunction()', 'catch', 'echo "bye"', 'endtry', 'quit')
-    end)
+    end
+    local function on_request()
+      eq(0, eval('v:exiting'))
+      return ''
+    end
+    run(on_request, nil, on_setup)
   end)
 end)
 
@@ -93,14 +89,14 @@ describe(':cquit', function()
   end)
 
   it('exits with redir msg for multiple exit codes after :cquit 1 2', function()
-    test_cq('cquit 1 2', nil, 'nvim_exec(): Vim(cquit):E488: Trailing characters: 2: cquit 1 2')
+    test_cq('cquit 1 2', nil, 'Vim(cquit):E488: Trailing characters: 2: cquit 1 2')
   end)
 
   it('exits with redir msg for non-number exit code after :cquit X', function()
-    test_cq('cquit X', nil, 'nvim_exec(): Vim(cquit):E488: Trailing characters: X: cquit X')
+    test_cq('cquit X', nil, 'Vim(cquit):E488: Trailing characters: X: cquit X')
   end)
 
   it('exits with redir msg for negative exit code after :cquit -1', function()
-    test_cq('cquit -1', nil, 'nvim_exec(): Vim(cquit):E488: Trailing characters: -1: cquit -1')
+    test_cq('cquit -1', nil, 'Vim(cquit):E488: Trailing characters: -1: cquit -1')
   end)
 end)

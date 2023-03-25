@@ -1,35 +1,51 @@
 local keymap = {}
 
---- Adds a new |mapping|.
+--- Add a new |mapping|.
 --- Examples:
---- <pre>lua
----   -- Map to a Lua function:
+--- <pre>
+---   -- Can add mapping to Lua functions
 ---   vim.keymap.set('n', 'lhs', function() print("real lua function") end)
----   -- Map to multiple modes:
+---
+---   -- Can use it to map multiple modes
 ---   vim.keymap.set({'n', 'v'}, '<leader>lr', vim.lsp.buf.references, { buffer=true })
----   -- Buffer-local mapping:
+---
+---   -- Can add mapping for specific buffer
 ---   vim.keymap.set('n', '<leader>w', "<cmd>w<cr>", { silent = true, buffer = 5 })
----   -- Expr mapping:
+---
+---   -- Expr mappings
 ---   vim.keymap.set('i', '<Tab>', function()
 ---     return vim.fn.pumvisible() == 1 and "<C-n>" or "<Tab>"
 ---   end, { expr = true })
----   -- <Plug> mapping:
+---   -- <Plug> mappings
 ---   vim.keymap.set('n', '[%%', '<Plug>(MatchitNormalMultiBackward)')
 --- </pre>
 ---
----@param mode string|table    Mode short-name, see |nvim_set_keymap()|.
+--- Note that in a mapping like:
+--- <pre>
+---    vim.keymap.set('n', 'asdf', require('jkl').my_fun)
+--- </pre>
+---
+--- the ``require('jkl')`` gets evaluated during this call in order to access the function.
+--- If you want to avoid this cost at startup you can wrap it in a function, for example:
+--- <pre>
+---    vim.keymap.set('n', 'asdf', function() return require('jkl').my_fun() end)
+--- </pre>
+---
+---@param mode string|table    Same mode short names as |nvim_set_keymap()|.
 ---                            Can also be list of modes to create mapping on multiple modes.
 ---@param lhs string           Left-hand side |{lhs}| of the mapping.
----@param rhs string|function  Right-hand side |{rhs}| of the mapping, can be a Lua function.
----
----@param opts table|nil Table of |:map-arguments|.
----                      - Same as |nvim_set_keymap()| {opts}, except:
----                        - "replace_keycodes" defaults to `true` if "expr" is `true`.
----                        - "noremap": inverse of "remap" (see below).
----                      - Also accepts:
----                        - "buffer" number|boolean Creates buffer-local mapping, `0` or `true`
----                        for current buffer.
----                        - remap: (boolean) Make the mapping recursive. Inverses "noremap".
+---@param rhs string|function  Right-hand side |{rhs}| of the mapping. Can also be a Lua function.
+--
+---@param opts table|nil A table of |:map-arguments|.
+---                      + Accepts options accepted by the {opts} parameter in |nvim_set_keymap()|,
+---                        with the following notable differences:
+---                        - replace_keycodes: Defaults to `true` if "expr" is `true`.
+---                        - noremap: Always overridden with the inverse of "remap" (see below).
+---                      + In addition to those options, the table accepts the following keys:
+---                        - buffer: (number or boolean) Add a mapping to the given buffer.
+---                        When `0` or `true`, use the current buffer.
+---                        - remap: (boolean) Make the mapping recursive.
+---                        This is the inverse of the "noremap" option from |nvim_set_keymap()|.
 ---                        Defaults to `false`.
 ---@see |nvim_set_keymap()|
 function keymap.set(mode, lhs, rhs, opts)
@@ -77,7 +93,7 @@ end
 
 --- Remove an existing mapping.
 --- Examples:
---- <pre>lua
+--- <pre>
 ---   vim.keymap.del('n', 'lhs')
 ---
 ---   vim.keymap.del({'n', 'i', 'v'}, '<leader>w', { buffer = 5 })

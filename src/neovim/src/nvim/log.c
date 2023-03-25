@@ -9,27 +9,21 @@
 //
 
 #include <assert.h>
-#include <errno.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <uv.h>
 
 #include "auto/config.h"
-#include "nvim/ascii.h"
 #include "nvim/eval.h"
-#include "nvim/globals.h"
 #include "nvim/log.h"
-#include "nvim/memory.h"
+#include "nvim/main.h"
 #include "nvim/message.h"
 #include "nvim/os/os.h"
-#include "nvim/os/stdpaths_defs.h"
 #include "nvim/os/time.h"
 #include "nvim/path.h"
+#include "nvim/types.h"
 
 /// Cached location of the expanded log file path decided by log_path_init().
 static char log_file_path[MAXPATHL + 1] = { 0 };
@@ -141,13 +135,9 @@ bool logmsg(int log_level, const char *context, const char *func_name, int line_
     return false;
   }
 
-#ifndef NVIM_LOG_DEBUG
-  // This should rarely happen (callsites are compiled out), but to be sure.
-  // TODO(bfredl): allow log levels to be configured at runtime
-  if (log_level < LOGLVL_WRN) {
+  if (log_level < MIN_LOG_LEVEL) {
     return false;
   }
-#endif
 
 #ifdef EXITFREE
   // Logging after we've already started freeing all our memory will only cause

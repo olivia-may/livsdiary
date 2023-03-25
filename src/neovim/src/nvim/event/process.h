@@ -1,19 +1,10 @@
 #ifndef NVIM_EVENT_PROCESS_H
 #define NVIM_EVENT_PROCESS_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/event/loop.h"
-#include "nvim/event/multiqueue.h"
 #include "nvim/event/rstream.h"
-#include "nvim/event/stream.h"
 #include "nvim/event/wstream.h"
-
-struct process;
 
 typedef enum {
   kProcessTypeUv,
@@ -38,7 +29,7 @@ struct process {
   /// Exit handler. If set, user must call process_free().
   process_exit_cb cb;
   internal_process_cb internal_exit_cb, internal_close_cb;
-  bool closed, detach, overlapped, fwd_err;
+  bool closed, detach, overlapped;
   MultiQueue *events;
 };
 
@@ -62,8 +53,7 @@ static inline Process process_init(Loop *loop, ProcessType type, void *data)
     .closed = false,
     .internal_close_cb = NULL,
     .internal_exit_cb = NULL,
-    .detach = false,
-    .fwd_err = false,
+    .detach = false
   };
 }
 

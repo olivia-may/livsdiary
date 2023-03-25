@@ -1,10 +1,7 @@
 " Vim filetype plugin file
-" Language:    MS-DOS/Windows .bat files
-" Maintainer:  Mike Williams <mrmrdubya@gmail.com>
-" Last Change: 12th February 2023
-"
-" Options Flags:
-" dosbatch_colons_comment       - any value to treat :: as comment line
+" Language:    MS-DOS .bat files
+" Maintainer:  Mike Williams <mrw@eandem.co.uk>
+" Last Change: 7th May 2020
 
 " Only do this when not done yet for this buffer
 if exists("b:did_ftplugin")
@@ -18,13 +15,8 @@ let s:cpo_save = &cpo
 set cpo&vim
 
 " BAT comment formatting
-setlocal comments=b:rem,b:@rem,b:REM,b:@REM
-if exists("dosbatch_colons_comment")
-  setlocal comments+=:::
-  setlocal commentstring=::\ %s
-else
-  setlocal commentstring=REM\ %s
-endif
+setlocal comments=b:rem,b:@rem,b:REM,b:@REM,:::
+setlocal commentstring=::\ %s
 setlocal formatoptions-=t formatoptions+=rol
 
 " Lookup DOS keywords using Windows command help.

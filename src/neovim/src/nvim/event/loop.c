@@ -1,16 +1,13 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <stdbool.h>
+#include <stdarg.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <uv.h>
 
-#include "nvim/event/defs.h"
 #include "nvim/event/loop.h"
+#include "nvim/event/process.h"
 #include "nvim/log.h"
-#include "nvim/memory.h"
-#include "nvim/os/time.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "event/loop.c.generated.h"
@@ -43,7 +40,7 @@ void loop_init(Loop *loop, void *data)
 /// @param once  true: process at most one `Loop.uv` event.
 ///              false: process until `ms` timeout (only has effect if `ms` > 0).
 /// @return  true if `ms` > 0 and was reached
-bool loop_uv_run(Loop *loop, int64_t ms, bool once)
+bool loop_uv_run(Loop *loop, int ms, bool once)
 {
   if (loop->recursive++) {
     abort();  // Should not re-enter uv_run
@@ -82,7 +79,7 @@ bool loop_uv_run(Loop *loop, int64_t ms, bool once)
 ///            > 0: timeout after `ms`.
 ///            < 0: wait forever.
 /// @return  true if `ms` > 0 and was reached
-bool loop_poll_events(Loop *loop, int64_t ms)
+bool loop_poll_events(Loop *loop, int ms)
 {
   bool timeout_expired = loop_uv_run(loop, ms, true);
   multiqueue_process_events(loop->fast_events);

@@ -3,7 +3,7 @@ if exists('g:loaded_node_provider')
 endif
 let g:loaded_node_provider = 1
 
-function! s:is_minimum_version(version, min_version) abort
+function! s:is_minimum_version(version, min_major, min_minor) abort
   if empty(a:version)
     let nodejs_version = get(split(system(['node', '-v']), "\n"), 0, '')
     if v:shell_error || nodejs_version[0] !=# 'v'
@@ -15,7 +15,11 @@ function! s:is_minimum_version(version, min_version) abort
   " Remove surrounding junk.  Example: 'v4.12.0' => '4.12.0'
   let nodejs_version = matchstr(nodejs_version, '\(\d\.\?\)\+')
   " [major, minor, patch]
-  return !v:lua.vim.version.lt(nodejs_version, a:min_version)
+  let v_list = split(nodejs_version, '\.')
+  return len(v_list) == 3
+    \ && ((str2nr(v_list[0]) > str2nr(a:min_major))
+    \     || (str2nr(v_list[0]) == str2nr(a:min_major)
+    \         && str2nr(v_list[1]) >= str2nr(a:min_minor)))
 endfunction
 
 let s:NodeHandler = {
@@ -39,20 +43,20 @@ function! provider#node#can_inspect() abort
   if v:shell_error || ver[0] !=# 'v'
     return 0
   endif
-  return (ver[1] ==# '6' && s:is_minimum_version(ver, '6.12.0'))
-    \ || s:is_minimum_version(ver, '7.6.0')
+  return (ver[1] ==# '6' && s:is_minimum_version(ver, 6, 12))
+    \ || s:is_minimum_version(ver, 7, 6)
 endfunction
 
 function! provider#node#Detect() abort
-  let minver = '6.0.0'
+  let minver = [6, 0]
   if exists('g:node_host_prog')
     return [expand(g:node_host_prog, v:true), '']
   endif
   if !executable('node')
     return ['', 'node not found (or not executable)']
   endif
-  if !s:is_minimum_version(v:null, minver)
-    return ['', printf('node version %s not found', minver)]
+  if !s:is_minimum_version(v:null, minver[0], minver[1])
+    return ['', printf('node version %s.%s not found', minver[0], minver[1])]
   endif
 
   let npm_opts = {}
@@ -67,11 +71,13 @@ function! provider#node#Detect() abort
     let yarn_opts = deepcopy(s:NodeHandler)
     let yarn_opts.entry_point = '/node_modules/neovim/bin/cli.js'
     " `yarn global dir` is slow (> 250ms), try the default path first
+    " XXX: The following code is not portable
     " https://github.com/yarnpkg/yarn/issues/2049#issuecomment-263183768
-    let yarn_config_dir = has('win32') ? '/AppData/Local/Yarn/Data' : '/.config/yarn'
-    let yarn_default_path = $HOME . yarn_config_dir . '/global/' . yarn_opts.entry_point
-    if filereadable(yarn_default_path)
-      return [yarn_default_path, '']
+    if has('unix')
+      let yarn_default_path = $HOME . '/.config/yarn/global/' . yarn_opts.entry_point
+      if filereadable(yarn_default_path)
+        return [yarn_default_path, '']
+      endif
     endif
     let yarn_opts.job_id = jobstart('yarn global dir', yarn_opts)
   endif

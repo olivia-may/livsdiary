@@ -1,37 +1,21 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include "klib/kvec.h"
-#include "lauxlib.h"
 #include "nvim/api/command.h"
+#include "nvim/api/private/converter.h"
 #include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
-#include "nvim/api/private/validate.h"
-#include "nvim/ascii.h"
 #include "nvim/autocmd.h"
-#include "nvim/buffer_defs.h"
-#include "nvim/decoration.h"
-#include "nvim/ex_cmds.h"
 #include "nvim/ex_docmd.h"
 #include "nvim/ex_eval.h"
-#include "nvim/garray.h"
-#include "nvim/globals.h"
 #include "nvim/lua/executor.h"
-#include "nvim/macros.h"
-#include "nvim/mbyte.h"
-#include "nvim/memory.h"
 #include "nvim/ops.h"
-#include "nvim/pos.h"
 #include "nvim/regexp.h"
-#include "nvim/strings.h"
-#include "nvim/types.h"
 #include "nvim/usercmd.h"
-#include "nvim/vim.h"
 #include "nvim/window.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
@@ -58,7 +42,7 @@
 ///                         Omitted if command cannot take a register.
 ///         - bang: (boolean) Whether command contains a |<bang>| (!) modifier.
 ///         - args: (array) Command arguments.
-///         - addr: (string) Value of |:command-addr|. Uses short name or "line" for -addr=lines.
+///         - addr: (string) Value of |:command-addr|. Uses short name.
 ///         - nargs: (string) Value of |:command-nargs|.
 ///         - nextcmd: (string) Next command if there are multiple commands separated by a |:bar|.
 ///                             Empty if there isn't a next command.
@@ -100,9 +84,10 @@ Dictionary nvim_parse_cmd(String str, Dictionary opts, Error *err)
 {
   Dictionary result = ARRAY_DICT_INIT;
 
-  VALIDATE((opts.size == 0), "%s", "opts dict isn't empty", {
+  if (opts.size > 0) {
+    api_set_error(err, kErrorTypeValidation, "opts dict isn't empty");
     return result;
-  });
+  }
 
   // Parse command line
   exarg_T ea;
@@ -127,7 +112,7 @@ Dictionary nvim_parse_cmd(String str, Dictionary opts, Error *err)
   // otherwise split arguments by whitespace.
   if (ea.argt & EX_NOSPC) {
     if (*ea.arg != NUL) {
-      ADD(args, STRING_OBJ(cstrn_to_string(ea.arg, length)));
+      ADD(args, STRING_OBJ(cstrn_to_string((char *)ea.arg, length)));
     }
   } else {
     size_t end = 0;
@@ -153,9 +138,9 @@ Dictionary nvim_parse_cmd(String str, Dictionary opts, Error *err)
   }
 
   if (cmd != NULL) {
-    PUT(result, "cmd", CSTR_TO_OBJ(cmd->uc_name));
+    PUT(result, "cmd", CSTR_TO_OBJ((char *)cmd->uc_name));
   } else {
-    PUT(result, "cmd", CSTR_TO_OBJ(get_command_name(NULL, ea.cmdidx)));
+    PUT(result, "cmd", CSTR_TO_OBJ((char *)get_command_name(NULL, ea.cmdidx)));
   }
 
   if (ea.argt & EX_RANGE) {
@@ -237,7 +222,7 @@ Dictionary nvim_parse_cmd(String str, Dictionary opts, Error *err)
     break;
   }
   PUT(result, "addr", CSTR_TO_OBJ(addr));
-  PUT(result, "nextcmd", CSTR_TO_OBJ(ea.nextcmd));
+  PUT(result, "nextcmd", CSTR_TO_OBJ((char *)ea.nextcmd));
 
   Dictionary mods = ARRAY_DICT_INIT;
 
@@ -350,24 +335,20 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
     } \
   } while (0)
 
-#define VALIDATE_MOD(cond, mod_, name_) \
+#define VALIDATION_ERROR(...) \
   do { \
-    if (!(cond)) { \
-      api_set_error(err, kErrorTypeValidation, "Command cannot accept %s: %s", (mod_), (name_)); \
-      goto end; \
-    } \
+    api_set_error(err, kErrorTypeValidation, __VA_ARGS__); \
+    goto end; \
   } while (0)
 
   bool output;
   OBJ_TO_BOOL(output, opts->output, false, "'output'");
 
-  VALIDATE_R(HAS_KEY(cmd->cmd), "cmd", {
-    goto end;
-  });
-  VALIDATE_EXP((cmd->cmd.type == kObjectTypeString && cmd->cmd.data.string.data[0] != NUL),
-               "cmd", "non-empty String", NULL, {
-    goto end;
-  });
+  // First, parse the command name and check if it exists and is valid.
+  if (!HAS_KEY(cmd->cmd) || cmd->cmd.type != kObjectTypeString
+      || cmd->cmd.data.string.data[0] == NUL) {
+    VALIDATION_ERROR("'cmd' must be a non-empty String");
+  }
 
   cmdname = string_to_cstr(cmd->cmd.data.string);
   ea.cmd = cmdname;
@@ -386,12 +367,12 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
     p = (ret && !aborting()) ? find_ex_command(&ea, NULL) : ea.cmd;
   }
 
-  VALIDATE((p != NULL && ea.cmdidx != CMD_SIZE), "Command not found: %s", cmdname, {
-    goto end;
-  });
-  VALIDATE(!is_cmd_ni(ea.cmdidx), "Command not implemented: %s", cmdname, {
-    goto end;
-  });
+  if (p == NULL || ea.cmdidx == CMD_SIZE) {
+    VALIDATION_ERROR("Command not found: %s", cmdname);
+  }
+  if (is_cmd_ni(ea.cmdidx)) {
+    VALIDATION_ERROR("Command not implemented: %s", cmdname);
+  }
 
   // Get the command flags so that we can know what type of arguments the command uses.
   // Not required for a user command since `find_ex_command` already deals with it in that case.
@@ -401,9 +382,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
 
   // Parse command arguments since it's needed to get the command address type.
   if (HAS_KEY(cmd->args)) {
-    VALIDATE_T("args", kObjectTypeArray, cmd->args.type, {
-      goto end;
-    });
+    if (cmd->args.type != kObjectTypeArray) {
+      VALIDATION_ERROR("'args' must be an Array");
+    }
 
     // Process all arguments. Convert non-String arguments to String and check if String arguments
     // have non-whitespace characters.
@@ -425,15 +406,14 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
         snprintf(data_str, NUMBUFLEN, "%" PRId64, elem.data.integer);
         break;
       case kObjectTypeString:
-        VALIDATE_EXP(!string_iswhite(elem.data.string), "command arg", "non-whitespace", NULL, {
-          goto end;
-        });
+        if (string_iswhite(elem.data.string)) {
+          VALIDATION_ERROR("String command argument must have at least one non-whitespace "
+                           "character");
+        }
         data_str = xstrndup(elem.data.string.data, elem.data.string.size);
         break;
       default:
-        VALIDATE_EXP(false, "command arg", "valid type", api_typename(elem.type), {
-          goto end;
-        });
+        VALIDATION_ERROR("Invalid type for command argument");
         break;
       }
 
@@ -461,9 +441,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
       break;
     }
 
-    VALIDATE(argc_valid, "%s", "Wrong number of arguments", {
-      goto end;
-    });
+    if (!argc_valid) {
+      VALIDATION_ERROR("Incorrect number of arguments supplied");
+    }
   }
 
   // Simply pass the first argument (if it exists) as the arg pointer to `set_cmd_addr_type()`
@@ -471,23 +451,22 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
   set_cmd_addr_type(&ea, args.size > 0 ? args.items[0].data.string.data : NULL);
 
   if (HAS_KEY(cmd->range)) {
-    VALIDATE_MOD((ea.argt & EX_RANGE), "range", cmd->cmd.data.string.data);
-    VALIDATE_T("range", kObjectTypeArray, cmd->range.type, {
-      goto end;
-    });
-    VALIDATE_EXP((cmd->range.data.array.size <= 2), "range", "<=2 elements", NULL, {
-      goto end;
-    });
+    if (!(ea.argt & EX_RANGE)) {
+      VALIDATION_ERROR("Command cannot accept a range");
+    } else if (cmd->range.type != kObjectTypeArray) {
+      VALIDATION_ERROR("'range' must be an Array");
+    } else if (cmd->range.data.array.size > 2) {
+      VALIDATION_ERROR("'range' cannot contain more than two elements");
+    }
 
     Array range = cmd->range.data.array;
     ea.addr_count = (int)range.size;
 
     for (size_t i = 0; i < range.size; i++) {
       Object elem = range.items[i];
-      VALIDATE_EXP((elem.type == kObjectTypeInteger && elem.data.integer >= 0),
-                   "range element", "non-negative Integer", NULL, {
-        goto end;
-      });
+      if (elem.type != kObjectTypeInteger || elem.data.integer < 0) {
+        VALIDATION_ERROR("'range' element must be a non-negative Integer");
+      }
     }
 
     if (range.size > 0) {
@@ -495,9 +474,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
       ea.line2 = (linenr_T)range.items[range.size - 1].data.integer;
     }
 
-    VALIDATE_S((invalid_range(&ea) == NULL), "range", "", {
-      goto end;
-    });
+    if (invalid_range(&ea) != NULL) {
+      VALIDATION_ERROR("Invalid range provided");
+    }
   }
   if (ea.addr_count == 0) {
     if (ea.argt & EX_DFLALL) {
@@ -513,38 +492,38 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
   }
 
   if (HAS_KEY(cmd->count)) {
-    VALIDATE_MOD((ea.argt & EX_COUNT), "count", cmd->cmd.data.string.data);
-    VALIDATE_EXP((cmd->count.type == kObjectTypeInteger && cmd->count.data.integer >= 0),
-                 "count", "non-negative Integer", NULL, {
-      goto end;
-    });
-    set_cmd_count(&ea, (linenr_T)cmd->count.data.integer, true);
+    if (!(ea.argt & EX_COUNT)) {
+      VALIDATION_ERROR("Command cannot accept a count");
+    } else if (cmd->count.type != kObjectTypeInteger || cmd->count.data.integer < 0) {
+      VALIDATION_ERROR("'count' must be a non-negative Integer");
+    }
+    set_cmd_count(&ea, cmd->count.data.integer, true);
   }
 
   if (HAS_KEY(cmd->reg)) {
-    VALIDATE_MOD((ea.argt & EX_REGSTR), "register", cmd->cmd.data.string.data);
-    VALIDATE_EXP((cmd->reg.type == kObjectTypeString && cmd->reg.data.string.size == 1),
-                 "reg", "single character", cmd->reg.data.string.data, {
-      goto end;
-    });
+    if (!(ea.argt & EX_REGSTR)) {
+      VALIDATION_ERROR("Command cannot accept a register");
+    } else if (cmd->reg.type != kObjectTypeString || cmd->reg.data.string.size != 1) {
+      VALIDATION_ERROR("'reg' must be a single character");
+    }
     char regname = cmd->reg.data.string.data[0];
-    VALIDATE((regname != '='), "%s", "Cannot use register \"=", {
-      goto end;
-    });
-    VALIDATE(valid_yank_reg(regname, ea.cmdidx != CMD_put && !IS_USER_CMDIDX(ea.cmdidx)),
-             "Invalid register: \"%c", regname, {
-      goto end;
-    });
+    if (regname == '=') {
+      VALIDATION_ERROR("Cannot use register \"=");
+    } else if (!valid_yank_reg(regname, ea.cmdidx != CMD_put && !IS_USER_CMDIDX(ea.cmdidx))) {
+      VALIDATION_ERROR("Invalid register: \"%c", regname);
+    }
     ea.regname = (uint8_t)regname;
   }
 
   OBJ_TO_BOOL(ea.forceit, cmd->bang, false, "'bang'");
-  VALIDATE_MOD((!ea.forceit || (ea.argt & EX_BANG)), "bang", cmd->cmd.data.string.data);
+  if (ea.forceit && !(ea.argt & EX_BANG)) {
+    VALIDATION_ERROR("Command cannot accept a bang");
+  }
 
   if (HAS_KEY(cmd->magic)) {
-    VALIDATE_T_DICT("magic", cmd->magic, {
-      goto end;
-    });
+    if (cmd->magic.type != kObjectTypeDictionary) {
+      VALIDATION_ERROR("'magic' must be a Dictionary");
+    }
 
     Dict(cmd_magic) magic = { 0 };
     if (!api_dict_to_keydict(&magic, KeyDict_cmd_magic_get_field,
@@ -565,9 +544,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
   }
 
   if (HAS_KEY(cmd->mods)) {
-    VALIDATE_T_DICT("mods", cmd->mods, {
-      goto end;
-    });
+    if (cmd->mods.type != kObjectTypeDictionary) {
+      VALIDATION_ERROR("'mods' must be a Dictionary");
+    }
 
     Dict(cmd_mods) mods = { 0 };
     if (!api_dict_to_keydict(&mods, KeyDict_cmd_mods_get_field, cmd->mods.data.dictionary, err)) {
@@ -575,9 +554,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
     }
 
     if (HAS_KEY(mods.filter)) {
-      VALIDATE_T_DICT("mods.filter", mods.filter, {
-        goto end;
-      });
+      if (mods.filter.type != kObjectTypeDictionary) {
+        VALIDATION_ERROR("'mods.filter' must be a Dictionary");
+      }
 
       Dict(cmd_mods_filter) filter = { 0 };
 
@@ -587,9 +566,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
       }
 
       if (HAS_KEY(filter.pattern)) {
-        VALIDATE_T2(filter.pattern, kObjectTypeString, {
-          goto end;
-        });
+        if (filter.pattern.type != kObjectTypeString) {
+          VALIDATION_ERROR("'mods.filter.pattern' must be a String");
+        }
 
         OBJ_TO_BOOL(cmdinfo.cmdmod.cmod_filter_force, filter.force, false, "'mods.filter.force'");
 
@@ -604,20 +583,18 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
     }
 
     if (HAS_KEY(mods.tab)) {
-      VALIDATE_T2(mods.tab, kObjectTypeInteger, {
-        goto end;
-      });
-      if ((int)mods.tab.data.integer >= 0) {
+      if (mods.tab.type != kObjectTypeInteger) {
+        VALIDATION_ERROR("'mods.tab' must be an Integer");
+      } else if ((int)mods.tab.data.integer >= 0) {
         // Silently ignore negative integers to allow mods.tab to be set to -1.
         cmdinfo.cmdmod.cmod_tab = (int)mods.tab.data.integer + 1;
       }
     }
 
     if (HAS_KEY(mods.verbose)) {
-      VALIDATE_T2(mods.verbose, kObjectTypeInteger, {
-        goto end;
-      });
-      if ((int)mods.verbose.data.integer >= 0) {
+      if (mods.verbose.type != kObjectTypeInteger) {
+        VALIDATION_ERROR("'mods.verbose' must be an Integer");
+      } else if ((int)mods.verbose.data.integer >= 0) {
         // Silently ignore negative integers to allow mods.verbose to be set to -1.
         cmdinfo.cmdmod.cmod_verbose = (int)mods.verbose.data.integer + 1;
       }
@@ -632,9 +609,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
     cmdinfo.cmdmod.cmod_split |= (horizontal ? WSP_HOR : 0);
 
     if (HAS_KEY(mods.split)) {
-      VALIDATE_T2(mods.split, kObjectTypeString, {
-        goto end;
-      });
+      if (mods.split.type != kObjectTypeString) {
+        VALIDATION_ERROR("'mods.split' must be a String");
+      }
 
       if (*mods.split.data.string.data == NUL) {
         // Empty string, do nothing.
@@ -649,9 +626,7 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
       } else if (strcmp(mods.split.data.string.data, "botright") == 0) {
         cmdinfo.cmdmod.cmod_split |= WSP_BOT;
       } else {
-        VALIDATE_S(false, "mods.split", "", {
-          goto end;
-        });
+        VALIDATION_ERROR("Invalid value for 'mods.split'");
       }
     }
 
@@ -676,10 +651,9 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
       cmdinfo.cmdmod.cmod_flags |= CMOD_SILENT;
     }
 
-    VALIDATE(!((cmdinfo.cmdmod.cmod_flags & CMOD_SANDBOX) && !(ea.argt & EX_SBOXOK)),
-             "%s", "Command cannot be run in sandbox", {
-      goto end;
-    });
+    if ((cmdinfo.cmdmod.cmod_flags & CMOD_SANDBOX) && !(ea.argt & EX_SBOXOK)) {
+      VALIDATION_ERROR("Command cannot be run in sandbox");
+    }
   }
 
   // Finally, build the command line string that will be stored inside ea.cmdlinep.
@@ -697,7 +671,8 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
     capture_ga = &capture_local;
   }
 
-  TRY_WRAP(err, {
+  TRY_WRAP({
+    try_start();
     if (output) {
       msg_silent++;
       msg_col = 0;  // prevent leading spaces
@@ -713,6 +688,8 @@ String nvim_cmd(uint64_t channel_id, Dict(cmd) *cmd, Dict(cmd_opts) *opts, Error
       // Put msg_col back where it was, since nothing should have been written.
       msg_col = save_msg_col;
     }
+
+    try_end(err);
   });
 
   if (ERROR_SET(err)) {
@@ -747,7 +724,7 @@ end:
 
 #undef OBJ_TO_BOOL
 #undef OBJ_TO_CMOD_FLAG
-#undef VALIDATE_MOD
+#undef VALIDATION_ERROR
 }
 
 /// Check if a string contains only whitespace characters.
@@ -896,13 +873,15 @@ static void build_cmdline_str(char **cmdlinep, exarg_T *eap, CmdParseInfo *cmdin
   }
 }
 
-/// Creates a global |user-commands| command.
+/// Create a new user command |user-commands|
 ///
-/// For Lua usage see |lua-guide-commands-create|.
+/// {name} is the name of the new command. The name must begin with an uppercase letter.
+///
+/// {command} is the replacement text or Lua function to execute.
 ///
 /// Example:
-/// <pre>vim
-///    :call nvim_create_user_command('SayHello', 'echo "Hello world!"', {'bang': v:true})
+/// <pre>
+///    :call nvim_create_user_command('SayHello', 'echo "Hello world!"', {})
 ///    :SayHello
 ///    Hello world!
 /// </pre>
@@ -911,7 +890,6 @@ static void build_cmdline_str(char **cmdlinep, exarg_T *eap, CmdParseInfo *cmdin
 /// @param  command Replacement command to execute when this user command is executed. When called
 ///                 from Lua, the command can also be a Lua function. The function is called with a
 ///                 single table argument that contains the following keys:
-///                 - name: (string) Command name
 ///                 - args: (string) The args passed to the command, if any |<args>|
 ///                 - fargs: (table) The args split by unescaped whitespace (when more than one
 ///                 argument is allowed), if any |<f-args>|
@@ -924,22 +902,20 @@ static void build_cmdline_str(char **cmdlinep, exarg_T *eap, CmdParseInfo *cmdin
 ///                 - mods: (string) Command modifiers, if any |<mods>|
 ///                 - smods: (table) Command modifiers in a structured format. Has the same
 ///                 structure as the "mods" key of |nvim_parse_cmd()|.
-/// @param  opts    Optional |command-attributes|.
-///                 - Set boolean attributes such as |:command-bang| or |:command-bar| to true (but
-///                   not |:command-buffer|, use |nvim_buf_create_user_command()| instead).
-///                 - "complete" |:command-complete| also accepts a Lua function which works like
-///                   |:command-completion-customlist|.
-///                 - Other parameters:
-///                   - desc: (string) Used for listing the command when a Lua function is used for
-///                                    {command}.
-///                   - force: (boolean, default true) Override any previous definition.
-///                   - preview: (function) Preview callback for 'inccommand' |:command-preview|
+/// @param  opts    Optional command attributes. See |command-attributes| for more details. To use
+///                 boolean attributes (such as |:command-bang| or |:command-bar|) set the value to
+///                 "true". In addition to the string options listed in |:command-complete|, the
+///                 "complete" key also accepts a Lua function which works like the "customlist"
+///                 completion mode |:command-completion-customlist|. Additional parameters:
+///                 - desc: (string) Used for listing the command when a Lua function is used for
+///                                  {command}.
+///                 - force: (boolean, default true) Override any previous definition.
+///                 - preview: (function) Preview callback for 'inccommand' |:command-preview|
 /// @param[out] err Error details, if any.
-void nvim_create_user_command(uint64_t channel_id, String name, Object command,
-                              Dict(user_command) *opts, Error *err)
+void nvim_create_user_command(String name, Object command, Dict(user_command) *opts, Error *err)
   FUNC_API_SINCE(9)
 {
-  create_user_command(channel_id, name, command, opts, 0, err);
+  create_user_command(name, command, opts, 0, err);
 }
 
 /// Delete a user-defined command.
@@ -952,12 +928,12 @@ void nvim_del_user_command(String name, Error *err)
   nvim_buf_del_user_command(-1, name, err);
 }
 
-/// Creates a buffer-local command |user-commands|.
+/// Create a new user command |user-commands| in the given buffer.
 ///
 /// @param  buffer  Buffer handle, or 0 for current buffer.
 /// @param[out] err Error details, if any.
 /// @see nvim_create_user_command
-void nvim_buf_create_user_command(uint64_t channel_id, Buffer buffer, String name, Object command,
+void nvim_buf_create_user_command(Buffer buffer, String name, Object command,
                                   Dict(user_command) *opts, Error *err)
   FUNC_API_SINCE(9)
 {
@@ -968,7 +944,7 @@ void nvim_buf_create_user_command(uint64_t channel_id, Buffer buffer, String nam
 
   buf_T *save_curbuf = curbuf;
   curbuf = target_buf;
-  create_user_command(channel_id, name, command, opts, UC_BUFFER, err);
+  create_user_command(name, command, opts, UC_BUFFER, err);
   curbuf = save_curbuf;
 }
 
@@ -1006,14 +982,14 @@ void nvim_buf_del_user_command(Buffer buffer, String name, Error *err)
     }
   }
 
-  api_set_error(err, kErrorTypeException, "Invalid command (not found): %s", name.data);
+  api_set_error(err, kErrorTypeException, "No such user-defined command: %s", name.data);
 }
 
-void create_user_command(uint64_t channel_id, String name, Object command, Dict(user_command) *opts,
-                         int flags, Error *err)
+void create_user_command(String name, Object command, Dict(user_command) *opts, int flags,
+                         Error *err)
 {
   uint32_t argt = 0;
-  int64_t def = -1;
+  long def = -1;
   cmd_addr_T addr_type_arg = ADDR_NONE;
   int compl = EXPAND_NOTHING;
   char *compl_arg = NULL;
@@ -1022,17 +998,20 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
   LuaRef compl_luaref = LUA_NOREF;
   LuaRef preview_luaref = LUA_NOREF;
 
-  VALIDATE_S(uc_validate_name(name.data), "command name", name.data, {
+  if (!uc_validate_name(name.data)) {
+    api_set_error(err, kErrorTypeValidation, "Invalid command name");
     goto err;
-  });
-  VALIDATE_S(!mb_islower(name.data[0]), "command name (must start with uppercase)",
-             name.data, {
+  }
+
+  if (mb_islower(name.data[0])) {
+    api_set_error(err, kErrorTypeValidation, "'name' must begin with an uppercase letter");
     goto err;
-  });
-  VALIDATE((!HAS_KEY(opts->range) || !HAS_KEY(opts->count)), "%s",
-           "Cannot use both 'range' and 'count'", {
+  }
+
+  if (HAS_KEY(opts->range) && HAS_KEY(opts->count)) {
+    api_set_error(err, kErrorTypeValidation, "'range' and 'count' are mutually exclusive");
     goto err;
-  });
+  }
 
   if (opts->nargs.type == kObjectTypeInteger) {
     switch (opts->nargs.data.integer) {
@@ -1043,14 +1022,14 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
       argt |= EX_EXTRA | EX_NOSPC | EX_NEEDARG;
       break;
     default:
-      VALIDATE_INT(false, "nargs", (int64_t)opts->nargs.data.integer, {
-        goto err;
-      });
+      api_set_error(err, kErrorTypeValidation, "Invalid value for 'nargs'");
+      goto err;
     }
   } else if (opts->nargs.type == kObjectTypeString) {
-    VALIDATE_S((opts->nargs.data.string.size <= 1), "nargs", opts->nargs.data.string.data, {
+    if (opts->nargs.data.string.size > 1) {
+      api_set_error(err, kErrorTypeValidation, "Invalid value for 'nargs'");
       goto err;
-    });
+    }
 
     switch (opts->nargs.data.string.data[0]) {
     case '*':
@@ -1063,19 +1042,18 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
       argt |= EX_EXTRA | EX_NEEDARG;
       break;
     default:
-      VALIDATE_S(false, "nargs", opts->nargs.data.string.data, {
-        goto err;
-      });
+      api_set_error(err, kErrorTypeValidation, "Invalid value for 'nargs'");
+      goto err;
     }
   } else if (HAS_KEY(opts->nargs)) {
-    VALIDATE_S(false, "nargs", "", {
-      goto err;
-    });
+    api_set_error(err, kErrorTypeValidation, "Invalid value for 'nargs'");
+    goto err;
   }
 
-  VALIDATE((!HAS_KEY(opts->complete) || argt), "%s", "'complete' used without 'nargs'", {
+  if (HAS_KEY(opts->complete) && !argt) {
+    api_set_error(err, kErrorTypeValidation, "'complete' used without 'nargs'");
     goto err;
-  });
+  }
 
   if (opts->range.type == kObjectTypeBoolean) {
     if (opts->range.data.boolean) {
@@ -1083,20 +1061,20 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
       addr_type_arg = ADDR_LINES;
     }
   } else if (opts->range.type == kObjectTypeString) {
-    VALIDATE_S((opts->range.data.string.data[0] == '%' && opts->range.data.string.size == 1),
-               "range", "", {
+    if (opts->range.data.string.data[0] == '%' && opts->range.data.string.size == 1) {
+      argt |= EX_RANGE | EX_DFLALL;
+      addr_type_arg = ADDR_LINES;
+    } else {
+      api_set_error(err, kErrorTypeValidation, "Invalid value for 'range'");
       goto err;
-    });
-    argt |= EX_RANGE | EX_DFLALL;
-    addr_type_arg = ADDR_LINES;
+    }
   } else if (opts->range.type == kObjectTypeInteger) {
     argt |= EX_RANGE | EX_ZEROR;
     def = opts->range.data.integer;
     addr_type_arg = ADDR_LINES;
   } else if (HAS_KEY(opts->range)) {
-    VALIDATE_S(false, "range", "", {
-      goto err;
-    });
+    api_set_error(err, kErrorTypeValidation, "Invalid value for 'range'");
+    goto err;
   }
 
   if (opts->count.type == kObjectTypeBoolean) {
@@ -1110,25 +1088,23 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
     addr_type_arg = ADDR_OTHER;
     def = opts->count.data.integer;
   } else if (HAS_KEY(opts->count)) {
-    VALIDATE_S(false, "count", "", {
-      goto err;
-    });
+    api_set_error(err, kErrorTypeValidation, "Invalid value for 'count'");
+    goto err;
   }
 
-  if (HAS_KEY(opts->addr)) {
-    VALIDATE_T("addr", kObjectTypeString, opts->addr.type, {
+  if (opts->addr.type == kObjectTypeString) {
+    if (parse_addr_type_arg(opts->addr.data.string.data, (int)opts->addr.data.string.size,
+                            &addr_type_arg) != OK) {
+      api_set_error(err, kErrorTypeValidation, "Invalid value for 'addr'");
       goto err;
-    });
-
-    VALIDATE_S(OK == parse_addr_type_arg(opts->addr.data.string.data,
-                                         (int)opts->addr.data.string.size, &addr_type_arg), "addr",
-               opts->addr.data.string.data, {
-      goto err;
-    });
+    }
 
     if (addr_type_arg != ADDR_LINES) {
       argt |= EX_ZEROR;
     }
+  } else if (HAS_KEY(opts->addr)) {
+    api_set_error(err, kErrorTypeValidation, "Invalid value for 'addr'");
+    goto err;
   }
 
   if (api_object_to_bool(opts->bang, "bang", false, err)) {
@@ -1164,25 +1140,23 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
     compl = EXPAND_USER_LUA;
     compl_luaref = api_new_luaref(opts->complete.data.luaref);
   } else if (opts->complete.type == kObjectTypeString) {
-    VALIDATE_S(OK == parse_compl_arg(opts->complete.data.string.data,
-                                     (int)opts->complete.data.string.size, &compl, &argt,
-                                     &compl_arg),
-               "complete", opts->complete.data.string.data, {
+    if (parse_compl_arg(opts->complete.data.string.data,
+                        (int)opts->complete.data.string.size, &compl, &argt,
+                        &compl_arg) != OK) {
+      api_set_error(err, kErrorTypeValidation, "Invalid value for 'complete'");
       goto err;
-    });
+    }
   } else if (HAS_KEY(opts->complete)) {
-    VALIDATE_EXP(false, "complete", "Function or String", NULL, {
-      goto err;
-    });
+    api_set_error(err, kErrorTypeValidation, "Invalid value for 'complete'");
+    goto err;
   }
 
-  if (HAS_KEY(opts->preview)) {
-    VALIDATE_T("preview", kObjectTypeLuaRef, opts->preview.type, {
-      goto err;
-    });
-
+  if (opts->preview.type == kObjectTypeLuaRef) {
     argt |= EX_PREVIEW;
     preview_luaref = api_new_luaref(opts->preview.data.luaref);
+  } else if (HAS_KEY(opts->preview)) {
+    api_set_error(err, kErrorTypeValidation, "Invalid value for 'preview'");
+    goto err;
   }
 
   switch (command.type) {
@@ -1198,18 +1172,15 @@ void create_user_command(uint64_t channel_id, String name, Object command, Dict(
     rep = command.data.string.data;
     break;
   default:
-    VALIDATE_EXP(false, "command", "Function or String", NULL, {
-      goto err;
-    });
+    api_set_error(err, kErrorTypeValidation, "'command' must be a string or Lua function");
+    goto err;
   }
 
-  WITH_SCRIPT_CONTEXT(channel_id, {
-    if (uc_add_command(name.data, name.size, rep, argt, def, flags, compl, compl_arg, compl_luaref,
-                       preview_luaref, addr_type_arg, luaref, force) != OK) {
-      api_set_error(err, kErrorTypeException, "Failed to create user command");
-      // Do not goto err, since uc_add_command now owns luaref, compl_luaref, and compl_arg
-    }
-  });
+  if (uc_add_command(name.data, name.size, rep, argt, def, flags, compl, compl_arg, compl_luaref,
+                     preview_luaref, addr_type_arg, luaref, force) != OK) {
+    api_set_error(err, kErrorTypeException, "Failed to create user command");
+    // Do not goto err, since uc_add_command now owns luaref, compl_luaref, and compl_arg
+  }
 
   return;
 

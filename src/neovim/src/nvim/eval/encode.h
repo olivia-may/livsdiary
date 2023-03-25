@@ -2,15 +2,11 @@
 #define NVIM_EVAL_ENCODE_H
 
 #include <msgpack.h>
-#include <msgpack/pack.h>
 #include <stddef.h>
-#include <string.h>
 
 #include "nvim/eval.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/garray.h"
-#include "nvim/vim.h"
+#include "nvim/vim.h"  // For STRLEN
 
 /// Convert VimL value to msgpack string
 ///
@@ -19,7 +15,9 @@
 /// @param[in]  objname  Object name, used for error message.
 ///
 /// @return OK in case of success, FAIL otherwise.
-int encode_vim_to_msgpack(msgpack_packer *packer, typval_T *tv, const char *objname);
+int encode_vim_to_msgpack(msgpack_packer *const packer,
+                          typval_T *const tv,
+                          const char *const objname);
 
 /// Convert VimL value to :echo output
 ///
@@ -28,7 +26,9 @@ int encode_vim_to_msgpack(msgpack_packer *packer, typval_T *tv, const char *objn
 /// @param[in]  objname  Object name, used for error message.
 ///
 /// @return OK in case of success, FAIL otherwise.
-int encode_vim_to_echo(garray_T *packer, typval_T *tv, const char *objname);
+int encode_vim_to_echo(garray_T *const packer,
+                       typval_T *const tv,
+                       const char *const objname);
 
 /// Structure defining state for read_from_list()
 typedef struct {
@@ -48,7 +48,7 @@ static inline ListReaderState encode_init_lrstate(const list_T *const list)
     .offset = 0,
     .li_length = (TV_LIST_ITEM_TV(tv_list_first(list))->vval.v_string == NULL
                   ? 0
-                  : strlen(TV_LIST_ITEM_TV(tv_list_first(list))->vval.v_string)),
+                  : STRLEN(TV_LIST_ITEM_TV(tv_list_first(list))->vval.v_string)),
   };
 }
 

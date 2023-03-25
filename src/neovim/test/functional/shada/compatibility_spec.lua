@@ -12,7 +12,7 @@ local wshada, sdrcmd, shada_fname = get_shada_rw('Xtest-functional-shada-compati
 
 local mock_file_path = '/a/b/'
 local mock_file_path2 = '/d/e/'
-if helpers.is_os('win') then
+if helpers.iswin() then
   mock_file_path = 'C:/a/'
   mock_file_path2 = 'C:/d/'
 end

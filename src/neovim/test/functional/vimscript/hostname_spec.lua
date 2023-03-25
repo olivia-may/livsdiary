@@ -3,7 +3,7 @@ local eq = helpers.eq
 local ok = helpers.ok
 local call = helpers.call
 local clear = helpers.clear
-local is_os = helpers.is_os
+local iswin = helpers.iswin
 
 describe('hostname()', function()
   before_each(clear)
@@ -13,8 +13,8 @@ describe('hostname()', function()
     ok(string.len(actual) > 0)
     if call('executable', 'hostname') == 1 then
       local expected = string.gsub(call('system', 'hostname'), '[\n\r]', '')
-      eq((is_os('win') and expected:upper() or expected),
-         (is_os('win') and actual:upper() or actual))
+      eq((iswin() and expected:upper() or expected),
+         (iswin() and actual:upper() or actual))
     end
   end)
 end)

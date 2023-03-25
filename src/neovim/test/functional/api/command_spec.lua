@@ -24,7 +24,7 @@ describe('nvim_get_commands', function()
     eq({}, meths.get_commands({builtin=false}))
   end)
 
-  it('validation', function()
+  it('validates input', function()
     eq('builtin=true not implemented', pcall_err(meths.get_commands,
       {builtin=true}))
     eq("Invalid key: 'foo'", pcall_err(meths.get_commands,
@@ -114,7 +114,6 @@ describe('nvim_create_user_command', function()
     ]]
 
     eq({
-      name = "CommandWithLuaCallback",
       args = [[this\  is    a\ test]],
       fargs = {"this ", "is", "a test"},
       bang = false,
@@ -151,7 +150,6 @@ describe('nvim_create_user_command', function()
     ]=])
 
     eq({
-      name = "CommandWithLuaCallback",
       args = [[this   includes\ a backslash: \\]],
       fargs = {"this", "includes a", "backslash:", "\\"},
       bang = false,
@@ -188,7 +186,6 @@ describe('nvim_create_user_command', function()
     ]=])
 
     eq({
-      name = "CommandWithLuaCallback",
       args = "a\\b",
       fargs = {"a\\b"},
       bang = false,
@@ -225,7 +222,6 @@ describe('nvim_create_user_command', function()
     ]=])
 
     eq({
-      name = "CommandWithLuaCallback",
       args = 'h\tey ',
       fargs = {[[h]], [[ey]]},
       bang = true,
@@ -262,7 +258,6 @@ describe('nvim_create_user_command', function()
     ]=])
 
     eq({
-      name = "CommandWithLuaCallback",
       args = "h",
       fargs = {"h"},
       bang = false,
@@ -299,7 +294,6 @@ describe('nvim_create_user_command', function()
     ]])
 
     eq({
-      name = "CommandWithLuaCallback",
       args = "",
       fargs = {},  -- fargs works without args
       bang = false,
@@ -348,7 +342,6 @@ describe('nvim_create_user_command', function()
     ]]
 
     eq({
-      name = "CommandWithOneOrNoArg",
       args = "hello I'm one argument",
       fargs = {"hello I'm one argument"},  -- Doesn't split args
       bang = false,
@@ -386,7 +379,6 @@ describe('nvim_create_user_command', function()
 
     -- f-args is an empty table if no args were passed
     eq({
-      name = "CommandWithOneOrNoArg",
       args = "",
       fargs = {},
       bang = false,
@@ -435,7 +427,6 @@ describe('nvim_create_user_command', function()
       })
     ]]
     eq({
-      name = "CommandWithNoArgs",
       args = "",
       fargs = {},
       bang = false,
@@ -472,7 +463,6 @@ describe('nvim_create_user_command', function()
     ]])
     -- register can be specified
     eq({
-      name = "CommandWithNoArgs",
       args = "",
       fargs = {},
       bang = false,
@@ -543,19 +533,23 @@ describe('nvim_create_user_command', function()
   end)
 
   it('does not allow invalid command names', function()
-    eq("Invalid command name (must start with uppercase): 'test'", pcall_err(exec_lua, [[
+    matches("'name' must begin with an uppercase letter", pcall_err(exec_lua, [[
       vim.api.nvim_create_user_command('test', 'echo "hi"', {})
     ]]))
-    eq("Invalid command name: 't@'", pcall_err(exec_lua, [[
+
+    matches('Invalid command name', pcall_err(exec_lua, [[
       vim.api.nvim_create_user_command('t@', 'echo "hi"', {})
     ]]))
-    eq("Invalid command name: 'T@st'", pcall_err(exec_lua, [[
+
+    matches('Invalid command name', pcall_err(exec_lua, [[
       vim.api.nvim_create_user_command('T@st', 'echo "hi"', {})
     ]]))
-    eq("Invalid command name: 'Test!'", pcall_err(exec_lua, [[
+
+    matches('Invalid command name', pcall_err(exec_lua, [[
       vim.api.nvim_create_user_command('Test!', 'echo "hi"', {})
     ]]))
-    eq("Invalid command name: '💩'", pcall_err(exec_lua, [[
+
+    matches('Invalid command name', pcall_err(exec_lua, [[
       vim.api.nvim_create_user_command('💩', 'echo "hi"', {})
     ]]))
   end)

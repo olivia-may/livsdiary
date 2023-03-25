@@ -3,7 +3,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+// for FILE
 #include <stdio.h>
+
+#include "grid_defs.h"
 
 typedef struct file_buffer buf_T;  // Forward declaration
 
@@ -15,23 +18,32 @@ typedef struct {
   int br_buf_free_count;
 } bufref_T;
 
-#include "klib/kvec.h"
-#include "nvim/api/private/defs.h"
-#include "nvim/eval/typval.h"
+// for garray_T
 #include "nvim/garray.h"
+// for ScreenGrid
 #include "nvim/grid_defs.h"
-#include "nvim/hashtab.h"
+// for HLF_COUNT
 #include "nvim/highlight_defs.h"
-#include "nvim/map.h"
-#include "nvim/mark_defs.h"
-#include "nvim/marktree.h"
-// for float window title
-#include "nvim/extmark_defs.h"
-// for click definitions
-#include "nvim/option_defs.h"
+// for pos_T, lpos_T and linenr_T
 #include "nvim/pos.h"
-#include "nvim/statusline_defs.h"
+// for the number window-local and buffer-local options
+#include "nvim/option_defs.h"
+// for jump list and tag stack sizes in a buffer and mark types
+#include "nvim/mark_defs.h"
+// for u_header_T
 #include "nvim/undo_defs.h"
+// for hashtab_T
+#include "nvim/hashtab.h"
+// for dict_T
+#include "nvim/eval/typval.h"
+// for String
+#include "nvim/api/private/defs.h"
+// for Map(K, V)
+#include "nvim/map.h"
+// for kvec
+#include "klib/kvec.h"
+// for marktree
+#include "nvim/marktree.h"
 
 #define GETFILE_SUCCESS(x)    ((x) <= 0)
 #define MODIFIABLE(buf) (buf->b_p_ma)
@@ -86,12 +98,17 @@ typedef struct wininfo_S wininfo_T;
 typedef struct frame_S frame_T;
 typedef uint64_t disptick_T;  // display tick type
 
+// for struct memline (it needs memfile_T)
 #include "nvim/memline_defs.h"
-#include "nvim/os/fs_defs.h"
+
+// for regprog_T. Needs win_T and buf_T.
 #include "nvim/regexp_defs.h"
-#include "nvim/sign_defs.h"
+// for synstate_T (needs reg_extmatch_T, win_T, buf_T)
 #include "nvim/syntax_defs.h"
-#include "nvim/terminal.h"
+// for sign_entry_T
+#include "nvim/os/fs_defs.h"    // for FileID
+#include "nvim/sign_defs.h"
+#include "nvim/terminal.h"      // for Terminal
 
 // The taggy struct is used to store the information about a :tag command.
 typedef struct taggy {
@@ -204,8 +221,6 @@ typedef struct {
 #define w_p_cc w_onebuf_opt.wo_cc      // 'colorcolumn'
   char *wo_sbr;
 #define w_p_sbr w_onebuf_opt.wo_sbr    // 'showbreak'
-  char *wo_stc;
-#define w_p_stc w_onebuf_opt.wo_stc     // 'statuscolumn'
   char *wo_stl;
 #define w_p_stl w_onebuf_opt.wo_stl     // 'statusline'
   char *wo_wbr;
@@ -320,7 +335,7 @@ typedef struct {
 typedef struct mapblock mapblock_T;
 struct mapblock {
   mapblock_T *m_next;           // next mapblock in list
-  char *m_keys;                 // mapped from, lhs
+  uint8_t *m_keys;              // mapped from, lhs
   char *m_str;                  // mapped to, rhs
   char *m_orig_str;             // rhs as entered by the user
   LuaRef m_luaref;              // lua function reference as rhs
@@ -335,6 +350,36 @@ struct mapblock {
   sctx_T m_script_ctx;          // SCTX where map was defined
   char *m_desc;                 // description of mapping
   bool m_replace_keycodes;      // replace keycodes in result of expression
+};
+
+/// Used for highlighting in the status line.
+typedef struct stl_hlrec stl_hlrec_t;
+struct stl_hlrec {
+  char *start;
+  int userhl;                   // 0: no HL, 1-9: User HL, < 0 for syn ID
+};
+
+/// Used for building the status line.
+typedef struct stl_item stl_item_t;
+struct stl_item {
+  // Where the item starts in the status line output buffer
+  char *start;
+  // Function to run for ClickFunc items.
+  char *cmd;
+  // The minimum width of the item
+  int minwid;
+  // The maximum width of the item
+  int maxwid;
+  enum {
+    Normal,
+    Empty,
+    Group,
+    Separate,
+    Highlight,
+    TabPage,
+    ClickFunc,
+    Trunc,
+  } type;
 };
 
 // values for b_syn_spell: what to do with toplevel text
@@ -628,12 +673,8 @@ struct file_buffer {
   char *b_p_csl;                ///< 'completeslash'
 #endif
   char *b_p_cfu;                ///< 'completefunc'
-  Callback b_cfu_cb;            ///< 'completefunc' callback
   char *b_p_ofu;                ///< 'omnifunc'
-  Callback b_ofu_cb;            ///< 'omnifunc' callback
   char *b_p_tfu;                ///< 'tagfunc'
-  Callback b_tfu_cb;            ///< 'tagfunc' callback
-  int b_p_eof;                  ///< 'endoffile'
   int b_p_eol;                  ///< 'endofline'
   int b_p_fixeol;               ///< 'fixendofline'
   int b_p_et;                   ///< 'expandtab'
@@ -658,7 +699,6 @@ struct file_buffer {
   uint32_t b_p_fex_flags;       ///< flags for 'formatexpr'
   char *b_p_kp;                 ///< 'keywordprg'
   int b_p_lisp;                 ///< 'lisp'
-  char *b_p_lop;                ///< 'lispoptions'
   char *b_p_menc;               ///< 'makeencoding'
   char *b_p_mps;                ///< 'matchpairs'
   int b_p_ml;                   ///< 'modeline'
@@ -704,7 +744,6 @@ struct file_buffer {
   char *b_p_dict;               ///< 'dictionary' local value
   char *b_p_tsr;                ///< 'thesaurus' local value
   char *b_p_tsrfu;              ///< 'thesaurusfunc' local value
-  Callback b_tsrfu_cb;          ///< 'thesaurusfunc' callback
   long b_p_ul;                  ///< 'undolevels' local value
   int b_p_udf;                  ///< 'undofile'
   char *b_p_lw;                 ///< 'lispwords' local value
@@ -753,7 +792,6 @@ struct file_buffer {
   linenr_T b_no_eol_lnum;       // non-zero lnum when last line of next binary
                                 // write should not have an end-of-line
 
-  int b_start_eof;              // last line had eof (CTRL-Z) when it was read
   int b_start_eol;              // last line had eol when it was read
   int b_start_ffc;              // first char of 'ff' when edit started
   char *b_start_fenc;           // 'fileencoding' when edit started or NULL
@@ -808,7 +846,6 @@ struct file_buffer {
   Map(uint32_t, uint32_t) b_extmark_ns[1];         // extmark namespaces
   size_t b_virt_line_blocks;    // number of virt_line blocks
   size_t b_signs;               // number of sign extmarks
-  size_t b_signs_with_text;     // number of sign extmarks with text
 
   // array of channel_id:s which have asked to receive updates for this
   // buffer.
@@ -854,8 +891,6 @@ struct diffblock_S {
   diff_T *df_next;
   linenr_T df_lnum[DB_COUNT];           // line number in buffer
   linenr_T df_count[DB_COUNT];          // nr of inserted/changed lines
-  bool is_linematched;  // has the linematch algorithm ran on this diff hunk to divide it into
-                        // smaller diff hunks?
 };
 
 #define SNAP_HELP_IDX   0
@@ -876,8 +911,7 @@ struct tabpage_S {
   win_T *tp_firstwin;      ///< first window in this Tab page
   win_T *tp_lastwin;       ///< last window in this Tab page
   long tp_old_Rows_avail;  ///< ROWS_AVAIL when Tab page was left
-  long tp_old_Columns;     ///< Columns when Tab page was left, -1 when
-                           ///< calling win_new_screen_cols() postponed
+  long tp_old_Columns;     ///< Columns when Tab page was left
   long tp_ch_used;         ///< value of 'cmdheight' when frame size was set
 
   diff_T *tp_first_diff;
@@ -924,8 +958,7 @@ struct frame_S {
                             // for first
   // fr_child and fr_win are mutually exclusive
   frame_T *fr_child;        // first contained frame
-  win_T *fr_win;        // window that fills this frame; for a snapshot
-                        // set to the current window
+  win_T *fr_win;          // window that fills this frame
 };
 
 #define FR_LEAF 0       // frame is a leaf
@@ -951,6 +984,9 @@ typedef struct {
   proftime_T tm;        // for a time limit
 } match_T;
 
+/// number of positions supported by matchaddpos()
+#define MAXPOSMATCH 8
+
 /// Same as lpos_T, but with additional field len.
 typedef struct {
   linenr_T lnum;   ///< line number
@@ -958,28 +994,29 @@ typedef struct {
   int len;    ///< length: 0 - to the end of line
 } llpos_T;
 
-/// matchitem_T provides a linked list for storing match items for ":match",
-/// matchadd() and matchaddpos().
+/// posmatch_T provides an array for storing match items for matchaddpos()
+/// function.
+typedef struct posmatch posmatch_T;
+struct posmatch {
+  llpos_T pos[MAXPOSMATCH];   ///< array of positions
+  int cur;                ///< internal position counter
+  linenr_T toplnum;            ///< top buffer line
+  linenr_T botlnum;            ///< bottom buffer line
+};
+
+// matchitem_T provides a linked list for storing match items for ":match" and
+// the match functions.
 typedef struct matchitem matchitem_T;
 struct matchitem {
-  matchitem_T *mit_next;
-  int mit_id;              ///< match ID
-  int mit_priority;        ///< match priority
-
-  // Either a pattern is defined (mit_pattern is not NUL) or a list of
-  // positions is given (mit_pos is not NULL and mit_pos_count > 0).
-  char *mit_pattern;       ///< pattern to highlight
-  regmmatch_T mit_match;   ///< regexp program for pattern
-
-  llpos_T *mit_pos_array;  ///< array of positions
-  int mit_pos_count;       ///< nr of entries in mit_pos
-  int mit_pos_cur;         ///< internal position counter
-  linenr_T mit_toplnum;    ///< top buffer line
-  linenr_T mit_botlnum;    ///< bottom buffer line
-
-  match_T mit_hl;          ///< struct for doing the actual highlighting
-  int mit_hlg_id;          ///< highlight group ID
-  int mit_conceal_char;    ///< cchar for Conceal highlighting
+  matchitem_T *next;
+  int id;                   ///< match ID
+  int priority;             ///< match priority
+  char *pattern;            ///< pattern to highlight
+  regmmatch_T match;        ///< regexp program for pattern
+  posmatch_T pos;           ///< position matches
+  match_T hl;               ///< struct for doing the actual highlighting
+  int hlg_id;               ///< highlight group ID
+  int conceal_char;         ///< cchar for Conceal highlighting
 };
 
 typedef int FloatAnchor;
@@ -999,22 +1036,15 @@ typedef enum {
   kFloatRelativeEditor = 0,
   kFloatRelativeWindow = 1,
   kFloatRelativeCursor = 2,
-  kFloatRelativeMouse = 3,
 } FloatRelative;
 
 EXTERN const char *const float_relative_str[] INIT(= { "editor", "win",
-                                                       "cursor", "mouse" });
+                                                       "cursor" });
 
 typedef enum {
   kWinStyleUnused = 0,
   kWinStyleMinimal,  /// Minimal UI: no number column, eob markers, etc
 } WinStyle;
-
-typedef enum {
-  kAlignLeft   = 0,
-  kAlignCenter = 1,
-  kAlignRight  = 2,
-} AlignTextPos;
 
 typedef struct {
   Window window;
@@ -1028,14 +1058,10 @@ typedef struct {
   int zindex;
   WinStyle style;
   bool border;
-  bool title;
   bool shadow;
   schar_T border_chars[8];
   int border_hl_ids[8];
   int border_attr[8];
-  AlignTextPos title_pos;
-  VirtText title_chunks;
-  int title_width;
   bool noautocmd;
 } FloatConfig;
 
@@ -1082,23 +1108,20 @@ struct window_S {
   win_T *w_prev;              ///< link to previous window
   win_T *w_next;              ///< link to next window
   bool w_closing;                   ///< window is being closed, don't let
-                                    ///< autocommands close it too.
+                                    ///  autocommands close it too.
 
   frame_T *w_frame;             ///< frame containing this window
 
   pos_T w_cursor;                   ///< cursor position in buffer
 
   colnr_T w_curswant;               ///< Column we want to be at.  This is
-                                    ///< used to try to stay in the same column
-                                    ///< for up/down cursor motions.
+                                    ///  used to try to stay in the same column
+                                    ///  for up/down cursor motions.
 
   int w_set_curswant;               // If set, then update w_curswant the next
                                     // time through cursupdate() to the
                                     // current virtual column
 
-  linenr_T w_cursorline;            ///< Where 'cursorline' should be drawn,
-                                    ///< can be different from w_cursor.lnum
-                                    ///< for closed folds.
   linenr_T w_last_cursorline;       ///< where last 'cursorline' was drawn
   pos_T w_last_cursormoved;         ///< for CursorMoved event
 
@@ -1149,7 +1172,6 @@ struct window_S {
     int diff;
     int msgsep;
     int eob;
-    int lastline;
   } w_p_fcs_chars;
 
   // "w_topline", "w_leftcol" and "w_skipcol" specify the offsets for
@@ -1169,9 +1191,8 @@ struct window_S {
   colnr_T w_skipcol;                // starting column when a single line
                                     // doesn't fit in the window
 
-  // six fields that are only used when there is a WinScrolled autocommand
+  // five fields that are only used when there is a WinScrolled autocommand
   linenr_T w_last_topline;          ///< last known value for w_topline
-  int w_last_topfill;               ///< last known value for w_topfill
   colnr_T w_last_leftcol;           ///< last known value for w_leftcol
   colnr_T w_last_skipcol;           ///< last known value for w_skipcol
   int w_last_width;                 ///< last known value for w_width
@@ -1184,8 +1205,6 @@ struct window_S {
   int w_winrow;                     // first row of window in screen
   int w_height;                     // number of rows in window, excluding
                                     // status/command line(s)
-  int w_prev_winrow;                // previous winrow used for 'splitkeep'
-  int w_prev_height;                // previous height used for 'splitkeep'
   int w_status_height;              // number of status lines (0 or 1)
   int w_winbar_height;              // number of window bars (0 or 1)
   int w_wincol;                     // Leftmost column of window in screen.
@@ -1222,7 +1241,6 @@ struct window_S {
   colnr_T w_valid_leftcol;          // last known w_leftcol
 
   bool w_viewport_invalid;
-  linenr_T w_viewport_last_topline;  // topline when the viewport was last updated
 
   // w_cline_height is the number of physical lines taken by the buffer line
   // that the cursor is on.  We use this to avoid extra calls to plines_win().
@@ -1278,16 +1296,14 @@ struct window_S {
   linenr_T w_redraw_bot;            // when != 0: last line needing redraw
   bool w_redr_status;               // if true statusline/winbar must be redrawn
   bool w_redr_border;               // if true border must be redrawn
-  bool w_redr_statuscol;            // if true 'statuscolumn' must be redrawn
 
-  // remember what is shown in the 'statusline'-format elements
-  pos_T w_stl_cursor;                // cursor position when last redrawn
-  colnr_T w_stl_virtcol;             // virtcol when last redrawn
-  linenr_T w_stl_topline;            // topline when last redrawn
-  linenr_T w_stl_line_count;         // line count when last redrawn
-  int w_stl_topfill;                 // topfill when last redrawn
-  char w_stl_empty;                  // true if elements show 0-1 (empty line)
-  int w_stl_state;                   // State when last redrawn
+  // remember what is shown in the ruler for this window (if 'ruler' set)
+  pos_T w_ru_cursor;                // cursor position shown in ruler
+  colnr_T w_ru_virtcol;             // virtcol shown in ruler
+  linenr_T w_ru_topline;            // topline shown in ruler
+  linenr_T w_ru_line_count;         // line count used for ruler
+  int w_ru_topfill;                 // topfill shown in ruler
+  char w_ru_empty;                  // true if ruler shows 0-1 (empty line)
 
   int w_alt_fnum;                   // alternate file (for # and CTRL-^)
 
@@ -1320,7 +1336,6 @@ struct window_S {
   int w_briopt_shift;               // additional shift for breakindent
   bool w_briopt_sbr;                // sbr in 'briopt'
   int w_briopt_list;                // additional indent for lists
-  int w_briopt_vcol;                // indent for specific column
 
   // transform a pointer to a "onebuf" option into a "allbuf" option
 #define GLOBAL_WO(p)    ((char *)(p) + sizeof(winopt_T))
@@ -1368,7 +1383,6 @@ struct window_S {
   int w_prev_fraction_row;
 
   linenr_T w_nrwidth_line_count;        // line count when ml_nrwidth_width was computed.
-  linenr_T w_statuscol_line_count;      // line count when 'statuscolumn' width was computed.
   int w_nrwidth_width;                  // nr of chars to print line count.
 
   qf_info_T *w_llist;                 // Location list for this window
@@ -1385,17 +1399,10 @@ struct window_S {
   StlClickDefinition *w_winbar_click_defs;
   // Size of the w_winbar_click_defs array
   size_t w_winbar_click_defs_size;
-
-  // Status column click definitions
-  StlClickDefinition *w_statuscol_click_defs;
-  // Size of the w_statuscol_click_defs array
-  size_t w_statuscol_click_defs_size;
 };
 
 /// Macros defined in Vim, but not in Neovim
-// uncrustify:off
 #define CHANGEDTICK(buf) \
   (=== Include buffer.h & use buf_(get|set|inc) _changedtick ===)
-// uncrustify:on
 
 #endif  // NVIM_BUFFER_DEFS_H

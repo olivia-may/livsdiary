@@ -46,14 +46,14 @@
 // other sources and focus on a specific channel.
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
-#include <stddef.h>
+#include <stdint.h>
 #include <uv.h>
 
-#include "nvim/event/defs.h"
 #include "nvim/event/multiqueue.h"
-#include "nvim/lib/queue.h"
 #include "nvim/memory.h"
+#include "nvim/os/time.h"
 
 typedef struct multiqueue_item MultiQueueItem;
 struct multiqueue_item {
@@ -245,7 +245,6 @@ static void multiqueue_push(MultiQueue *this, Event event)
 }
 
 static MultiQueueItem *multiqueue_node_data(QUEUE *q)
-  FUNC_ATTR_NO_SANITIZE_ADDRESS
 {
   return QUEUE_DATA(q, MultiQueueItem, node);
 }

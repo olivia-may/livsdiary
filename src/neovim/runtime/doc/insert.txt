@@ -221,11 +221,11 @@ CTRL-Y		Insert the character which is above the cursor.
 		able to copy characters from a long line.
 
 						*i_CTRL-_*
-CTRL-_		Switch between insert direction, by toggling 'revins', as follows:
-		-  When in a rightleft window, 'revins' is toggled,
+CTRL-_		Switch between languages, as follows:
+		-  When in a rightleft window, revins and nohkmap are toggled,
 		   since English will likely be inserted in this case.
-		-  When in a norightleft window, 'revins' is toggled,
-		   since a rightleft language will likely be inserted in this case.
+		-  When in a norightleft window, revins and hkmap are toggled,
+		   since Hebrew will likely be inserted in this case.
 
 		CTRL-_ moves the cursor to the end of the typed text.
 
@@ -257,8 +257,8 @@ CTRL-]		Trigger abbreviation, without inserting a character.
 
 						*i_<Insert>*
 <Insert>	Toggle between Insert and Replace mode.
-
 -----------------------------------------------------------------------
+
 						*i_backspacing*
 The effect of the <BS>, CTRL-W, and CTRL-U depend on the 'backspace' option
 (unless 'revins' is set).  This is a comma-separated list of items:
@@ -378,7 +378,6 @@ CTRL-G u	close undo sequence, start new change	     *i_CTRL-G_u*
 CTRL-G U	don't start a new undo block with the next   *i_CTRL-G_U*
 		left/right cursor movement, if the cursor
 		stays within the same line
-
 -----------------------------------------------------------------------
 
 The CTRL-O command sometimes has a side effect: If the cursor was beyond the
@@ -651,9 +650,9 @@ When the popup menu is displayed there are a few more special keys, see
 |popupmenu-keys|.
 
 Note: The keys that are valid in CTRL-X mode are not mapped.  This allows for
-`:map <C-F> <C-X><C-F>` to work.  The key that ends CTRL-X mode (any key that
-is not a valid CTRL-X mode command) is mapped. Also, when doing completion
-with 'complete' mappings apply as usual.
+":map ^F ^X^F" to work (where ^F is CTRL-F and ^X is CTRL-X).  The key that
+ends CTRL-X mode (any key that is not a valid CTRL-X mode command) is mapped.
+Also, when doing completion with 'complete' mappings apply as usual.
 
 								*E565*
 Note: While completion is active Insert mode can't be used recursively and
@@ -662,10 +661,10 @@ will generate an E565 error.
 
 The following mappings are suggested to make typing the completion commands
 a bit easier (although they will hide other commands): >
-    :inoremap <C-]> <C-X><C-]>
-    :inoremap <C-F> <C-X><C-F>
-    :inoremap <C-D> <C-X><C-D>
-    :inoremap <C-L> <C-X><C-L>
+    :inoremap ^] ^X^]
+    :inoremap ^F ^X^F
+    :inoremap ^D ^X^D
+    :inoremap ^L ^X^L
 
 As a special case, typing CTRL-R to perform register insertion (see
 |i_CTRL-R|) will not exit CTRL-X mode.  This is primarily to allow the use of
@@ -858,27 +857,29 @@ invoked and what it should return.
 Here is an example that uses the "aiksaurus" command (provided by Magnus
 Groß): >
 
-    func Thesaur(findstart, base)
-      if a:findstart
-	return searchpos('\<', 'bnW', line('.'))[1] - 1
-      endif
-      let res = []
-      let h = ''
-      for l in systemlist('aiksaurus ' .. shellescape(a:base))
-	if l[:3] == '=== '
-	  let h = '(' .. substitute(l[4:], ' =*$', ')', '')
-	elseif l ==# 'Alphabetically similar known words are: '
-	  let h = "\U0001f52e"
-	elseif l[0] =~ '\a' || (h ==# "\U0001f52e" && l[0] ==# "\t")
-	  call extend(res, map(split(substitute(l, '^\t', '', ''), ', '), {_, val -> {'word': val, 'menu': h}}))
-	endif
-      endfor
-      return res
-    endfunc
+	func Thesaur(findstart, base)
+	    if a:findstart
+		let line = getline('.')
+		let start = col('.') - 1
+		while start > 0 && line[start - 1] =~ '\a'
+		   let start -= 1
+		endwhile
+		return start
+	    else
+		let res = []
+		let h = ''
+		for l in split(system('aiksaurus ' .. shellescape(a:base)), '\n')
+		    if l[:3] == '=== '
+		    	let h = substitute(l[4:], ' =*$', '', '')
+		    elseif l[0] =~ '\a'
+			call extend(res, map(split(l, ', '), {_, val -> {'word': val, 'menu': '('.h.')'}}))
+		    endif
+		endfor
+		return res
+	    endif
+	endfunc
 
-    if exists('+thesaurusfunc')
-      set thesaurusfunc=Thesaur
-    endif
+	set thesaurusfunc=Thesaur
 
 
 Completing keywords in the current and included files	*compl-keyword*
@@ -1101,8 +1102,8 @@ cursor column will be replaced with the matches.  If the returned value is
 larger than the cursor column, the cursor column is used.
 
 Negative return values:
-   -2	To cancel silently and stay in completion mode.
-   -3	To cancel silently and leave completion mode.
+   -2 	To cancel silently and stay in completion mode.
+   -3 	To cancel silently and leave completion mode.
    Another negative value: completion starts at the cursor column
 
 On the second invocation the arguments are:
@@ -1154,7 +1155,7 @@ items:
 			item with the same word is already present.
 	empty		when non-zero this match will be added even when it is
 			an empty string
-	user_data	custom data which is associated with the item and
+	user_data 	custom data which is associated with the item and
 			available in |v:completed_item|; it can be any type;
 			defaults to an empty string
 
@@ -1451,13 +1452,13 @@ At the moment (beginning of 2006) there are two main browsers - MS Internet
 Explorer and Mozilla Firefox. These two applications are covering over 90% of
 market. Theoretically standards are created by W3C organisation
 (https://www.w3.org/) but they are not always followed/implemented.
->
+
 		IE	FF	W3C  Omni completion ~
 		+/-	+/-	+    +		     ~
 		+	+	-    +		     ~
 		+	-	-    -		     ~
 		-	+	-    -		     ~
-<
+
 Regardless from state of implementation in browsers but if element is defined
 in standards, completion plugin will place element in suggestion list. When
 both major engines implemented element, even if this is not in standards it

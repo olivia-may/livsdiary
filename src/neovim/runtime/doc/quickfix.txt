@@ -353,6 +353,8 @@ processing a quickfix or location list command, it will be aborted.
 			If numbers [from] and/or [to] are given, the respective
 			range of errors is listed.  A negative number counts
 			from the last error backwards, -1 being the last error.
+			The 'switchbuf' settings are respected when jumping
+			to a buffer.
 			The |:filter| command can be used to display only the
 			quickfix entries matching a supplied pattern. The
 			pattern is matched against the filename, module name,
@@ -956,7 +958,7 @@ or simpler >
 "$*" can be given multiple times, for example: >
    :set makeprg=gcc\ -o\ $*\ $*
 
-The 'shellpipe' option defaults to "2>&1| tee" for Win32.
+The 'shellpipe' option defaults to ">%s 2>&1" for Win32.
 This means that the output of the compiler is saved in a file and not shown on
 the screen directly.  For Unix "| tee" is used.  The compiler output is shown
 on the screen and saved in a file the same time.  Depending on the shell used
@@ -1256,21 +1258,6 @@ not "b:current_compiler".  What the command actually does is the following:
 
 For writing a compiler plugin, see |write-compiler-plugin|.
 
-
-DOTNET							*compiler-dotnet*
-
-The .NET CLI compiler outputs both errors and warnings by default. The output
-may be limited to include only errors, by setting the g:dotnet_errors_only
-variable to |v:true|.
-
-The associated project name is included in each error and warning. To suppress
-the project name, set the g:dotnet_show_project_file variable to |v:false|.
-
-Example: limit output to only display errors, and suppress the project name: >
-	let dotnet_errors_only = v:true
-	let dotnet_show_project_file = v:false
-	compiler dotnet
-<
 
 GCC					*quickfix-gcc*	*compiler-gcc*
 
@@ -1583,9 +1570,8 @@ A call of |:clist| writes them accordingly with their correct filenames:
 
 Unlike the other prefixes that all match against whole lines, %P, %Q and %O
 can be used to match several patterns in the same line.  Thus it is possible
-to parse even nested files like in the following line: >
+to parse even nested files like in the following line:
   {"file1" {"file2" error1} error2 {"file3" error3 {"file4" error4 error5}}}
-<
 The %O then parses over strings that do not contain any push/pop file name
 information.  See |errorformat-LaTeX| for an extended example.
 
@@ -1945,9 +1931,9 @@ by Vim.
 
 The default format for the lines displayed in the quickfix window and location
 list window is:
->
+
     <filename>|<lnum> col <col>|<text>
-<
+
 The values displayed in each line correspond to the "bufnr", "lnum", "col" and
 "text" fields returned by the |getqflist()| function.
 

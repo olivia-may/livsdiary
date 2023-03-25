@@ -1,17 +1,9 @@
 #ifndef NVIM_DECORATION_H
 #define NVIM_DECORATION_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-#include "klib/kvec.h"
 #include "nvim/buffer_defs.h"
 #include "nvim/extmark_defs.h"
-#include "nvim/macros.h"
-#include "nvim/marktree.h"
 #include "nvim/pos.h"
-#include "nvim/types.h"
 
 // actual Decoration data is in extmark_defs.h
 
@@ -36,6 +28,7 @@ typedef enum {
 
 EXTERN const char *const hl_mode_str[] INIT(= { "", "replace", "combine", "blend" });
 
+typedef kvec_t(VirtTextChunk) VirtText;
 #define VIRTTEXT_EMPTY ((VirtText)KV_INITIAL_VALUE)
 
 typedef kvec_t(struct virt_line { VirtText line; bool left_col; }) VirtLines;
@@ -58,7 +51,7 @@ struct Decoration {
   DecorPriority priority;
   int col;  // fixed col value, like win_col
   int virt_text_width;  // width of virt_text
-  char *sign_text;
+  char_u *sign_text;
   int sign_hl_id;
   int number_hl_id;
   int line_hl_id;
@@ -88,7 +81,7 @@ typedef struct {
 typedef struct {
   MarkTreeIter itr[1];
   kvec_t(DecorRange) active;
-  win_T *win;
+  buf_T *buf;
   int top_row;
   int row;
   int col_until;

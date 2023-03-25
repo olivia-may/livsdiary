@@ -5,19 +5,42 @@ local M = {}
 M.priorities = {
   syntax = 50,
   treesitter = 100,
-  semantic_tokens = 125,
   diagnostics = 150,
   user = 200,
 }
 
+---@private
+function M.create(higroup, hi_info, default)
+  vim.deprecate('vim.highlight.create', 'vim.api.nvim_set_hl', '0.9')
+  local options = {}
+  -- TODO: Add validation
+  for k, v in pairs(hi_info) do
+    table.insert(options, string.format('%s=%s', k, v))
+  end
+  vim.cmd(
+    string.format(
+      [[highlight %s %s %s]],
+      default and 'default' or '',
+      higroup,
+      table.concat(options, ' ')
+    )
+  )
+end
+
+---@private
+function M.link(higroup, link_to, force)
+  vim.deprecate('vim.highlight.link', 'vim.api.nvim_set_hl', '0.9')
+  vim.cmd(string.format([[highlight%s link %s %s]], force and '!' or ' default', higroup, link_to))
+end
+
 --- Highlight range between two positions
 ---
----@param bufnr integer Buffer number to apply highlighting to
----@param ns integer Namespace to add highlight to
----@param higroup string Highlight group to use for highlighting
----@param start { [1]: integer, [2]: integer } Start position {line, col}
----@param finish { [1]: integer, [2]: integer } Finish position {line, col}
----@param opts table|nil Optional parameters
+---@param bufnr number of buffer to apply highlighting to
+---@param ns namespace to add highlight to
+---@param higroup highlight group to use for highlighting
+---@param start first position (tuple {line,col})
+---@param finish second position (tuple {line,col})
+---@param opts table with options:
 --             - regtype type of range (see |setreg()|, default charwise)
 --             - inclusive boolean indicating whether the range is end-inclusive (default false)
 --             - priority number indicating priority of highlight (default priorities.user)
@@ -60,7 +83,7 @@ local yank_timer
 --- customize conditions (here: do not highlight a visual selection) via
 ---   au TextYankPost * lua vim.highlight.on_yank {on_visual=false}
 ---
--- @param opts table|nil Optional parameters
+-- @param opts table with options controlling the highlight:
 --              - higroup   highlight group for yanked region (default "IncSearch")
 --              - timeout   time in ms before highlight is cleared (default 150)
 --              - on_macro  highlight when executing macro (default false)

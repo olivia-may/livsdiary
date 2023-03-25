@@ -13,12 +13,6 @@
 # include "nvim/os/unix_defs.h"
 #endif
 
-#ifdef BACKSLASH_IN_FILENAME
-# define BACKSLASH_IN_FILENAME_BOOL true
-#else
-# define BACKSLASH_IN_FILENAME_BOOL false
-#endif
-
 #if !defined(NAME_MAX) && defined(_XOPEN_NAME_MAX)
 # define NAME_MAX _XOPEN_NAME_MAX
 #endif
@@ -36,9 +30,10 @@
 // Command-processing buffer. Use large buffers for all platforms.
 #define CMDBUFFSIZE 1024
 
-// Note: Some systems need both string.h and strings.h (Savage).
+// Note: Some systems need both string.h and strings.h (Savage).  However,
+// some systems can't handle both, only use string.h in that case.
 #include <string.h>
-#ifdef HAVE_STRINGS_H
+#if defined(HAVE_STRINGS_H) && !defined(NO_STRINGS_WITH_STRING_H)
 # include <strings.h>
 #endif
 

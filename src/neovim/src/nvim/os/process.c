@@ -6,21 +6,10 @@
 /// psutil is a good reference for cross-platform syscall voodoo:
 /// https://github.com/giampaolo/psutil/tree/master/psutil/arch
 
-#include <assert.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <uv.h>
-
-#include "nvim/log.h"
-#include "nvim/memory.h"
-#include "nvim/os/process.h"
+#include <uv.h>  // for HANDLE (win32)
 
 #ifdef MSWIN
-# include <tlhelp32.h>
-
-# include "nvim/api/private/helpers.h"
+# include <tlhelp32.h>  // for CreateToolhelp32Snapshot
 #endif
 
 #if defined(__FreeBSD__)  // XXX: OpenBSD ?
@@ -38,8 +27,15 @@
 # include <sys/sysctl.h>
 #endif
 
+#include "nvim/api/private/helpers.h"
+#include "nvim/globals.h"
+#include "nvim/log.h"
+#include "nvim/os/os.h"
+#include "nvim/os/os_defs.h"
+#include "nvim/os/process.h"
+
 #ifdef INCLUDE_GENERATED_DECLARATIONS
-# include "os/process.c.generated.h"  // IWYU pragma: export
+# include "os/process.c.generated.h"
 #endif
 
 #ifdef MSWIN
@@ -264,16 +260,5 @@ Dictionary os_proc_info(int pid)
 /// Return true if process `pid` is running.
 bool os_proc_running(int pid)
 {
-  int err = uv_kill(pid, 0);
-  // If there is no error the process must be running.
-  if (err == 0) {
-    return true;
-  }
-  // If the error is ESRCH then the process is not running.
-  if (err == UV_ESRCH) {
-    return false;
-  }
-  // If the process is running and owned by another user we get EPERM.  With
-  // other errors the process might be running, assuming it is then.
-  return true;
+  return uv_kill(pid, 0) == 0;
 }

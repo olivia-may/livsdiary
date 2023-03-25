@@ -6,9 +6,9 @@
 /// Some more functions for command line commands
 
 #include <assert.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "nvim/arglist.h"
@@ -16,33 +16,30 @@
 #include "nvim/autocmd.h"
 #include "nvim/buffer.h"
 #include "nvim/change.h"
-#include "nvim/channel.h"
+#include "nvim/charset.h"
 #include "nvim/eval.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/eval/vars.h"
 #include "nvim/ex_cmds.h"
 #include "nvim/ex_cmds2.h"
-#include "nvim/ex_cmds_defs.h"
 #include "nvim/ex_docmd.h"
+#include "nvim/ex_eval.h"
 #include "nvim/ex_getln.h"
 #include "nvim/fileio.h"
-#include "nvim/gettext.h"
 #include "nvim/globals.h"
-#include "nvim/highlight_defs.h"
-#include "nvim/macros.h"
 #include "nvim/mark.h"
-#include "nvim/memline_defs.h"
+#include "nvim/mbyte.h"
 #include "nvim/memory.h"
 #include "nvim/message.h"
 #include "nvim/move.h"
 #include "nvim/normal.h"
+#include "nvim/ops.h"
 #include "nvim/option.h"
-#include "nvim/os/os_defs.h"
+#include "nvim/os/fs_defs.h"
+#include "nvim/os_unix.h"
 #include "nvim/path.h"
-#include "nvim/pos.h"
 #include "nvim/quickfix.h"
 #include "nvim/runtime.h"
+#include "nvim/strings.h"
 #include "nvim/undo.h"
 #include "nvim/vim.h"
 #include "nvim/window.h"
@@ -446,9 +443,12 @@ int buf_write_all(buf_T *buf, int forceit)
 /// ":argdo", ":windo", ":bufdo", ":tabdo", ":cdo", ":ldo", ":cfdo" and ":lfdo"
 void ex_listdo(exarg_T *eap)
 {
+  int i;
   win_T *wp;
   tabpage_T *tp;
+  int next_fnum = 0;
   char *save_ei = NULL;
+  char *p_shm_save;
 
   if (eap->cmdidx != CMD_windo && eap->cmdidx != CMD_tabdo) {
     // Don't do syntax HL autocommands.  Skipping the syntax file is a
@@ -466,9 +466,7 @@ void ex_listdo(exarg_T *eap)
       || !check_changed(curbuf, CCGD_AW
                         | (eap->forceit ? CCGD_FORCEIT : 0)
                         | CCGD_EXCMD)) {
-    int next_fnum = 0;
-    char *p_shm_save;
-    int i = 0;
+    i = 0;
     // start at the eap->line1 argument/window/buffer
     wp = firstwin;
     tp = first_tabpage;
@@ -704,56 +702,54 @@ void ex_compiler(exarg_T *eap)
     // List all compiler scripts.
     do_cmdline_cmd("echo globpath(&rtp, 'compiler/*.vim')");  // NOLINT
     do_cmdline_cmd("echo globpath(&rtp, 'compiler/*.lua')");  // NOLINT
-    return;
-  }
-
-  size_t bufsize = strlen(eap->arg) + 14;
-  buf = xmalloc(bufsize);
-
-  if (eap->forceit) {
-    // ":compiler! {name}" sets global options
-    do_cmdline_cmd("command -nargs=* CompilerSet set <args>");
   } else {
-    // ":compiler! {name}" sets local options.
-    // To remain backwards compatible "current_compiler" is always
-    // used.  A user's compiler plugin may set it, the distributed
-    // plugin will then skip the settings.  Afterwards set
-    // "b:current_compiler" and restore "current_compiler".
-    // Explicitly prepend "g:" to make it work in a function.
-    old_cur_comp = get_var_value("g:current_compiler");
-    if (old_cur_comp != NULL) {
-      old_cur_comp = xstrdup(old_cur_comp);
-    }
-    do_cmdline_cmd("command -nargs=* -keepscript CompilerSet setlocal <args>");
-  }
-  do_unlet(S_LEN("g:current_compiler"), true);
-  do_unlet(S_LEN("b:current_compiler"), true);
-
-  snprintf(buf, bufsize, "compiler/%s.vim", eap->arg);
-  if (source_runtime(buf, DIP_ALL) == FAIL) {
-    // Try lua compiler
-    snprintf(buf, bufsize, "compiler/%s.lua", eap->arg);
-    if (source_runtime(buf, DIP_ALL) == FAIL) {
-      semsg(_("E666: compiler not supported: %s"), eap->arg);
-    }
-  }
-  xfree(buf);
-
-  do_cmdline_cmd(":delcommand CompilerSet");
-
-  // Set "b:current_compiler" from "current_compiler".
-  p = get_var_value("g:current_compiler");
-  if (p != NULL) {
-    set_internal_string_var("b:current_compiler", p);
-  }
-
-  // Restore "current_compiler" for ":compiler {name}".
-  if (!eap->forceit) {
-    if (old_cur_comp != NULL) {
-      set_internal_string_var("g:current_compiler", old_cur_comp);
-      xfree(old_cur_comp);
+    size_t bufsize = strlen(eap->arg) + 14;
+    buf = xmalloc(bufsize);
+    if (eap->forceit) {
+      // ":compiler! {name}" sets global options
+      do_cmdline_cmd("command -nargs=* CompilerSet set <args>");
     } else {
-      do_unlet(S_LEN("g:current_compiler"), true);
+      // ":compiler! {name}" sets local options.
+      // To remain backwards compatible "current_compiler" is always
+      // used.  A user's compiler plugin may set it, the distributed
+      // plugin will then skip the settings.  Afterwards set
+      // "b:current_compiler" and restore "current_compiler".
+      // Explicitly prepend "g:" to make it work in a function.
+      old_cur_comp = (char *)get_var_value("g:current_compiler");
+      if (old_cur_comp != NULL) {
+        old_cur_comp = xstrdup(old_cur_comp);
+      }
+      do_cmdline_cmd("command -nargs=* -keepscript CompilerSet setlocal <args>");
+    }
+    do_unlet(S_LEN("g:current_compiler"), true);
+    do_unlet(S_LEN("b:current_compiler"), true);
+
+    snprintf(buf, bufsize, "compiler/%s.vim", eap->arg);
+    if (source_runtime(buf, DIP_ALL) == FAIL) {
+      // Try lua compiler
+      snprintf(buf, bufsize, "compiler/%s.lua", eap->arg);
+      if (source_runtime(buf, DIP_ALL) == FAIL) {
+        semsg(_("E666: compiler not supported: %s"), eap->arg);
+      }
+    }
+    xfree(buf);
+
+    do_cmdline_cmd(":delcommand CompilerSet");
+
+    // Set "b:current_compiler" from "current_compiler".
+    p = (char *)get_var_value("g:current_compiler");
+    if (p != NULL) {
+      set_internal_string_var("b:current_compiler", p);
+    }
+
+    // Restore "current_compiler" for ":compiler {name}".
+    if (!eap->forceit) {
+      if (old_cur_comp != NULL) {
+        set_internal_string_var("g:current_compiler", old_cur_comp);
+        xfree(old_cur_comp);
+      } else {
+        do_unlet(S_LEN("g:current_compiler"), true);
+      }
     }
   }
 }
@@ -761,13 +757,14 @@ void ex_compiler(exarg_T *eap)
 /// ":checktime [buffer]"
 void ex_checktime(exarg_T *eap)
 {
+  buf_T *buf;
   int save_no_check_timestamps = no_check_timestamps;
 
   no_check_timestamps = 0;
   if (eap->addr_count == 0) {    // default is all buffers
     check_timestamps(false);
   } else {
-    buf_T *buf = buflist_findnr((int)eap->line2);
+    buf = buflist_findnr((int)eap->line2);
     if (buf != NULL) {           // cannot happen?
       (void)buf_check_timestamp(buf);
     }
@@ -847,46 +844,45 @@ void ex_drop(exarg_T *eap)
     // edited in a window yet.  It's like ":tab all" but without closing
     // windows or tabs.
     ex_all(eap);
-    return;
-  }
-
-  // ":drop file ...": Edit the first argument.  Jump to an existing
-  // window if possible, edit in current window if the current buffer
-  // can be abandoned, otherwise open a new window.
-  buf = buflist_findnr(ARGLIST[0].ae_fnum);
-
-  FOR_ALL_TAB_WINDOWS(tp, wp) {
-    if (wp->w_buffer == buf) {
-      goto_tabpage_win(tp, wp);
-      curwin->w_arg_idx = 0;
-      if (!bufIsChanged(curbuf)) {
-        const int save_ar = curbuf->b_p_ar;
-
-        // reload the file if it is newer
-        curbuf->b_p_ar = 1;
-        buf_check_timestamp(curbuf);
-        curbuf->b_p_ar = save_ar;
-      }
-      return;
-    }
-  }
-
-  // Check whether the current buffer is changed. If so, we will need
-  // to split the current window or data could be lost.
-  // Skip the check if the 'hidden' option is set, as in this case the
-  // buffer won't be lost.
-  if (!buf_hide(curbuf)) {
-    emsg_off++;
-    split = check_changed(curbuf, CCGD_AW | CCGD_EXCMD);
-    emsg_off--;
-  }
-
-  // Fake a ":sfirst" or ":first" command edit the first argument.
-  if (split) {
-    eap->cmdidx = CMD_sfirst;
-    eap->cmd[0] = 's';
   } else {
-    eap->cmdidx = CMD_first;
+    // ":drop file ...": Edit the first argument.  Jump to an existing
+    // window if possible, edit in current window if the current buffer
+    // can be abandoned, otherwise open a new window.
+    buf = buflist_findnr(ARGLIST[0].ae_fnum);
+
+    FOR_ALL_TAB_WINDOWS(tp, wp) {
+      if (wp->w_buffer == buf) {
+        goto_tabpage_win(tp, wp);
+        curwin->w_arg_idx = 0;
+        if (!bufIsChanged(curbuf)) {
+          const int save_ar = curbuf->b_p_ar;
+
+          // reload the file if it is newer
+          curbuf->b_p_ar = 1;
+          buf_check_timestamp(curbuf);
+          curbuf->b_p_ar = save_ar;
+        }
+        return;
+      }
+    }
+
+    // Check whether the current buffer is changed. If so, we will need
+    // to split the current window or data could be lost.
+    // Skip the check if the 'hidden' option is set, as in this case the
+    // buffer won't be lost.
+    if (!buf_hide(curbuf)) {
+      emsg_off++;
+      split = check_changed(curbuf, CCGD_AW | CCGD_EXCMD);
+      emsg_off--;
+    }
+
+    // Fake a ":sfirst" or ":first" command edit the first argument.
+    if (split) {
+      eap->cmdidx = CMD_sfirst;
+      eap->cmd[0] = 's';
+    } else {
+      eap->cmdidx = CMD_first;
+    }
+    ex_rewind(eap);
   }
-  ex_rewind(eap);
 }

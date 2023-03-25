@@ -9,8 +9,6 @@ local matches = helpers.matches
 local feed_command = helpers.feed_command
 local hide_cursor = thelpers.hide_cursor
 local show_cursor = thelpers.show_cursor
-local is_os = helpers.is_os
-local skip = helpers.skip
 
 describe(':terminal cursor', function()
   local screen
@@ -90,7 +88,7 @@ describe(':terminal cursor', function()
 
   describe('when invisible', function()
     it('is not highlighted and is detached from screen cursor', function()
-      skip(is_os('win'))
+      if helpers.pending_win32(pending) then return end
       hide_cursor()
       screen:expect([[
         tty ready                                         |
@@ -363,7 +361,7 @@ describe('buffer cursor position is correct in terminal without number column', 
   end)
 
   describe('in a line with single-cell composed multibyte characters and no trailing spaces,', function()
-    if skip(is_os('win'), "Encoding problem?") then return end
+    if helpers.pending_win32(pending) then return end  -- These tests fail on Windows. Encoding problem?
 
     before_each(function()
       setup_ex_register('µ̳µ̳µ̳µ̳µ̳µ̳µ̳µ̳')
@@ -446,7 +444,7 @@ describe('buffer cursor position is correct in terminal without number column', 
   end)
 
   describe('in a line with double-cell multibyte characters and no trailing spaces,', function()
-    skip(is_os('win'), "Encoding problem?")
+    if helpers.pending_win32(pending) then return end  -- These tests fail on Windows. Encoding problem?
 
     before_each(function()
       setup_ex_register('哦哦哦哦哦哦哦哦')
@@ -743,7 +741,7 @@ describe('buffer cursor position is correct in terminal with number column', fun
   end)
 
   describe('in a line with single-cell composed multibyte characters and no trailing spaces,', function()
-    if skip(is_os('win'), "Encoding problem?") then return end
+    if helpers.pending_win32(pending) then return end  -- These tests fail on Windows. Encoding problem?
 
     before_each(function()
       setup_ex_register('µ̳µ̳µ̳µ̳µ̳µ̳µ̳µ̳')
@@ -826,7 +824,7 @@ describe('buffer cursor position is correct in terminal with number column', fun
   end)
 
   describe('in a line with double-cell multibyte characters and no trailing spaces,', function()
-    skip(is_os('win'), "Encoding problem?")
+    if helpers.pending_win32(pending) then return end  -- These tests fail on Windows. Encoding problem?
 
     before_each(function()
       setup_ex_register('哦哦哦哦哦哦哦哦')

@@ -1,10 +1,10 @@
 #ifndef NVIM_MEMORY_H
 #define NVIM_MEMORY_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <time.h>
+#include <stdbool.h>  // for bool
+#include <stddef.h>  // for size_t
+#include <stdint.h>  // for uint8_t
+#include <time.h>  // for time_t
 
 #include "nvim/macros.h"
 
@@ -39,7 +39,7 @@ extern MemRealloc mem_realloc;
 extern bool entered_free_all_mem;
 #endif
 
-EXTERN size_t arena_alloc_count INIT(= 0);
+EXTERN size_t arena_alloc_count INIT(=0);
 
 typedef struct consumed_blk {
   struct consumed_blk *prev;

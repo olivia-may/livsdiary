@@ -5,44 +5,35 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <uv.h>
 
 #include "auto/config.h"
-#include "nvim/ascii.h"
-#include "nvim/gettext.h"
-#include "nvim/globals.h"
-#include "nvim/log.h"
-#include "nvim/macros.h"
-#include "nvim/memory.h"
-#include "nvim/message.h"
-#include "nvim/option_defs.h"
-#include "nvim/os/fs_defs.h"
-#include "nvim/os/os.h"
-#include "nvim/path.h"
-#include "nvim/types.h"
-#include "nvim/vim.h"
 
 #ifdef HAVE_SYS_UIO_H
 # include <sys/uio.h>
 #endif
 
+#include <uv.h>
+
+#include "nvim/ascii.h"
+#include "nvim/assert.h"
+#include "nvim/memory.h"
+#include "nvim/message.h"
+#include "nvim/option.h"
+#include "nvim/os/os.h"
+#include "nvim/os/os_defs.h"
+#include "nvim/path.h"
+#include "nvim/strings.h"
+
 #ifdef MSWIN
-# include "nvim/mbyte.h"
-# include "nvim/option.h"
+# include "nvim/mbyte.h"  // for utf8_to_utf16, utf16_to_utf8
 #endif
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "os/fs.c.generated.h"
 #endif
-
-struct iovec;
 
 #define RUN_UV_FS_FUNC(ret, func, ...) \
   do { \
@@ -104,12 +95,12 @@ int os_chdir(const char *path)
 /// @param buf Buffer to store the directory name.
 /// @param len Length of `buf`.
 /// @return `OK` for success, `FAIL` for failure.
-int os_dirname(char *buf, size_t len)
+int os_dirname(char_u *buf, size_t len)
   FUNC_ATTR_NONNULL_ALL
 {
   int error_number;
-  if ((error_number = uv_cwd(buf, &len)) != kLibuvSuccess) {
-    xstrlcpy(buf, uv_strerror(error_number), len);
+  if ((error_number = uv_cwd((char *)buf, &len)) != kLibuvSuccess) {
+    STRLCPY(buf, uv_strerror(error_number), len);
     return FAIL;
   }
   return OK;
@@ -130,8 +121,9 @@ bool os_isrealdir(const char *name)
   fs_loop_unlock();
   if (S_ISLNK(request.statbuf.st_mode)) {
     return false;
+  } else {
+    return S_ISDIR(request.statbuf.st_mode);
   }
-  return S_ISDIR(request.statbuf.st_mode);
 }
 
 /// Check if the given path exists and is a directory.
@@ -145,7 +137,11 @@ bool os_isdir(const char *name)
     return false;
   }
 
-  return S_ISDIR(mode);
+  if (!S_ISDIR(mode)) {
+    return false;
+  }
+
+  return true;
 }
 
 /// Check what `name` is:
@@ -175,7 +171,7 @@ int os_nodetype(const char *name)
   // Edge case from Vim os_win32.c:
   // We can't open a file with a name "\\.\con" or "\\.\prn", trying to read
   // from it later will cause Vim to hang. Thus return NODE_WRITABLE here.
-  if (strncmp(name, "\\\\.\\", 4) == 0) {
+  if (STRNCMP(name, "\\\\.\\", 4) == 0) {
     return NODE_WRITABLE;
   }
 
@@ -253,8 +249,9 @@ bool os_can_exe(const char *name, char **abspath, bool use_path)
         && is_executable(name, abspath)) {
 #endif
       return true;
+    } else {
+      return false;
     }
-    return false;
   }
 
   return is_executable_in_path(name, abspath);
@@ -297,9 +294,7 @@ static bool is_executable(const char *name, char **abspath)
 static bool is_executable_ext(const char *name, char **abspath)
   FUNC_ATTR_NONNULL_ARG(1)
 {
-  const bool is_unix_shell = strstr(path_tail(p_sh), "powershell") == NULL
-                             && strstr(path_tail(p_sh), "pwsh") == NULL
-                             && strstr(path_tail(p_sh), "sh") != NULL;
+  const bool is_unix_shell = strstr((char *)path_tail(p_sh), "sh") != NULL;
   char *nameext = strrchr(name, '.');
   size_t nameext_len = nameext ? strlen(nameext) : 0;
   xstrlcpy(os_buf, name, sizeof(os_buf));
@@ -325,11 +320,11 @@ static bool is_executable_ext(const char *name, char **abspath)
 
     const char *ext_end = ext;
     size_t ext_len =
-      copy_option_part((char **)&ext_end, buf_end,
+      copy_option_part(&ext_end, (char_u *)buf_end,
                        sizeof(os_buf) - (size_t)(buf_end - os_buf), ENV_SEPSTR);
     if (ext_len != 0) {
       bool in_pathext = nameext_len == ext_len
-                        && 0 == mb_strnicmp(nameext, ext, ext_len);
+                        && 0 == mb_strnicmp((char_u *)nameext, (char_u *)ext, ext_len);
 
       if (((in_pathext || is_unix_shell) && is_executable(name, abspath))
           || is_executable(os_buf, abspath)) {
@@ -376,7 +371,7 @@ static bool is_executable_in_path(const char *name, char **abspath)
     char *e = xstrchrnul(p, ENV_SEPCHAR);
 
     // Combine the $PATH segment with `name`.
-    xstrlcpy(buf, p, (size_t)(e - p) + 1);
+    STRLCPY(buf, p, e - p + 1);
     append_path(buf, name, buf_len);
 
 #ifdef MSWIN
@@ -761,8 +756,9 @@ int32_t os_getperm(const char *name)
   int stat_result = os_stat(name, &statbuf);
   if (stat_result == kLibuvSuccess) {
     return (int32_t)statbuf.st_mode;
+  } else {
+    return stat_result;
   }
-  return stat_result;
 }
 
 /// Set the permission of a file.
@@ -774,38 +770,6 @@ int os_setperm(const char *const name, int perm)
   int r;
   RUN_UV_FS_FUNC(r, uv_fs_chmod, name, perm, NULL);
   return (r == kLibuvSuccess ? OK : FAIL);
-}
-
-#if defined(HAVE_ACL)
-# ifdef HAVE_SYS_ACL_H
-#  include <sys/acl.h>
-# endif
-# ifdef HAVE_SYS_ACCESS_H
-#  include <sys/access.h>
-# endif
-#endif
-
-// Return a pointer to the ACL of file "fname" in allocated memory.
-// Return NULL if the ACL is not available for whatever reason.
-vim_acl_T os_get_acl(const char *fname)
-{
-  vim_acl_T ret = NULL;
-  return ret;
-}
-
-// Set the ACL of file "fname" to "acl" (unless it's NULL).
-void os_set_acl(const char *fname, vim_acl_T aclent)
-{
-  if (aclent == NULL) {
-    return;
-  }
-}
-
-void os_free_acl(vim_acl_T aclent)
-{
-  if (aclent == NULL) {
-    return;
-  }
 }
 
 #ifdef UNIX
@@ -909,11 +873,12 @@ int os_file_is_writable(const char *name)
 /// Rename a file or directory.
 ///
 /// @return `OK` for success, `FAIL` for failure.
-int os_rename(const char *path, const char *new_path)
+int os_rename(const char_u *path, const char_u *new_path)
   FUNC_ATTR_NONNULL_ALL
 {
   int r;
-  RUN_UV_FS_FUNC(r, uv_fs_rename, path, new_path, NULL);
+  RUN_UV_FS_FUNC(r, uv_fs_rename, (const char *)path, (const char *)new_path,
+                 NULL);
   return (r == kLibuvSuccess ? OK : FAIL);
 }
 
@@ -978,37 +943,6 @@ int os_mkdir_recurse(const char *const dir, int32_t mode, char **const failed_di
     }
   }
   xfree(curdir);
-  return 0;
-}
-
-/// Create the parent directory of a file if it does not exist
-///
-/// @param[in] fname Full path of the file name whose parent directories
-///                  we want to create
-/// @param[in] mode  Permissions for the newly-created directory.
-///
-/// @return `0` for success, libuv error code for failure.
-int os_file_mkdir(char *fname, int32_t mode)
-  FUNC_ATTR_NONNULL_ALL FUNC_ATTR_WARN_UNUSED_RESULT
-{
-  if (!dir_of_file_exists(fname)) {
-    char *tail = path_tail_with_sep(fname);
-    char *last_char = tail + strlen(tail) - 1;
-    if (vim_ispathsep(*last_char)) {
-      emsg(_(e_noname));
-      return -1;
-    }
-    char c = *tail;
-    *tail = NUL;
-    int r;
-    char *failed_dir;
-    if (((r = os_mkdir_recurse(fname, mode, &failed_dir)) < 0)) {
-      semsg(_(e_mkdir), failed_dir, os_strerror(r));
-      xfree(failed_dir);
-    }
-    *tail = c;
-    return r;
-  }
   return 0;
 }
 
@@ -1376,7 +1310,7 @@ bool os_is_reparse_point_include(const char *path)
   }
 
   p = utf16_path;
-  if (isalpha((uint8_t)p[0]) && p[1] == L':' && IS_PATH_SEP(p[2])) {
+  if (isalpha(p[0]) && p[1] == L':' && IS_PATH_SEP(p[2])) {
     p += 3;
   } else if (IS_PATH_SEP(p[0]) && IS_PATH_SEP(p[1])) {
     p += 2;

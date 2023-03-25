@@ -1,10 +1,7 @@
 #ifndef NVIM_DRAWSCREEN_H
 #define NVIM_DRAWSCREEN_H
 
-#include <stdbool.h>
-
 #include "nvim/drawline.h"
-#include "nvim/macros.h"
 
 /// flags for update_screen()
 /// The higher the value, the higher the priority
@@ -21,11 +18,6 @@ enum {
 /// While redrawing the screen this flag is set.  It means the screen size
 /// ('lines' and 'rows') must not be changed.
 EXTERN bool updating_screen INIT(= 0);
-
-EXTERN match_T screen_search_hl INIT(= { 0 });       // used for 'hlsearch' highlight matching
-
-#define W_ENDCOL(wp)   ((wp)->w_wincol + (wp)->w_width)
-#define W_ENDROW(wp)   ((wp)->w_winrow + (wp)->w_height)
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "drawscreen.h.generated.h"

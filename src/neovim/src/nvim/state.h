@@ -3,8 +3,6 @@
 
 #include <stddef.h>
 
-struct vim_state;
-
 typedef struct vim_state VimState;
 
 typedef int (*state_check_callback)(VimState *state);

@@ -1,61 +1,67 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <assert.h>
 #include <lauxlib.h>
 #include <lua.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include <sys/types.h>
+#include <lualib.h>
 
-#ifdef NVIM_VENDOR_BIT
-# include "bit.h"
-#endif
-
-#include "auto/config.h"
 #include "cjson/lua_cjson.h"
+#include "luv/luv.h"
 #include "mpack/lmpack.h"
 #include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
+#include "nvim/api/vim.h"
 #include "nvim/ascii.h"
+#include "nvim/assert.h"
 #include "nvim/buffer_defs.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
+#include "nvim/change.h"
+#include "nvim/cursor.h"
+#include "nvim/eval.h"
+#include "nvim/eval/userfunc.h"
+#include "nvim/event/loop.h"
+#include "nvim/event/time.h"
 #include "nvim/ex_eval.h"
-#include "nvim/fold.h"
+#include "nvim/ex_getln.h"
+#include "nvim/extmark.h"
+#include "nvim/func_attr.h"
+#include "nvim/garray.h"
+#include "nvim/getchar.h"
 #include "nvim/globals.h"
 #include "nvim/lua/converter.h"
+#include "nvim/lua/executor.h"
 #include "nvim/lua/spell.h"
 #include "nvim/lua/stdlib.h"
+#include "nvim/lua/treesitter.h"
 #include "nvim/lua/xdiff.h"
+#include "nvim/macros.h"
 #include "nvim/map.h"
-#include "nvim/mbyte.h"
 #include "nvim/memline.h"
-#include "nvim/memory.h"
-#include "nvim/pos.h"
+#include "nvim/message.h"
+#include "nvim/msgpack_rpc/channel.h"
+#include "nvim/os/os.h"
 #include "nvim/regexp.h"
-#include "nvim/runtime.h"
+#include "nvim/regexp_defs.h"
+#include "nvim/screen.h"
 #include "nvim/types.h"
+#include "nvim/undo.h"
+#include "nvim/version.h"
 #include "nvim/vim.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "lua/stdlib.c.generated.h"
 #endif
 
-static int regex_match(lua_State *lstate, regprog_T **prog, char *str)
+static int regex_match(lua_State *lstate, regprog_T **prog, char_u *str)
 {
   regmatch_T rm;
   rm.regprog = *prog;
   rm.rm_ic = false;
-  bool match = vim_regexec(&rm, str, 0);
+  bool match = vim_regexec(&rm, (char *)str, 0);
   *prog = rm.regprog;
 
   if (match) {
-    lua_pushinteger(lstate, (lua_Integer)(rm.startp[0] - str));
-    lua_pushinteger(lstate, (lua_Integer)(rm.endp[0] - str));
+    lua_pushinteger(lstate, (lua_Integer)(rm.startp[0] - (char *)str));
+    lua_pushinteger(lstate, (lua_Integer)(rm.endp[0] - (char *)str));
     return 2;
   }
   return 0;
@@ -65,7 +71,7 @@ static int regex_match_str(lua_State *lstate)
 {
   regprog_T **prog = regex_check(lstate);
   const char *str = luaL_checkstring(lstate, 2);
-  int nret = regex_match(lstate, prog, (char *)str);
+  int nret = regex_match(lstate, prog, (char_u *)str);
 
   if (!*prog) {
     return luaL_error(lstate, "regex: internal error");
@@ -83,20 +89,20 @@ static int regex_match_line(lua_State *lstate)
     return luaL_error(lstate, "not enough args");
   }
 
-  handle_T bufnr = (handle_T)luaL_checkinteger(lstate, 2);
+  long bufnr = luaL_checkinteger(lstate, 2);
   linenr_T rownr = (linenr_T)luaL_checkinteger(lstate, 3);
-  int start = 0, end = -1;
+  long start = 0, end = -1;
   if (narg >= 4) {
-    start = (int)luaL_checkinteger(lstate, 4);
+    start = luaL_checkinteger(lstate, 4);
   }
   if (narg >= 5) {
-    end = (int)luaL_checkinteger(lstate, 5);
+    end = luaL_checkinteger(lstate, 5);
     if (end < 0) {
       return luaL_error(lstate, "invalid end");
     }
   }
 
-  buf_T *buf = bufnr ? handle_get_buffer(bufnr) : curbuf;
+  buf_T *buf = bufnr ? handle_get_buffer((int)bufnr) : curbuf;
   if (!buf || buf->b_ml.ml_mfp == NULL) {
     return luaL_error(lstate, "invalid buffer");
   }
@@ -105,14 +111,14 @@ static int regex_match_line(lua_State *lstate)
     return luaL_error(lstate, "invalid row");
   }
 
-  char *line = ml_get_buf(buf, rownr + 1, false);
-  size_t len = strlen(line);
+  char_u *line = (char_u *)ml_get_buf(buf, rownr + 1, false);
+  size_t len = STRLEN(line);
 
   if (start < 0 || (size_t)start > len) {
     return luaL_error(lstate, "invalid start");
   }
 
-  char save = NUL;
+  char_u save = NUL;
   if (end >= 0) {
     if ((size_t)end > len || end < start) {
       return luaL_error(lstate, "invalid end");
@@ -181,7 +187,7 @@ int nlua_str_utfindex(lua_State *const lstate) FUNC_ATTR_NONNULL_ALL
   }
 
   size_t codepoints = 0, codeunits = 0;
-  mb_utflen(s1, (size_t)idx, &codepoints, &codeunits);
+  mb_utflen((const char_u *)s1, (size_t)idx, &codepoints, &codeunits);
 
   lua_pushinteger(lstate, (long)codepoints);
   lua_pushinteger(lstate, (long)codeunits);
@@ -203,7 +209,7 @@ static int nlua_str_utf_pos(lua_State *const lstate) FUNC_ATTR_NONNULL_ALL
   size_t idx = 1;
   size_t clen;
   for (size_t i = 0; i < s1_len && s1[i] != NUL; i += clen) {
-    clen = (size_t)utf_ptr2len_len(s1 + i, (int)(s1_len - i));
+    clen = (size_t)utf_ptr2len_len((const char_u *)(s1) + i, (int)(s1_len - i));
     lua_pushinteger(lstate, (long)i + 1);
     lua_rawseti(lstate, -2, (int)idx);
     idx++;
@@ -223,11 +229,11 @@ static int nlua_str_utf_start(lua_State *const lstate) FUNC_ATTR_NONNULL_ALL
 {
   size_t s1_len;
   const char *s1 = luaL_checklstring(lstate, 1, &s1_len);
-  ptrdiff_t offset = luaL_checkinteger(lstate, 2);
+  long offset = luaL_checkinteger(lstate, 2);
   if (offset < 0 || offset > (intptr_t)s1_len) {
     return luaL_error(lstate, "index out of range");
   }
-  int head_offset = utf_cp_head_off(s1, s1 + offset - 1);
+  int head_offset = utf_cp_head_off((char_u *)s1, (char_u *)s1 + offset - 1);
   lua_pushinteger(lstate, head_offset);
   return 1;
 }
@@ -243,7 +249,7 @@ static int nlua_str_utf_end(lua_State *const lstate) FUNC_ATTR_NONNULL_ALL
 {
   size_t s1_len;
   const char *s1 = luaL_checklstring(lstate, 1, &s1_len);
-  ptrdiff_t offset = luaL_checkinteger(lstate, 2);
+  long offset = luaL_checkinteger(lstate, 2);
   if (offset < 0 || offset > (intptr_t)s1_len) {
     return luaL_error(lstate, "index out of range");
   }
@@ -271,7 +277,8 @@ int nlua_str_byteindex(lua_State *const lstate) FUNC_ATTR_NONNULL_ALL
     use_utf16 = lua_toboolean(lstate, 3);
   }
 
-  ssize_t byteidx = mb_utf_index_to_bytes(s1, s1_len, (size_t)idx, use_utf16);
+  ssize_t byteidx = mb_utf_index_to_bytes((const char_u *)s1, s1_len,
+                                          (size_t)idx, use_utf16);
   if (byteidx == -1) {
     return luaL_error(lstate, "index out of range");
   }
@@ -287,8 +294,10 @@ int nlua_regex(lua_State *lstate)
   const char *text = luaL_checkstring(lstate, 1);
   regprog_T *prog = NULL;
 
-  TRY_WRAP(&err, {
+  TRY_WRAP({
+    try_start();
     prog = vim_regcomp((char *)text, RE_AUTO | RE_MAGIC | RE_STRICT);
+    try_end(&err);
   });
 
   if (ERROR_SET(&err)) {
@@ -369,14 +378,15 @@ int nlua_setvar(lua_State *lstate)
     if (di == NULL) {
       // Doesn't exist, nothing to do
       return 0;
-    }
-    // Notify watchers
-    if (watched) {
-      tv_dict_watcher_notify(dict, key.data, NULL, &di->di_tv);
-    }
+    } else {
+      // Notify watchers
+      if (watched) {
+        tv_dict_watcher_notify(dict, key.data, NULL, &di->di_tv);
+      }
 
-    // Delete the entry
-    tv_dict_item_remove(dict, di);
+      // Delete the entry
+      tv_dict_item_remove(dict, di);
+    }
   } else {
     // Update the key
     typval_T tv;
@@ -485,6 +495,8 @@ static int nlua_stricmp(lua_State *const lstate) FUNC_ATTR_NONNULL_ALL
   return 1;
 }
 
+#if defined(HAVE_ICONV)
+
 /// Convert string from one encoding to another
 static int nlua_iconv(lua_State *lstate)
 {
@@ -503,14 +515,14 @@ static int nlua_iconv(lua_State *lstate)
   size_t str_len = 0;
   const char *str = lua_tolstring(lstate, 1, &str_len);
 
-  char *from = enc_canonize(enc_skip((char *)lua_tolstring(lstate, 2, NULL)));
-  char *to   = enc_canonize(enc_skip((char *)lua_tolstring(lstate, 3, NULL)));
+  char_u *from = (char_u *)enc_canonize(enc_skip((char *)lua_tolstring(lstate, 2, NULL)));
+  char_u *to   = (char_u *)enc_canonize(enc_skip((char *)lua_tolstring(lstate, 3, NULL)));
 
   vimconv_T vimconv;
   vimconv.vc_type = CONV_NONE;
-  convert_setup_ext(&vimconv, from, false, to, false);
+  convert_setup_ext(&vimconv, (char *)from, false, (char *)to, false);
 
-  char *ret = string_convert(&vimconv, (char *)str, &str_len);
+  char_u *ret = (char_u *)string_convert(&vimconv, (char *)str, &str_len);
 
   convert_setup(&vimconv, NULL, NULL);
 
@@ -520,37 +532,14 @@ static int nlua_iconv(lua_State *lstate)
   if (ret == NULL) {
     lua_pushnil(lstate);
   } else {
-    lua_pushlstring(lstate, ret, str_len);
+    lua_pushlstring(lstate, (char *)ret, str_len);
     xfree(ret);
   }
 
   return 1;
 }
 
-// Like 'zx' but don't call newFoldLevel()
-static int nlua_foldupdate(lua_State *lstate)
-{
-  curwin->w_foldinvalid = true;  // recompute folds
-  foldOpenCursor();
-
-  return 0;
-}
-
-// Access to internal functions. For use in runtime/
-static void nlua_state_add_internal(lua_State *const lstate)
-{
-  // _getvar
-  lua_pushcfunction(lstate, &nlua_getvar);
-  lua_setfield(lstate, -2, "_getvar");
-
-  // _setvar
-  lua_pushcfunction(lstate, &nlua_setvar);
-  lua_setfield(lstate, -2, "_setvar");
-
-  // _updatefolds
-  lua_pushcfunction(lstate, &nlua_foldupdate);
-  lua_setfield(lstate, -2, "_foldupdate");
-}
+#endif
 
 void nlua_state_add_stdlib(lua_State *const lstate, bool is_thread)
 {
@@ -586,16 +575,24 @@ void nlua_state_add_stdlib(lua_State *const lstate, bool is_thread)
     lua_setfield(lstate, -2, "__index");  // [meta]
     lua_pop(lstate, 1);  // don't use metatable now
 
+    // _getvar
+    lua_pushcfunction(lstate, &nlua_getvar);
+    lua_setfield(lstate, -2, "_getvar");
+
+    // _setvar
+    lua_pushcfunction(lstate, &nlua_setvar);
+    lua_setfield(lstate, -2, "_setvar");
+
     // vim.spell
     luaopen_spell(lstate);
     lua_setfield(lstate, -2, "spell");
 
+#if defined(HAVE_ICONV)
     // vim.iconv
     // depends on p_ambw, p_emoji
     lua_pushcfunction(lstate, &nlua_iconv);
     lua_setfield(lstate, -2, "iconv");
-
-    nlua_state_add_internal(lstate);
+#endif
   }
 
   // vim.mpack
@@ -618,13 +615,6 @@ void nlua_state_add_stdlib(lua_State *const lstate, bool is_thread)
   // vim.json
   lua_cjson_new(lstate);
   lua_setfield(lstate, -2, "json");
-
-#ifdef NVIM_VENDOR_BIT
-  // if building with puc lua, use internal fallback for require'bit'
-  int top = lua_gettop(lstate);
-  luaopen_bit(lstate);
-  lua_settop(lstate, top);
-#endif
 }
 
 /// like luaL_error, but allow cleanup

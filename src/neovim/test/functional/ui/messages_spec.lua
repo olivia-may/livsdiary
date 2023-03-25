@@ -9,15 +9,12 @@ local meths = helpers.meths
 local async_meths = helpers.async_meths
 local test_build_dir = helpers.test_build_dir
 local nvim_prog = helpers.nvim_prog
+local iswin = helpers.iswin
 local exec = helpers.exec
 local exc_exec = helpers.exc_exec
 local exec_lua = helpers.exec_lua
 local poke_eventloop = helpers.poke_eventloop
 local assert_alive = helpers.assert_alive
-local is_os = helpers.is_os
-local is_ci = helpers.is_ci
-local funcs = helpers.funcs
-local skip = helpers.skip
 
 describe('ui/ext_messages', function()
   local screen
@@ -476,7 +473,8 @@ describe('ui/ext_messages', function()
     ]], msg_history={{
       content = {{ "stuff" }},
       kind = "echomsg",
-    }}, messages={{
+    }}, showmode={{ "-- INSERT --", 3 }},
+      messages={{
         content = {{ "Press ENTER or type command to continue", 4}},
         kind = "return_prompt"
     }}}
@@ -873,7 +871,7 @@ stack traceback:
       {1:~                        }|
       {1:~                        }|
     ]], messages={
-      { content = { { "wow, ", 7 }, { "such\n\nvery ", 2 }, { "color", 10 } }, kind = "echomsg" }
+      { content = { { "wow, ", 7 }, { "such\n\nvery ", 2 }, { "color", 10 } }, kind = "" }
     }}
 
     feed ':ls<cr>'
@@ -884,7 +882,7 @@ stack traceback:
       {1:~                        }|
       {1:~                        }|
     ]], messages={
-      { content = { { '\n  1 %a   "[No Name]"                    line 1' } }, kind = "" }
+      { content = { { '\n  1 %a   "[No Name]"                    line 1' } }, kind = "echomsg" }
     }}
 
     feed ':messages<cr>'
@@ -908,13 +906,6 @@ stack traceback:
       {1:~                        }|
       {1:~                        }|
     ]]}
-  end)
-
-  it('does not truncate messages', function()
-    command('write Xtest')
-    screen:expect({messages={
-      {content = { { '"Xtest" [New] 0L, 0B written' } }, kind = "" }
-    }})
   end)
 end)
 
@@ -1211,6 +1202,28 @@ vimComment     xxx match /\s"[^\-:.%#=*].*$/ms=s+1,lc=1  excludenl contains=@vim
   it('prints lines in Ex mode correctly with a burst of carriage returns #19341', function()
     command('set number')
     meths.buf_set_lines(0, 0, 0, true, {'aaa', 'bbb', 'ccc'})
+    command('set display-=msgsep')
+    feed('gggQ<CR><CR>1<CR><CR>vi')
+    screen:expect([[
+      Entering Ex mode.  Type "visual" to go to Normal mode.      |
+      {11:  2 }bbb                                                     |
+      {11:  3 }ccc                                                     |
+      :1                                                          |
+      {11:  1 }aaa                                                     |
+      {11:  2 }bbb                                                     |
+      :vi^                                                         |
+    ]])
+    feed('<CR>')
+    screen:expect([[
+      {11:  1 }aaa                                                     |
+      {11:  2 }^bbb                                                     |
+      {11:  3 }ccc                                                     |
+      {11:  4 }                                                        |
+      {1:~                                                           }|
+      {1:~                                                           }|
+                                                                  |
+    ]])
+    command('set display+=msgsep')
     feed('gggQ<CR><CR>1<CR><CR>vi')
     screen:expect([[
       Entering Ex mode.  Type "visual" to go to Normal mode.      |
@@ -1244,34 +1257,6 @@ vimComment     xxx match /\s"[^\-:.%#=*].*$/ms=s+1,lc=1  excludenl contains=@vim
       foo                                                         |
       bar^                                                         |
     ]])
-  end)
-
-  it('consecutive calls to win_move_statusline() work after multiline message #21014',function()
-    async_meths.exec([[
-      echo "\n"
-      call win_move_statusline(0, -4)
-      call win_move_statusline(0, 4)
-    ]], false)
-    screen:expect([[
-                                                                  |
-      {1:~                                                           }|
-      {1:~                                                           }|
-      {1:~                                                           }|
-      {3:                                                            }|
-                                                                  |
-      {4:Press ENTER or type command to continue}^                     |
-    ]])
-    feed('<CR>')
-    screen:expect([[
-      ^                                                            |
-      {1:~                                                           }|
-      {1:~                                                           }|
-      {1:~                                                           }|
-      {1:~                                                           }|
-      {1:~                                                           }|
-                                                                  |
-    ]])
-    eq(1, meths.get_option('cmdheight'))
   end)
 end)
 
@@ -1313,6 +1298,7 @@ describe('ui/ext_messages', function()
       {1:~                                                                               }|
       {1:~                                                                               }|
       {1:~                                                                               }|
+      {1:~                                                                               }|
       {MATCH:.*}|
       {1:~                                                                               }|
       {1:~                 }Nvim is open source and freely distributable{1:                  }|
@@ -1323,10 +1309,9 @@ describe('ui/ext_messages', function()
       {1:~                }type  :q{5:<Enter>}               to exit         {1:                 }|
       {1:~                }type  :help{5:<Enter>}            for help        {1:                 }|
       {1:~                                                                               }|
-      {1:~{MATCH: +}}type  :help news{5:<Enter>} to see changes in v{MATCH:%d+%.%d+}{1:{MATCH: +}}|
+      {MATCH:.*}|
+      {MATCH:.*}|
       {1:~                                                                               }|
-      {MATCH:.*}|
-      {MATCH:.*}|
       {1:~                                                                               }|
       {1:~                                                                               }|
       {1:~                                                                               }|
@@ -1369,6 +1354,7 @@ describe('ui/ext_messages', function()
                                                                                       |
                                                                                       |
                                                                                       |
+                                                                                      |
       {MATCH:.*}|
                                                                                       |
                         Nvim is open source and freely distributable                  |
@@ -1379,10 +1365,9 @@ describe('ui/ext_messages', function()
                        type  :q{5:<Enter>}               to exit                          |
                        type  :help{5:<Enter>}            for help                         |
                                                                                       |
-      {MATCH: +}type  :help news{5:<Enter>} to see changes in v{MATCH:%d+%.%d+ +}|
+      {MATCH:.*}|
+      {MATCH:.*}|
                                                                                       |
-      {MATCH:.*}|
-      {MATCH:.*}|
                                                                                       |
                                                                                       |
                                                                                       |
@@ -1460,6 +1445,7 @@ describe('ui/ext_messages', function()
     feed(":set mouse=a<cr>")
     meths.input_mouse('left', 'press', '', 0, 12, 10)
     poke_eventloop()
+    meths.input_mouse('left', 'drag', '', 0, 12, 10)
     meths.input_mouse('left', 'drag', '', 0, 11, 10)
     feed("<c-l>")
     feed(":set cmdheight<cr>")
@@ -1504,7 +1490,7 @@ describe('ui/msg_puts_printf', function()
     screen = Screen.new(25, 5)
     screen:attach()
 
-    if is_os('win') then
+    if iswin() then
       if os.execute('chcp 932 > NUL 2>&1') ~= 0 then
         pending('missing japanese language features', function() end)
         return
@@ -1515,7 +1501,7 @@ describe('ui/msg_puts_printf', function()
       if (exc_exec('lang ja_JP.UTF-8') ~= 0) then
         pending('Locale ja_JP.UTF-8 not supported', function() end)
         return
-      elseif is_ci() then
+      elseif helpers.isCI() then
         -- Fails non--Windows CI. Message catalog directory issue?
         pending('fails on unix CI', function() end)
         return
@@ -1918,7 +1904,6 @@ aliquip ex ea commodo consequat.]])
   end)
 
   it('with :!cmd does not crash on resize', function()
-    skip(funcs.executable('sleep') == 0, 'missing "sleep" command')
     feed(':!sleep 1<cr>')
     screen:expect{grid=[[
                                          |

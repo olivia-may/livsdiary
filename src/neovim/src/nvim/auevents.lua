@@ -72,7 +72,6 @@ return {
     'InsertLeavePre',         -- just before leaving Insert mode
     'LspAttach',              -- after an LSP client attaches to a buffer
     'LspDetach',              -- after an LSP client detaches from a buffer
-    'LspTokenUpdate',         -- after a visible LSP token is updated
     'MenuPopup',              -- just before popup menu is displayed
     'ModeChanged',            -- after changing the mode
     'OptionSet',              -- after setting any option
@@ -109,7 +108,6 @@ return {
     'TextChanged',            -- text was modified
     'TextChangedI',           -- text was modified in Insert mode(no popup)
     'TextChangedP',           -- text was modified in Insert mode(popup)
-    'TextChangedT',           -- text was modified in Terminal mode
     'TextYankPost',           -- after a yank or delete was done (y, d, c)
     'UIEnter',                -- after UI attaches
     'UILeave',                -- after UI detaches
@@ -124,26 +122,13 @@ return {
     'WinEnter',               -- after entering a window
     'WinLeave',               -- before leaving a window
     'WinNew',                 -- when entering a new window
-    'WinResized',             -- after a window was resized
-    'WinScrolled',            -- after a window was scrolled or resized
+    'WinScrolled',            -- after scrolling a window
   },
   aliases = {
-    {
-      'BufCreate',
-      'BufAdd'
-    },
-    {
-      'BufRead',
-      'BufReadPost'
-    },
-    {
-      'BufWrite',
-      'BufWritePre'
-    },
-    {
-      'FileEncoding',
-      'EncodingChanged'
-    },
+    BufCreate = 'BufAdd',
+    BufRead = 'BufReadPost',
+    BufWrite = 'BufWritePre',
+    FileEncoding = 'EncodingChanged',
   },
   -- List of nvim-specific events or aliases for the purpose of generating
   -- syntax file
@@ -152,7 +137,6 @@ return {
     DiagnosticChanged=true,
     LspAttach=true,
     LspDetach=true,
-    LspTokenUpdate=true,
     RecordingEnter=true,
     RecordingLeave=true,
     Signal=true,

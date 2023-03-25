@@ -1,18 +1,8 @@
 #ifndef NVIM_EVAL_USERFUNC_H
 #define NVIM_EVAL_USERFUNC_H
 
-#include <stdbool.h>
-#include <stddef.h>
-
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/ex_cmds_defs.h"
-#include "nvim/garray.h"
-#include "nvim/hashtab.h"
-#include "nvim/pos.h"
-#include "nvim/types.h"
-
-struct funccal_entry;
 
 // From user function to hashitem and back.
 #define UF2HIKEY(fp) ((fp)->uf_name)
@@ -33,10 +23,10 @@ struct funccal_entry;
 #define FC_VIM9     0x400         // defined in vim9 script file
 #define FC_LUAREF  0x800          // luaref callback
 
-/// Structure used by trans_function_name()
+///< Structure used by trans_function_name()
 typedef struct {
   dict_T *fd_dict;  ///< Dictionary used.
-  char *fd_newkey;  ///< New key in "dict" in allocated memory.
+  char_u *fd_newkey;  ///< New key in "dict" in allocated memory.
   dictitem_T *fd_di;  ///< Dictionary item used.
 } funcdict_T;
 

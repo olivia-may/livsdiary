@@ -1,6 +1,7 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -10,15 +11,10 @@
 #include "nvim/api/extmark.h"
 #include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
+#include "nvim/api/vim.h"
 #include "nvim/api/vimscript.h"
-#include "nvim/buffer_defs.h"
-#include "nvim/decoration.h"
 #include "nvim/extmark.h"
-#include "nvim/globals.h"
 #include "nvim/lua/executor.h"
-#include "nvim/memory.h"
-#include "nvim/pos.h"
-#include "nvim/types.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "api/deprecated.c.generated.h"
@@ -194,7 +190,7 @@ String buffer_get_line(Buffer buffer, Integer index, Error *err)
   String rv = { .size = 0 };
 
   index = convert_index(index);
-  Array slice = nvim_buf_get_lines(0, buffer, index, index + 1, true, NULL, err);
+  Array slice = nvim_buf_get_lines(0, buffer, index, index + 1, true, err);
 
   if (!ERROR_SET(err) && slice.size) {
     rv = slice.items[0].data.string;
@@ -267,7 +263,7 @@ ArrayOf(String) buffer_get_line_slice(Buffer buffer,
 {
   start = convert_index(start) + !include_start;
   end = convert_index(end) + include_end;
-  return nvim_buf_get_lines(0, buffer, start, end, false, NULL, err);
+  return nvim_buf_get_lines(0, buffer, start, end, false, err);
 }
 
 /// Replaces a line range on the buffer

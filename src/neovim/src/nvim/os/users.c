@@ -3,9 +3,6 @@
 
 // users.c -- operating system user information
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 #include <uv.h>
 
 #include "auto/config.h"
@@ -13,9 +10,8 @@
 #include "nvim/garray.h"
 #include "nvim/memory.h"
 #include "nvim/os/os.h"
-#include "nvim/types.h"
-#include "nvim/vim.h"
-#ifdef HAVE_PWD_FUNCS
+#include "nvim/strings.h"
+#ifdef HAVE_PWD_H
 # include <pwd.h>
 #endif
 #ifdef MSWIN
@@ -50,7 +46,7 @@ int os_get_usernames(garray_T *users)
   }
   ga_init(users, sizeof(char *), 20);
 
-#ifdef HAVE_PWD_FUNCS
+#if defined(HAVE_GETPWENT) && defined(HAVE_PWD_H)
   {
     struct passwd *pw;
 
@@ -81,7 +77,7 @@ int os_get_usernames(garray_T *users)
     }
   }
 #endif
-#ifdef HAVE_PWD_FUNCS
+#if defined(HAVE_GETPWNAM)
   {
     const char *user_env = os_getenv("USER");
 
@@ -141,12 +137,12 @@ int os_get_username(char *s, size_t len)
 /// @return OK if a username was found, else FAIL.
 int os_get_uname(uv_uid_t uid, char *s, size_t len)
 {
-#ifdef HAVE_PWD_FUNCS
+#if defined(HAVE_PWD_H) && defined(HAVE_GETPWUID)
   struct passwd *pw;
 
   if ((pw = getpwuid(uid)) != NULL  // NOLINT(runtime/threadsafe_fn)
       && pw->pw_name != NULL && *(pw->pw_name) != NUL) {
-    xstrlcpy(s, pw->pw_name, len);
+    STRLCPY(s, pw->pw_name, len);
     return OK;
   }
 #endif
@@ -159,7 +155,7 @@ int os_get_uname(uv_uid_t uid, char *s, size_t len)
 /// Caller must free() the returned string.
 char *os_get_userdir(const char *name)
 {
-#ifdef HAVE_PWD_FUNCS
+#if defined(HAVE_GETPWNAM) && defined(HAVE_PWD_H)
   if (name == NULL || *name == NUL) {
     return NULL;
   }
@@ -222,7 +218,7 @@ int match_user(char *name)
     if (strcmp(((char **)ga_users.ga_data)[i], name) == 0) {
       return 2;       // full match
     }
-    if (strncmp(((char **)ga_users.ga_data)[i], name, (size_t)n) == 0) {
+    if (STRNCMP(((char_u **)ga_users.ga_data)[i], name, n) == 0) {
       result = 1;       // partial match
     }
   }

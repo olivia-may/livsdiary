@@ -36,8 +36,7 @@
 
 ;; Function related
 (function_declaration name: (_) @function)
-(call_expression function: (identifier) @function.call)
-(call_expression function: (scoped_identifier (identifier) @function.call))
+(call_expression function: (identifier) @function)
 (parameters (identifier) @parameter)
 (default_parameter (identifier) @parameter)
 
@@ -60,20 +59,14 @@
   "execute"
   "normal"
   "set"
-  "setfiletype"
   "setlocal"
   "silent"
   "echo"
-  "echon"
-  "echohl"
   "echomsg"
-  "echoerr"
   "autocmd"
   "augroup"
   "return"
   "syntax"
-  "filetype"
-  "source"
   "lua"
   "ruby"
   "perl"
@@ -105,20 +98,9 @@
   "ex"
   "visual"
   "view"
-  "eval"
 ] @keyword
 (map_statement cmd: _ @keyword)
 (command_name) @function.macro
-
-;; Filetype command
-
-(filetype_statement [
-  "detect"
-  "plugin"
-  "indent"
-  "on"
-  "off"
-] @keyword)
 
 ;; Syntax command
 
@@ -136,8 +118,6 @@
   "match"
   "cluster"
   "region"
-  "clear"
-  "include"
 ] @keyword)
 
 (syntax_argument name: _ @keyword)
@@ -195,18 +175,15 @@
 
 ;; Literals
 
-(string_literal) @string
+(string_literal) @string @spell
 (integer_literal) @number
 (float_literal) @float
 (comment) @comment @spell
-(line_continuation_comment) @comment @spell
 (pattern) @string.special
 (pattern_multi) @string.regex
 (filename) @string
 (heredoc (body) @string)
-(heredoc (parameter) @keyword)
-[ (marker_definition) (endmarker) ] @label
-(literal_dictionary (literal_key) @label)
+((heredoc (parameter) @keyword))
 ((scoped_identifier
   (scope) @_scope . (identifier) @boolean)
  (#eq? @_scope "v:")
@@ -242,15 +219,11 @@
   "%="
   ".="
   "..="
-  "<<"
-  "=<<"
-  (match_case)
 ] @operator
 
 ; Some characters have different meanings based on the context
 (unary_operation "!" @operator)
 (binary_operation "." @operator)
-
 
 ;; Punctuation
 
@@ -261,7 +234,6 @@
   "}"
   "["
   "]"
-  "#{"
 ] @punctuation.bracket
 
 (field_expression "." @punctuation.delimiter)
@@ -276,9 +248,6 @@
 ; Options
 ((set_value) @number
  (#match? @number "^[0-9]+(\.[0-9]+)?$"))
-
-(inv_option "!" @operator)
-(set_item "?" @operator)
 
 ((set_item
    option: (option_name) @_option

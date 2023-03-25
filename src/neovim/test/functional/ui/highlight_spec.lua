@@ -376,6 +376,7 @@ describe('highlight', function()
 
     -- Vertical cursor: highlights char-at-cursor. #8983
     command('set guicursor=a:block-blinkon175')
+    feed('<esc>gg$vhhh')
     screen:expect([[
         line1 foo{1:^ bar}     |
                           |
@@ -1050,7 +1051,6 @@ describe('CursorLine and CursorLineNr highlights', function()
     ]])
   end)
 
-  -- oldtest: Test_cursorline_after_yank()
   it('always updated. vim-patch:8.1.0849', function()
     local screen = Screen.new(50,5)
     screen:set_default_attr_ids({
@@ -1084,7 +1084,6 @@ describe('CursorLine and CursorLineNr highlights', function()
     ]])
   end)
 
-  -- oldtest: Test_cursorline_with_visualmode()
   it('with visual area. vim-patch:8.1.1001', function()
     local screen = Screen.new(50,5)
     screen:set_default_attr_ids({
@@ -1112,7 +1111,6 @@ describe('CursorLine and CursorLineNr highlights', function()
     ]])
   end)
 
-  -- oldtest: Test_cursorline_callback()
   it('is updated if cursor is moved up from timer vim-patch:8.2.4591', function()
     local screen = Screen.new(50, 8)
     screen:set_default_attr_ids({
@@ -1242,7 +1240,6 @@ describe('CursorLine and CursorLineNr highlights', function()
     })
   end)
 
-  -- oldtest: Test_diff_with_cursorline_number()
   it('CursorLineNr shows correctly just below filler lines', function()
     local screen = Screen.new(50,12)
     screen:set_default_attr_ids({
@@ -1363,7 +1360,6 @@ describe('CursorColumn highlight', function()
     ]])
   end)
 
-  -- oldtest: Test_cursorcolumn_callback()
   it('is updated if cursor is moved from timer', function()
     exec([[
       call setline(1, ['aaaaa', 'bbbbb', 'ccccc', 'ddddd'])
@@ -1405,7 +1401,7 @@ describe('ColorColumn highlight', function()
   before_each(function()
     clear()
     screen = Screen.new(40, 15)
-    screen:set_default_attr_ids({
+    Screen:set_default_attr_ids({
       [1] = {background = Screen.colors.LightRed},  -- ColorColumn
       [2] = {background = Screen.colors.Grey90},  -- CursorLine
       [3] = {foreground = Screen.colors.Brown},  -- LineNr
@@ -1419,7 +1415,6 @@ describe('ColorColumn highlight', function()
     screen:attach()
   end)
 
-  -- oldtest: Test_colorcolumn()
   it('when entering a buffer vim-patch:8.1.2073', function()
     exec([[
       set nohidden
@@ -1451,7 +1446,6 @@ describe('ColorColumn highlight', function()
     ]])
   end)
 
-  -- oldtest: Test_colorcolumn_bri()
   it("in 'breakindent' vim-patch:8.2.1689", function()
     exec([[
       call setline(1, 'The quick brown fox jumped over the lazy dogs')
@@ -1476,7 +1470,6 @@ describe('ColorColumn highlight', function()
     ]])
   end)
 
-  -- oldtest: Test_colorcolumn_sbr()
   it("in 'showbreak' vim-patch:8.2.1689", function()
     exec([[
       call setline(1, 'The quick brown fox jumped over the lazy dogs')
@@ -1566,6 +1559,17 @@ describe("MsgSeparator highlight and msgsep fillchar", function()
     screen:expect([[
                                                         |
       {5:--------------------------------------------------}|
+      :ls                                               |
+        1 %a   "[No Name]"                    line 1    |
+      {3:Press ENTER or type command to continue}^           |
+    ]])
+
+    -- when display doesn't contain msgsep, these options have no effect
+    feed_command("set display-=msgsep")
+    feed_command("ls")
+    screen:expect([[
+      {1:~                                                 }|
+      {1:~                                                 }|
       :ls                                               |
         1 %a   "[No Name]"                    line 1    |
       {3:Press ENTER or type command to continue}^           |
@@ -1696,7 +1700,6 @@ describe("'number' and 'relativenumber' highlight", function()
     ]])
   end)
 
-  -- oldtest: Test_relativenumber_callback()
   it('relative number highlight is updated if cursor is moved from timer', function()
     local screen = Screen.new(50, 8)
     screen:set_default_attr_ids({
@@ -1808,31 +1811,6 @@ describe("'winhighlight' highlight", function()
       {0:~                   }|
       {4:[No Name] [+]       }|
                           |
-    ]])
-  end)
-
-  it('works for background color in rightleft window #22640', function()
-    -- Use a wide screen to also check that this doesn't overflow linebuf_attr.
-    screen:try_resize(80, 6)
-    insert('aa')
-    command('setlocal rightleft')
-    command('setlocal winhl=Normal:Background1')
-    screen:expect([[
-      {1:                                                                              ^aa}|
-      {2:                                                                               ~}|
-      {2:                                                                               ~}|
-      {2:                                                                               ~}|
-      {2:                                                                               ~}|
-                                                                                      |
-    ]])
-    command('botright vsplit')
-    screen:expect([[
-      {1:                                     aa│                                      ^aa}|
-      {2:                                      ~}{1:│}{2:                                       ~}|
-      {2:                                      ~}{1:│}{2:                                       ~}|
-      {2:                                      ~}{1:│}{2:                                       ~}|
-      {4:[No Name] [+]                           }{3:[No Name] [+]                           }|
-                                                                                      |
     ]])
   end)
 

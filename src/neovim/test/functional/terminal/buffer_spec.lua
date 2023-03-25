@@ -15,8 +15,6 @@ local matches = helpers.matches
 local exec_lua = helpers.exec_lua
 local sleep = helpers.sleep
 local funcs = helpers.funcs
-local is_os = helpers.is_os
-local skip = helpers.skip
 
 describe(':terminal buffer', function()
   local screen
@@ -202,7 +200,7 @@ describe(':terminal buffer', function()
 
     -- Save the buffer number of the terminal for later testing.
     local tbuf = eval('bufnr("%")')
-    local exitcmd = is_os('win')
+    local exitcmd = helpers.iswin()
       and "['cmd', '/c', 'exit']"
       or "['sh', '-c', 'exit']"
     source([[
@@ -264,7 +262,7 @@ describe(':terminal buffer', function()
   end)
 
   it('it works with set rightleft #11438', function()
-    skip(is_os('win'))
+    if helpers.pending_win32(pending) then return end
     local columns = eval('&columns')
     feed(string.rep('a', columns))
     command('set rightleft')
@@ -412,14 +410,6 @@ describe('on_lines does not emit out-of-bounds line indexes when', function()
     feed_command('bdelete!')
     eq('', exec_lua([[return _G.cb_error]]))
   end)
-
-  it('runs TextChangedT event', function()
-    meths.set_var('called', 0)
-    command('autocmd TextChangedT * ++once let g:called = 1')
-    feed_command('terminal')
-    feed('iaa')
-    eq(1, meths.get_var('called'))
-  end)
 end)
 
 it('terminal truncates number of composing characters to 5', function()
@@ -429,71 +419,3 @@ it('terminal truncates number of composing characters to 5', function()
   meths.chan_send(chan, 'a' .. composing:rep(8))
   retry(nil, nil, function() eq('a' .. composing:rep(5), meths.get_current_line()) end)
 end)
-
-if is_os('win') then
-  describe(':terminal in Windows', function()
-    local screen
-
-    before_each(function()
-      clear()
-      feed_command('set modifiable swapfile undolevels=20')
-      poke_eventloop()
-      local cmd = '["cmd.exe","/K","PROMPT=$g$s"]'
-      screen = thelpers.screen_setup(nil, cmd)
-    end)
-
-    it('"put" operator sends data normally', function()
-      feed('<c-\\><c-n>G')
-      feed_command('let @a = ":: tty ready"')
-      feed_command('let @a = @a . "\\n:: appended " . @a . "\\n\\n"')
-      feed('"ap"ap')
-      screen:expect([[
-                                                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      ^> {2: }                                               |
-      :let @a = @a . "\n:: appended " . @a . "\n\n"     |
-      ]])
-      -- operator count is also taken into consideration
-      feed('3"ap')
-      screen:expect([[
-      > :: appended :: tty ready                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      ^> {2: }                                               |
-      :let @a = @a . "\n:: appended " . @a . "\n\n"     |
-      ]])
-    end)
-
-    it('":put" command sends data normally', function()
-      feed('<c-\\><c-n>G')
-      feed_command('let @a = ":: tty ready"')
-      feed_command('let @a = @a . "\\n:: appended " . @a . "\\n\\n"')
-      feed_command('put a')
-      screen:expect([[
-                                                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      > {2: }                                               |
-                                                        |
-      ^                                                  |
-      :put a                                            |
-      ]])
-      -- line argument is only used to move the cursor
-      feed_command('6put a')
-      screen:expect([[
-                                                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      > :: tty ready                                    |
-      > :: appended :: tty ready                        |
-      ^> {2: }                                               |
-      :6put a                                           |
-      ]])
-    end)
-  end)
-end

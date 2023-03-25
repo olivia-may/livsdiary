@@ -60,12 +60,6 @@ for i = 6, #arg do
     if public and not fn.noexport then
       functions[#functions + 1] = tmp[j]
       function_names[fn.name] = true
-      if #fn.parameters >= 2 and fn.parameters[2][1] == 'Array' and fn.parameters[2][2] == 'uidata' then
-        -- function receives the "args" as a parameter
-        fn.receives_array_args = true
-        -- remove the args parameter
-        table.remove(fn.parameters, 2)
-      end
       if #fn.parameters ~= 0 and fn.parameters[1][2] == 'channel_id' then
         -- this function should receive the channel id
         fn.receives_channel_id = true
@@ -82,10 +76,6 @@ for i = 6, #arg do
       if #fn.parameters ~= 0 and fn.parameters[#fn.parameters][1] == 'arena' then
         -- return value is allocated in an arena
         fn.arena_return = true
-        fn.parameters[#fn.parameters] = nil
-      end
-      if #fn.parameters ~= 0 and fn.parameters[#fn.parameters][1] == 'lstate' then
-        fn.has_lua_imp = true
         fn.parameters[#fn.parameters] = nil
       end
     end
@@ -165,7 +155,7 @@ local exported_attributes = {'name', 'return_type', 'method',
                              'since', 'deprecated_since'}
 local exported_functions = {}
 for _,f in ipairs(functions) do
-  if not (startswith(f.name, "nvim__") or f.name == "nvim_error_event" or f.name == "redraw") then
+  if not (startswith(f.name, "nvim__") or f.name == "nvim_error_event") then
     local f_exported = {}
     for _,attr in ipairs(exported_attributes) do
       f_exported[attr] = f[attr]
@@ -194,35 +184,6 @@ funcs_metadata_output:close()
 
 -- start building the dispatch wrapper output
 local output = io.open(dispatch_outputf, 'wb')
-
-
--- ===========================================================================
--- NEW API FILES MUST GO HERE.
---
---  When creating a new API file, you must include it here,
---  so that the dispatcher can find the C functions that you are creating!
--- ===========================================================================
-output:write([[
-#include "nvim/log.h"
-#include "nvim/map.h"
-#include "nvim/msgpack_rpc/helpers.h"
-#include "nvim/vim.h"
-
-#include "nvim/api/autocmd.h"
-#include "nvim/api/buffer.h"
-#include "nvim/api/command.h"
-#include "nvim/api/deprecated.h"
-#include "nvim/api/extmark.h"
-#include "nvim/api/options.h"
-#include "nvim/api/tabpage.h"
-#include "nvim/api/ui.h"
-#include "nvim/api/vim.h"
-#include "nvim/api/vimscript.h"
-#include "nvim/api/win_config.h"
-#include "nvim/api/window.h"
-#include "nvim/ui_client.h"
-
-]])
 
 local function real_type(type)
   local rv = type
@@ -257,8 +218,9 @@ for i = 1, #functions do
 
     output:write('Object handle_'..fn.name..'(uint64_t channel_id, Array args, Arena* arena, Error *error)')
     output:write('\n{')
-    output:write('\n#ifdef NVIM_LOG_DEBUG')
-    output:write('\n  DLOG("RPC: ch %" PRIu64 ": invoke '..fn.name..'", channel_id);')
+    output:write('\n#if MIN_LOG_LEVEL <= LOGLVL_DBG')
+    output:write('\n  logmsg(LOGLVL_DBG, "RPC: ", NULL, -1, true, "ch %" PRIu64 ": invoke '
+                 ..fn.name..'", channel_id);')
     output:write('\n#endif')
     output:write('\n  Object ret = NIL;')
     -- Declare/initialize variables that will hold converted arguments
@@ -269,13 +231,11 @@ for i = 1, #functions do
       output:write('\n  '..rt..' '..converted..';')
     end
     output:write('\n')
-    if not fn.receives_array_args then
-      output:write('\n  if (args.size != '..#fn.parameters..') {')
-      output:write('\n    api_set_error(error, kErrorTypeException, \
-        "Wrong number of arguments: expecting '..#fn.parameters..' but got %zu", args.size);')
-      output:write('\n    goto cleanup;')
-      output:write('\n  }\n')
-    end
+    output:write('\n  if (args.size != '..#fn.parameters..') {')
+    output:write('\n    api_set_error(error, kErrorTypeException, \
+      "Wrong number of arguments: expecting '..#fn.parameters..' but got %zu", args.size);')
+    output:write('\n    goto cleanup;')
+    output:write('\n  }\n')
 
     -- Validation/conversion for each argument
     for j = 1, #fn.parameters do
@@ -357,40 +317,16 @@ for i = 1, #functions do
     if fn.receives_channel_id then
       -- if the function receives the channel id, pass it as first argument
       if #args > 0 or fn.can_fail then
-        output:write('channel_id, ')
-        if fn.receives_array_args then
-          -- if the function receives the array args, pass it the second argument
-          output:write('args, ')
-        end
-        output:write(call_args)
+        output:write('channel_id, '..call_args)
       else
         output:write('channel_id')
-        if fn.receives_array_args then
-          output:write(', args')
-        end
       end
     else
-      if fn.receives_array_args then
-        if #args > 0 or fn.call_fail then
-          output:write('args, '..call_args)
-        else
-          output:write('args')
-        end
-      else
-        output:write(call_args)
-      end
+      output:write(call_args)
     end
 
     if fn.arena_return then
         output:write(', arena')
-    end
-
-    if fn.has_lua_imp then
-      if #args > 0 then
-        output:write(', NULL')
-      else
-        output:write('NULL')
-      end
     end
 
     if fn.can_fail then
@@ -425,9 +361,7 @@ for _,fn in ipairs(functions) do
 end
 remote_fns.redraw = {impl_name="ui_client_redraw", fast=true}
 
-local names = vim.tbl_keys(remote_fns)
-table.sort(names)
-local hashorder, hashfun = hashy.hashy_hash("msgpack_rpc_get_handler_for", names, function (idx)
+local hashorder, hashfun = hashy.hashy_hash("msgpack_rpc_get_handler_for", vim.tbl_keys(remote_fns), function (idx)
   return "method_handlers["..idx.."].name"
 end)
 
@@ -563,10 +497,6 @@ local function process_function(fn)
     ]])
   end
 
-  if fn.has_lua_imp then
-    cparams = cparams .. 'lstate, '
-  end
-
   if fn.can_fail then
     cparams = cparams .. '&err'
   else
@@ -609,28 +539,13 @@ local function process_function(fn)
     end
     write_shifted_output(output, string.format([[
     const %s ret = %s(%s);
-    ]], fn.return_type, fn.name, cparams))
-
-    if fn.has_lua_imp then
-      -- only push onto the Lua stack if we haven't already
-      write_shifted_output(output, string.format([[
-    if (lua_gettop(lstate) == 0) {
-      nlua_push_%s(lstate, ret, true);
-    }
-      ]], return_type))
-    else
-      local special = (fn.since ~= nil and fn.since < 11)
-      write_shifted_output(output, string.format([[
-    nlua_push_%s(lstate, ret, %s);
-      ]], return_type, tostring(special)))
-    end
-
-    write_shifted_output(output, string.format([[
+    nlua_push_%s(lstate, ret, true);
   %s
   %s
   %s
     return 1;
-    ]], free_retval, free_at_exit_code, err_throw_code))
+    ]], fn.return_type, fn.name, cparams, return_type,
+        free_retval, free_at_exit_code, err_throw_code))
   else
     write_shifted_output(output, string.format([[
     %s(%s);

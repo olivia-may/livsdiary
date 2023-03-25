@@ -131,11 +131,6 @@
 ((identifier) @variable.builtin
  (#eq? @variable.builtin "self"))
 
-(variable_list
-  attribute: (attribute
-    (["<" ">"] @punctuation.bracket
-     (identifier) @attribute)))
-
 ;; Constants
 
 ((identifier) @constant

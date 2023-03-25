@@ -380,7 +380,6 @@ CmdlineChanged			After a change was made to the text inside
 CmdlineEnter			After entering the command-line (including
 				non-interactive use of ":" in a mapping: use
 				|<Cmd>| instead to avoid this).
-				The pattern is matched against |cmdline-char|.
 				<afile> expands to the |cmdline-char|.
 				Sets these |v:event| keys:
 				    cmdlevel
@@ -426,7 +425,7 @@ ColorSchemePre			Before loading a color scheme. |:colorscheme|
 				Useful to setup removing things added by a
 				color scheme, before another one is loaded.
 
-CompleteChanged						*CompleteChanged*
+CompleteChanged 					*CompleteChanged*
 				After each time the Insert mode completion
 				menu changed.  Not fired on popup menu hide,
 				use |CompleteDonePre| or |CompleteDone| for
@@ -682,12 +681,16 @@ FuncUndefined			When a user function is used but it isn't
 UIEnter				After a UI connects via |nvim_ui_attach()|, or
 				after builtin TUI is started, after |VimEnter|.
 				Sets these |v:event| keys:
-				    chan: |channel-id| of the UI
+				    chan: 0 for builtin TUI
+				          1 for |--embed|
+				          |channel-id| of the UI otherwise
 							*UILeave*
 UILeave				After a UI disconnects from Nvim, or after
 				builtin TUI is stopped, after |VimLeave|.
 				Sets these |v:event| keys:
-				    chan: |channel-id| of the UI
+				    chan: 0 for builtin TUI
+				          1 for |--embed|
+				          |channel-id| of the UI otherwise
 							*InsertChange*
 InsertChange			When typing <Insert> while in Insert or
 				Replace mode.  The |v:insertmode| variable
@@ -704,6 +707,7 @@ InsertCharPre			When a character is typed in Insert mode,
 				inserted literally.
 
 				Cannot change the text. |textlock|
+				Not triggered when 'paste' is set.
 							*InsertEnter*
 InsertEnter			Just before starting Insert mode.  Also for
 				Replace mode and Virtual Replace mode.  The
@@ -802,7 +806,7 @@ OptionSet			After setting an option (except during
 QuickFixCmdPre			Before a quickfix command is run (|:make|,
 				|:lmake|, |:grep|, |:lgrep|, |:grepadd|,
 				|:lgrepadd|, |:vimgrep|, |:lvimgrep|,
-				|:vimgrepadd|, |:lvimgrepadd|,
+				|:vimgrepadd|, |:lvimgrepadd|, |:cscope|,
 				|:cfile|, |:cgetfile|, |:caddfile|, |:lfile|,
 				|:lgetfile|, |:laddfile|, |:helpgrep|,
 				|:lhelpgrep|, |:cexpr|, |:cgetexpr|,
@@ -819,8 +823,8 @@ QuickFixCmdPre			Before a quickfix command is run (|:make|,
 QuickFixCmdPost			Like QuickFixCmdPre, but after a quickfix
 				command is run, before jumping to the first
 				location. For |:cfile| and |:lfile| commands
-				it is run after the error file is read and
-				before moving to the first error.
+				it is run after error file is read and before
+				moving to the first error.
 				See |QuickFixCmdPost-example|.
 							*QuitPre*
 QuitPre				When using `:quit`, `:wq` or `:qall`, before
@@ -992,10 +996,6 @@ TextChangedP			After a change was made to the text in the
 				current buffer in Insert mode, only when the
 				popup menu is visible.  Otherwise the same as
 				TextChanged.
-							*TextChangedT*
-TextChangedT			After a change was made to the text in the
-				current buffer in |Terminal-mode|.  Otherwise
-				the same as TextChanged.
 							*TextYankPost*
 TextYankPost			Just after a |yank| or |deleting| command, but not
 				if the black hole register |quote_| is used nor
@@ -1061,9 +1061,8 @@ VimResume			After Nvim resumes from |suspend| state.
 							*VimSuspend*
 VimSuspend			Before Nvim enters |suspend| state.
 							*WinClosed*
-WinClosed			When closing a window, just before it is
-				removed from the window layout.  The pattern
-				is matched against the |window-ID|.  Both
+WinClosed			After closing a window.  The pattern is
+				matched against the |window-ID|.  Both
 				<amatch> and <afile> are set to the |window-ID|.
 				After WinLeave.
 				Non-recursive (event cannot trigger itself).
@@ -1092,48 +1091,23 @@ WinNew				When a new window was created.  Not done for
 				Before WinEnter.
 
 							*WinScrolled*
-WinScrolled			After any window in the current tab page
-				scrolled the text (horizontally or vertically)
-				or changed width or height.  See
-				|win-scrolled-resized|.
-
-				The pattern is matched against the |window-ID|
-				of the first window that scrolled or resized.
-				Both <amatch> and <afile> are set to the
-				|window-ID|.
-
-				|v:event| is set with information about size
-				and scroll changes. |WinScrolled-event|
-
-				Only starts triggering after startup finished
-				and the first screen redraw was done.
-				Does not trigger when defining the first
-				WinScrolled or WinResized event, but may
-				trigger when adding more.
-
-				Non-recursive: the event will not trigger
-				while executing commands for the WinScrolled
-				event.  However, if the command causes a
-				window to scroll or change size, then another
+WinScrolled			After scrolling the content of a window or
+				resizing a window.
+				The pattern is matched against the
+				|window-ID|.  Both <amatch> and <afile> are
+				set to the |window-ID|.
+				Non-recursive (the event cannot trigger
+				itself).  However, if the command causes the
+				window to scroll or change size another
 				WinScrolled event will be triggered later.
-
-
-							*WinResized*
-WinResized			After a window in the current tab page changed
-				width or height.
-				See |win-scrolled-resized|.
-
-				|v:event| is set with information about size
-				changes. |WinResized-event|
-
-				Same behavior as |WinScrolled| for the
-				pattern, triggering and recursiveness.
+				Does not trigger when the command is added,
+				only after the first scroll or resize.
 
 ==============================================================================
 6. Patterns					*autocmd-pattern* *{aupat}*
 
-The {aupat} argument of `:autocmd` can be a comma-separated list.  This works as
-if the command was given with each pattern separately.  Thus this command: >
+The {aupat} argument of `:autocmd` can be a comma-separated list.  This works
+as if the command was given with each pattern separately.  Thus this command: >
 	:autocmd BufRead *.txt,*.info set et
 Is equivalent to: >
 	:autocmd BufRead *.txt set et

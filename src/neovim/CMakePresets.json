@@ -14,7 +14,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       },
-      "inherits": ["base"]
+      "inherits": [
+        "base"
+      ]
     },
     {
       "name": "debug",
@@ -23,7 +25,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       },
-      "inherits": ["base"]
+      "inherits": [
+        "base"
+      ]
     },
     {
       "name": "release",
@@ -32,7 +36,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       },
-      "inherits": ["base"]
+      "inherits": [
+        "base"
+      ]
     },
     {
       "name": "windows-default",
@@ -48,7 +54,9 @@
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "hostOS": ["Windows"]
+          "hostOS": [
+            "Windows"
+          ]
         }
       },
       "condition": {
@@ -56,16 +64,9 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
-      "inherits": ["base"]
-    },
-    {
-      "name": "iwyu",
-      "displayName": "IWYU",
-      "description": "Run include-what-you-use with the compiler",
-      "cacheVariables": {
-        "ENABLE_IWYU": "ON"
-      },
-      "inherits": ["base"]
+      "inherits": [
+        "base"
+      ]
     }
   ],
   "buildPresets": [
@@ -89,10 +90,6 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       }
-    },
-    {
-      "name": "iwyu",
-      "configurePreset": "iwyu"
     }
   ]
 }

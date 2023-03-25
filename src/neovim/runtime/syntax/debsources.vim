@@ -2,8 +2,8 @@
 " Language:     Debian sources.list
 " Maintainer:   Debian Vim Maintainers
 " Former Maintainer: Matthijs Mohlmann <matthijs@cacholong.nl>
-" Last Change: 2023 Feb 06
-" URL: https://salsa.debian.org/vim-team/vim-debian/blob/main/syntax/debsources.vim
+" Last Change: 2022 Jul 25
+" URL: https://salsa.debian.org/vim-team/vim-debian/blob/master/syntax/debsources.vim
 
 " Standard syntax initialization
 if exists('b:current_syntax')
@@ -14,9 +14,7 @@ endif
 syn case match
 
 " A bunch of useful keywords
-syn match debsourcesType               /\(deb-src\|deb\)/
-syn match debsourcesFreeComponent      /\(main\|universe\)/
-syn match debsourcesNonFreeComponent   /\(contrib\|non-free-firmware\|non-free\|restricted\|multiverse\)/
+syn match debsourcesKeyword        /\(deb-src\|deb\|main\|contrib\|non-free\|restricted\|universe\|multiverse\)/
 
 " Match comments
 syn match debsourcesComment        /#.*/  contains=@Spell
@@ -25,9 +23,9 @@ let s:cpo = &cpo
 set cpo-=C
 let s:supported = [
       \ 'oldstable', 'stable', 'testing', 'unstable', 'experimental', 'sid', 'rc-buggy',
-      \ 'buster', 'bullseye', 'bookworm', 'trixie', 'forky',
+      \ 'buster', 'bullseye', 'bookworm', 'trixie',
       \
-      \ 'trusty', 'xenial', 'bionic', 'focal', 'jammy', 'kinetic', 'lunar',
+      \ 'trusty', 'xenial', 'bionic', 'focal', 'jammy', 'kinetic',
       \ 'devel'
       \ ]
 let s:unsupported = [
@@ -50,9 +48,7 @@ exe 'syn match debsourcesUnsupportedDistrKeyword +\([[:alnum:]_./]*\)\<\('. join
 
 " Associate our matches and regions with pretty colours
 hi def link debsourcesLine                    Error
-hi def link debsourcesType                    Statement
-hi def link debsourcesFreeComponent           Statement
-hi def link debsourcesNonFreeComponent        Statement
+hi def link debsourcesKeyword                 Statement
 hi def link debsourcesDistrKeyword            Type
 hi def link debsourcesUnsupportedDistrKeyword WarningMsg
 hi def link debsourcesComment                 Comment

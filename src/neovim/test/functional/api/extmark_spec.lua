@@ -101,27 +101,12 @@ describe('API/extmarks', function()
     ns2 = request('nvim_create_namespace', "my-fancy-plugin2")
   end)
 
-  it('validation', function()
-    eq("Invalid 'end_col': expected Integer, got Array", pcall_err(set_extmark, ns, marks[2], 0, 0, { end_col = {}, end_row = 1 }))
-    eq("Invalid 'end_row': expected Integer, got Array", pcall_err(set_extmark, ns, marks[2], 0, 0, { end_col = 1, end_row = {} }))
-    eq("Invalid 'id': expected positive Integer", pcall_err(set_extmark, ns, {}, 0, 0, { end_col = 1, end_row = 1 }))
-    eq("Invalid mark position: expected 2 Integer items", pcall_err(get_extmarks, ns, {}, {-1, -1}))
-    eq("Invalid mark position: expected mark id Integer or 2-item Array", pcall_err(get_extmarks, ns, true, {-1, -1}))
-    -- No memory leak with virt_text, virt_lines, sign_text
-    eq("right_gravity is not a boolean", pcall_err(set_extmark, ns, marks[2], 0, 0, {
-      virt_text = {{'foo', 'Normal'}},
-      virt_lines = {{{'bar', 'Normal'}}},
-      sign_text = 'a',
-      right_gravity = 'baz',
-    }))
-  end)
-
   it("can end extranges past final newline using end_col = 0", function()
     set_extmark(ns, marks[1], 0, 0, {
       end_col = 0,
       end_row = 1
     })
-    eq("Invalid 'end_col': out of range",
+    eq("end_col value outside range",
        pcall_err(set_extmark, ns, marks[2], 0, 0, { end_col = 1, end_row = 1 }))
   end)
 
@@ -1359,10 +1344,10 @@ describe('API/extmarks', function()
 
   it('throws consistent error codes', function()
     local ns_invalid = ns2 + 1
-    eq("Invalid 'ns_id': 3", pcall_err(set_extmark, ns_invalid, marks[1], positions[1][1], positions[1][2]))
-    eq("Invalid 'ns_id': 3", pcall_err(curbufmeths.del_extmark, ns_invalid, marks[1]))
-    eq("Invalid 'ns_id': 3", pcall_err(get_extmarks, ns_invalid, positions[1], positions[2]))
-    eq("Invalid 'ns_id': 3", pcall_err(get_extmark_by_id, ns_invalid, marks[1]))
+    eq("Invalid ns_id", pcall_err(set_extmark, ns_invalid, marks[1], positions[1][1], positions[1][2]))
+    eq("Invalid ns_id", pcall_err(curbufmeths.del_extmark, ns_invalid, marks[1]))
+    eq("Invalid ns_id", pcall_err(get_extmarks, ns_invalid, positions[1], positions[2]))
+    eq("Invalid ns_id", pcall_err(get_extmark_by_id, ns_invalid, marks[1]))
   end)
 
   it('when col = line-length, set the mark on eol', function()
@@ -1377,13 +1362,13 @@ describe('API/extmarks', function()
 
   it('when col = line-length, set the mark on eol', function()
     local invalid_col = init_text:len() + 1
-    eq("Invalid 'col': out of range", pcall_err(set_extmark, ns, marks[1], 0, invalid_col))
+    eq("col value outside range", pcall_err(set_extmark, ns, marks[1], 0, invalid_col))
   end)
 
   it('fails when line > line_count', function()
     local invalid_col = init_text:len() + 1
     local invalid_lnum = 3
-    eq("Invalid 'line': out of range", pcall_err(set_extmark, ns, marks[1], invalid_lnum, invalid_col))
+    eq('line value outside range', pcall_err(set_extmark, ns, marks[1], invalid_lnum, invalid_col))
     eq({}, get_extmark_by_id(ns, marks[1]))
   end)
 
@@ -1467,14 +1452,6 @@ describe('API/extmarks', function()
       right_gravity = true,
       end_right_gravity = false,
     }} }, get_extmarks(ns, 0, -1, {details=true}))
-  end)
-
-  it('in prompt buffer', function()
-    feed('dd')
-    local id = set_extmark(ns, marks[1], 0, 0, {})
-    curbufmeths.set_option('buftype', 'prompt')
-    feed('i<esc>')
-    eq({{id, 0, 2}}, get_extmarks(ns, 0, -1))
   end)
 
   it('can get details', function()

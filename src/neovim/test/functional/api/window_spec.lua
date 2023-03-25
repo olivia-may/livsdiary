@@ -16,6 +16,25 @@ local command = helpers.command
 local pcall_err = helpers.pcall_err
 local assert_alive = helpers.assert_alive
 
+-- check if str is visible at the beginning of some line
+local function is_visible(str)
+    local slen = string.len(str)
+    local nlines = eval("&lines")
+    for i = 1,nlines do
+        local iseq = true
+        for j = 1,slen do
+            if string.byte(str,j) ~= eval("screenchar("..i..","..j..")") then
+                iseq = false
+                break
+            end
+        end
+        if iseq then
+            return true
+        end
+    end
+    return false
+end
+
 describe('API/win', function()
   before_each(clear)
 
@@ -61,61 +80,27 @@ describe('API/win', function()
     end)
 
     it('updates the screen, and also when the window is unfocused', function()
-      local screen = Screen.new(30, 9)
-      screen:set_default_attr_ids({
-        [1] = {bold = true, foreground = Screen.colors.Blue},
-        [2] = {bold = true, reverse = true};
-        [3] = {reverse = true};
-      })
-      screen:attach()
-
       insert("prologue")
       feed('100o<esc>')
       insert("epilogue")
       local win = curwin()
       feed('gg')
+      poke_eventloop() -- let nvim process the 'gg' command
 
-      screen:expect{grid=[[
-        ^prologue                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-      ]]}
       -- cursor position is at beginning
       eq({1, 0}, window('get_cursor', win))
+      eq(true, is_visible("prologue"))
+      eq(false, is_visible("epilogue"))
 
       -- move cursor to end
       window('set_cursor', win, {101, 0})
-      screen:expect{grid=[[
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-        ^epilogue                      |
-                                      |
-      ]]}
+      eq(false, is_visible("prologue"))
+      eq(true, is_visible("epilogue"))
 
       -- move cursor to the beginning again
       window('set_cursor', win, {1, 0})
-      screen:expect{grid=[[
-        ^prologue                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-                                      |
-      ]]}
+      eq(true, is_visible("prologue"))
+      eq(false, is_visible("epilogue"))
 
       -- move focus to new window
       nvim('command',"new")
@@ -123,45 +108,18 @@ describe('API/win', function()
 
       -- sanity check, cursor position is kept
       eq({1, 0}, window('get_cursor', win))
-      screen:expect{grid=[[
-        ^                              |
-        {1:~                             }|
-        {1:~                             }|
-        {2:[No Name]                     }|
-        prologue                      |
-                                      |
-                                      |
-        {3:[No Name] [+]                 }|
-                                      |
-      ]]}
+      eq(true, is_visible("prologue"))
+      eq(false, is_visible("epilogue"))
 
       -- move cursor to end
       window('set_cursor', win, {101, 0})
-      screen:expect{grid=[[
-        ^                              |
-        {1:~                             }|
-        {1:~                             }|
-        {2:[No Name]                     }|
-                                      |
-                                      |
-        epilogue                      |
-        {3:[No Name] [+]                 }|
-                                      |
-      ]]}
+      eq(false, is_visible("prologue"))
+      eq(true, is_visible("epilogue"))
 
       -- move cursor to the beginning again
       window('set_cursor', win, {1, 0})
-      screen:expect{grid=[[
-        ^                              |
-        {1:~                             }|
-        {1:~                             }|
-        {2:[No Name]                     }|
-        prologue                      |
-                                      |
-                                      |
-        {3:[No Name] [+]                 }|
-                                      |
-      ]]}
+      eq(true, is_visible("prologue"))
+      eq(false, is_visible("epilogue"))
 
       -- curwin didn't change back
       neq(win, curwin())
@@ -227,46 +185,6 @@ describe('API/win', function()
         {1:~                             }│{1:~                            }|
         {1:~                             }│{1:~                            }|
         {3:[No Name] [+]  4,3         All }{4:[No Name] [+]  1,1        All}|
-                                                                    |
-      ]])
-    end)
-
-    it('updates cursorcolumn in non-current window', function()
-      local screen = Screen.new(60, 8)
-      screen:set_default_attr_ids({
-        [1] = {bold = true, foreground = Screen.colors.Blue},  -- NonText
-        [2] = {background = Screen.colors.Grey90},  -- CursorColumn
-        [3] = {bold = true, reverse = true},  -- StatusLine
-        [4] = {reverse = true},  -- StatusLineNC
-      })
-      screen:attach()
-      command('set cursorcolumn')
-      insert([[
-        aaa
-        bbb
-        ccc
-        ddd]])
-      local oldwin = curwin()
-      command('vsplit')
-      screen:expect([[
-        aa{2:a}                           │aa{2:a}                          |
-        bb{2:b}                           │bb{2:b}                          |
-        cc{2:c}                           │cc{2:c}                          |
-        dd^d                           │ddd                          |
-        {1:~                             }│{1:~                            }|
-        {1:~                             }│{1:~                            }|
-        {3:[No Name] [+]                  }{4:[No Name] [+]                }|
-                                                                    |
-      ]])
-      window('set_cursor', oldwin, {2, 0})
-      screen:expect([[
-        aa{2:a}                           │{2:a}aa                          |
-        bb{2:b}                           │bbb                          |
-        cc{2:c}                           │{2:c}cc                          |
-        dd^d                           │{2:d}dd                          |
-        {1:~                             }│{1:~                            }|
-        {1:~                             }│{1:~                            }|
-        {3:[No Name] [+]                  }{4:[No Name] [+]                }|
                                                                     |
       ]])
     end)
@@ -523,8 +441,6 @@ describe('API/win', function()
 
     it('closing current (float) window of another tabpage #15313', function()
       command('tabedit')
-      command('botright split')
-      local prevwin = curwin().id
       eq(2, eval('tabpagenr()'))
       local win = meths.open_win(0, true, {
         relative='editor', row=10, col=10, width=50, height=10
@@ -534,7 +450,7 @@ describe('API/win', function()
       eq(1, eval('tabpagenr()'))
       meths.win_close(win, false)
 
-      eq(prevwin, meths.tabpage_get_win(tab).id)
+      eq(1001, meths.tabpage_get_win(tab).id)
       assert_alive()
     end)
   end)

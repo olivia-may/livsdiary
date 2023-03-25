@@ -8,17 +8,14 @@ body:
       value: |
         Before requesting: search [existing issues](https://github.com/neovim/neovim/labels/enhancement) and check the [FAQ](https://github.com/neovim/neovim/wiki/FAQ).
 
-  - type: textarea
+  - type: input
     attributes:
-      label: "Problem"
-      description: "Describe the problem to be solved. Include references to other projects (Vim, Emacs, etc.) if relevant."
-      placeholder: "No smurf icons available. Smurfs are useful because ..."
-    validations:
-      required: true
+      label: "Feature already in Vim?"
+      description: "Does the feature already exist in Vim? If possible, specify which version (or commit) that introduced it."
+      placeholder: "Yes, Vim 7.3.432"
 
   - type: textarea
     attributes:
-      label: "Expected behavior"
-      description: "Describe what the new feature or behavior would look like. How does it solve the problem? Is it worth the cost?"
+      label: "Feature description"
     validations:
       required: true

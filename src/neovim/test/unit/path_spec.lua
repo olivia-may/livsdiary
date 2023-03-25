@@ -82,8 +82,8 @@ describe('path.c', function()
     local f2 = 'f2.o'
     before_each(function()
       -- create the three files that will be used in this spec
-      io.open(f1, 'w'):close()
-      io.open(f2, 'w'):close()
+      io.open(f1, 'w').close()
+      io.open(f2, 'w').close()
     end)
 
     after_each(function()
@@ -355,7 +355,7 @@ end)
 describe('path.c', function()
   setup(function()
     lfs.mkdir('unit-test-directory');
-    io.open('unit-test-directory/test.file', 'w'):close()
+    io.open('unit-test-directory/test.file', 'w').close()
 
     -- Since the tests are executed, they are called by an executable. We use
     -- that executable for several asserts.
@@ -501,16 +501,6 @@ describe('path.c', function()
       local do_expand = 1
       local buf, result = vim_FullName(filename, buflen, do_expand)
       eq('/tmp', ffi.string(buf))
-      eq(OK, result)
-    end)
-
-    itp('does not remove trailing slash from non-existing relative directory #20847', function()
-      local expected = lfs.currentdir() .. '/non_existing_dir/'
-      local filename = 'non_existing_dir/'
-      local buflen = get_buf_len(expected, filename)
-      local do_expand = 1
-      local buf, result = vim_FullName(filename, buflen, do_expand)
-      eq(expected, ffi.string(buf))
       eq(OK, result)
     end)
 

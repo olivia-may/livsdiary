@@ -1,23 +1,15 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include <stdbool.h>
+#include <assert.h>
 #include <stdint.h>
-#include <string.h>
 
-#include "nvim/api/private/defs.h"
 #include "nvim/api/private/helpers.h"
 #include "nvim/ascii.h"
 #include "nvim/charset.h"
 #include "nvim/cursor_shape.h"
 #include "nvim/ex_getln.h"
-#include "nvim/gettext.h"
-#include "nvim/globals.h"
 #include "nvim/highlight_group.h"
-#include "nvim/log.h"
-#include "nvim/macros.h"
-#include "nvim/memory.h"
-#include "nvim/option_defs.h"
 #include "nvim/strings.h"
 #include "nvim/ui.h"
 #include "nvim/vim.h"
@@ -27,7 +19,8 @@
 #endif
 
 /// Handling of cursor and mouse pointer shapes in various modes.
-cursorentry_T shape_table[SHAPE_IDX_COUNT] = {
+cursorentry_T shape_table[SHAPE_IDX_COUNT] =
+{
   // Values are set by 'guicursor' and 'mouseshape'.
   // Adjust the SHAPE_IDX_ defines when changing this!
   { "normal", 0, 0, 0, 700L, 400L, 250L, 0, 0, "n", SHAPE_CURSOR + SHAPE_MOUSE },

@@ -174,6 +174,83 @@ describe('cmdline', function()
     ]])
   end)
 
+  -- oldtest: Test_redrawstatus_in_autocmd()
+  it(':redrawstatus in cmdline mode', function()
+    local screen = Screen.new(60, 8)
+    screen:set_default_attr_ids({
+      [0] = {bold = true, foreground = Screen.colors.Blue},  -- NonText
+      [1] = {bold = true, reverse = true},  -- MsgSeparator, StatusLine
+    })
+    screen:attach()
+    exec([[
+      set laststatus=2
+      set statusline=%=:%{getcmdline()}
+      autocmd CmdlineChanged * redrawstatus
+      set display-=msgsep
+    ]])
+    -- :redrawstatus is postponed if messages have scrolled
+    feed([[:echo "one\ntwo\nthree\nfour"<CR>]])
+    feed(':foobar')
+    screen:expect([[
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {1:                               :echo "one\ntwo\nthree\nfour"}|
+      one                                                         |
+      two                                                         |
+      three                                                       |
+      four                                                        |
+      :foobar^                                                     |
+    ]])
+    -- it is not postponed if messages have not scrolled
+    feed('<Esc>:for in in range(3)')
+    screen:expect([[
+                                                                  |
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {1:                                         :for in in range(3)}|
+      :for in in range(3)^                                         |
+    ]])
+    -- with cmdheight=1 messages have scrolled when typing :endfor
+    feed('<CR>:endfor')
+    screen:expect([[
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {1:                                         :for in in range(3)}|
+      :for in in range(3)                                         |
+      :  :endfor^                                                  |
+    ]])
+    feed('<CR>:set cmdheight=2<CR>')
+    -- with cmdheight=2 messages haven't scrolled when typing :for or :endfor
+    feed(':for in in range(3)')
+    screen:expect([[
+                                                                  |
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {1:                                         :for in in range(3)}|
+      :for in in range(3)^                                         |
+                                                                  |
+    ]])
+    feed('<CR>:endfor')
+    screen:expect([[
+                                                                  |
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {0:~                                                           }|
+      {1:                                                    ::endfor}|
+      :for in in range(3)                                         |
+      :  :endfor^                                                  |
+    ]])
+  end)
+
   it("setting 'cmdheight' works after outputting two messages vim-patch:9.0.0665", function()
     local screen = Screen.new(60, 8)
     screen:set_default_attr_ids({

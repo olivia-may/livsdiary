@@ -40,59 +40,59 @@ describe('named marks', function()
   it("errors when set out of range with :mark", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "1000mark x")
-    eq("nvim_exec(): Vim(mark):E16: Invalid range: 1000mark x", err)
+    eq("Vim(mark):E16: Invalid range: 1000mark x", err)
   end)
 
   it("errors when set out of range with :k", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "1000kx")
-    eq("nvim_exec(): Vim(k):E16: Invalid range: 1000kx", err)
+    eq("Vim(k):E16: Invalid range: 1000kx", err)
   end)
 
   it("errors on unknown mark name with :mark", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "mark #")
-    eq("nvim_exec(): Vim(mark):E191: Argument must be a letter or forward/backward quote", err)
+    eq("Vim(mark):E191: Argument must be a letter or forward/backward quote", err)
   end)
 
   it("errors on unknown mark name with '", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "normal! '#")
-    eq("nvim_exec(): Vim(normal):E78: Unknown mark", err)
+    eq("Vim(normal):E78: Unknown mark", err)
   end)
 
   it("errors on unknown mark name with `", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "normal! `#")
-    eq("nvim_exec(): Vim(normal):E78: Unknown mark", err)
+    eq("Vim(normal):E78: Unknown mark", err)
   end)
 
   it("errors when moving to a mark that is not set with '", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "normal! 'z")
-    eq("nvim_exec(): Vim(normal):E20: Mark not set", err)
+    eq("Vim(normal):E20: Mark not set", err)
     err = pcall_err(helpers.exec_capture, "normal! '.")
-    eq("nvim_exec(): Vim(normal):E20: Mark not set", err)
+    eq("Vim(normal):E20: Mark not set", err)
   end)
 
   it("errors when moving to a mark that is not set with `", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "normal! `z")
-    eq("nvim_exec(): Vim(normal):E20: Mark not set", err)
+    eq("Vim(normal):E20: Mark not set", err)
     err = pcall_err(helpers.exec_capture, "normal! `>")
-    eq("nvim_exec(): Vim(normal):E20: Mark not set", err)
+    eq("Vim(normal):E20: Mark not set", err)
   end)
 
   it("errors when moving to a global mark that is not set with '", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "normal! 'Z")
-    eq("nvim_exec(): Vim(normal):E20: Mark not set", err)
+    eq("Vim(normal):E20: Mark not set", err)
   end)
 
   it("errors when moving to a global mark that is not set with `", function()
     command("edit " .. file1)
     local err = pcall_err(helpers.exec_capture, "normal! `Z")
-    eq("nvim_exec(): Vim(normal):E20: Mark not set", err)
+    eq("Vim(normal):E20: Mark not set", err)
   end)
 
   it("can move to them using '", function()
@@ -153,7 +153,7 @@ describe('named marks', function()
     command("next")
     command("bw! " .. file1 )
     local err = pcall_err(helpers.exec_capture, "normal! 'A")
-    eq("nvim_exec(): Vim(normal):E92: Buffer 1 not found", err)
+    eq("Vim(normal):E92: Buffer 1 not found", err)
     os.remove(file1)
   end)
 
@@ -330,7 +330,7 @@ describe('named marks view', function()
     os.remove(file2)
   end)
 
-  it('is restored in normal mode but not op-pending mode', function()
+  it('is restored', function()
       local screen = Screen.new(5, 8)
       screen:attach()
       command("edit " .. file1)
@@ -356,18 +356,6 @@ describe('named marks view', function()
       6 line      |
       7 line      |
       8 line      |
-                  |
-      ]])
-      -- not in op-pending mode #20886
-      feed("ggj=`a")
-      screen:expect([[
-      1 line      |
-      ^2 line      |
-      3 line      |
-      4 line      |
-      5 line      |
-      6 line      |
-      7 line      |
                   |
       ]])
   end)
@@ -413,7 +401,7 @@ describe('named marks view', function()
       6 line      |
       ^7 line      |
       8 line      |
-      {MATCH:.*marks} |
+      {MATCH:.*}  |
                   |
       ]])
   end)

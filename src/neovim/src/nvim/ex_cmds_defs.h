@@ -6,7 +6,7 @@
 
 #include "nvim/eval/typval.h"
 #include "nvim/normal.h"
-#include "nvim/pos.h"
+#include "nvim/pos.h"      // for linenr_T
 #include "nvim/regexp_defs.h"
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
@@ -62,7 +62,7 @@
 #define EX_FLAGS        0x200000u  // allow flags after count in argument
 #define EX_LOCK_OK     0x1000000u  // command can be executed when textlock is
                                    // set; when missing disallows editing another
-                                   // buffer when curbuf->b_ro_locked is set
+                                   // buffer when current buffer is locked
 #define EX_KEEPSCRIPT  0x4000000u  // keep sctx of where command was invoked
 #define EX_PREVIEW     0x8000000u  // allow incremental command preview
 #define EX_FILES (EX_XFILE | EX_EXTRA)  // multiple extra files allowed
@@ -202,7 +202,6 @@ struct exarg {
   int regname;                  ///< register name (NUL if none)
   int force_bin;                ///< 0, FORCE_BIN or FORCE_NOBIN
   int read_edit;                ///< ++edit argument
-  int mkdir_p;                  ///< ++p argument
   int force_ff;                 ///< ++ff= argument (first char of argument)
   int force_enc;                ///< ++enc= argument (index in cmd[])
   int bad_char;                 ///< BAD_KEEP, BAD_DROP or replacement byte

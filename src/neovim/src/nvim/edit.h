@@ -4,6 +4,8 @@
 #include "nvim/autocmd.h"
 #include "nvim/vim.h"
 
+typedef int (*IndentGetter)(void);
+
 // Values for in_cinkeys()
 #define KEY_OPEN_FORW   0x101
 #define KEY_OPEN_BACK   0x102

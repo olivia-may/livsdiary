@@ -1,18 +1,13 @@
 #ifndef NVIM_USERCMD_H
 #define NVIM_USERCMD_H
 
-#include <stdint.h>
-
-#include "nvim/eval/typval_defs.h"
 #include "nvim/ex_cmds_defs.h"
-#include "nvim/garray.h"
-#include "nvim/types.h"
 
 typedef struct ucmd {
   char *uc_name;                // The command name
   uint32_t uc_argt;             // The argument type
   char *uc_rep;                 // The command's replacement string
-  int64_t uc_def;               // The default value for a range/count
+  long uc_def;                  // The default value for a range/count
   int uc_compl;                 // completion type
   cmd_addr_T uc_addr_type;      // The command's address type
   sctx_T uc_script_ctx;         // SCTX where the command was defined

@@ -211,10 +211,12 @@ For writing a Vim script, see chapter 41 of the user manual |usr_41.txt|.
 			When [!] is included, all found files are sourced.
 			Else only the first found file is sourced.
 
-			When [where] is omitted only 'runtimepath' is used.
+			When [where] is omitted, first 'runtimepath' is
+			searched, then directories under "start" in 'packpath'
+			are searched.
 			Other values:
 				START	search only under "start" in 'packpath'
-				OPT	search only under "opt" in 'packpath'
+				OPT 	search only under "opt" in 'packpath'
 				PACK	search under "start" and "opt" in
 					'packpath'
 				ALL	first use 'runtimepath', then search
@@ -287,7 +289,7 @@ For writing a Vim script, see chapter 41 of the user manual |usr_41.txt|.
 			how this can be useful.
 
 			This is normally done automatically during startup,
-			after loading your |vimrc| file.  With this command it
+			after loading your .vimrc file.  With this command it
 			can be done earlier.
 
 			Packages will be loaded only once.  Using
@@ -538,11 +540,6 @@ You would now have these files under ~/.local/share/nvim/site:
 On startup after processing your |config|, Nvim scans all directories in
 'packpath' for plugins in "pack/*/start/*", then loads the plugins.
 
-To allow for calling into package functionality while parsing your |vimrc|,
-|:colorscheme| and |autoload| will both automatically search under 'packpath'
-as well in addition to 'runtimepath'.  See the documentation for each for
-details.
-
 In the example Nvim will find "pack/foo/start/foobar/plugin/foo.vim" and load
 it.
 
@@ -641,15 +638,15 @@ up-to-date easily, but it requires a program like "git" to be available.
 You can do both, github can automatically create an archive for a release.
 
 Your directory layout would be like this:
-   start/foobar/plugin/foo.vim		" always loaded, defines commands
-   start/foobar/plugin/bar.vim		" always loaded, defines commands
-   start/foobar/autoload/foo.vim	" loaded when foo command used
-   start/foobar/doc/foo.txt		" help for foo.vim
-   start/foobar/doc/tags		" help tags
-   opt/fooextra/plugin/extra.vim	" optional plugin, defines commands
-   opt/fooextra/autoload/extra.vim	" loaded when extra command used
-   opt/fooextra/doc/extra.txt		" help for extra.vim
-   opt/fooextra/doc/tags		" help tags
+   start/foobar/plugin/foo.vim    	" always loaded, defines commands
+   start/foobar/plugin/bar.vim    	" always loaded, defines commands
+   start/foobar/autoload/foo.vim  	" loaded when foo command used
+   start/foobar/doc/foo.txt       	" help for foo.vim
+   start/foobar/doc/tags          	" help tags
+   opt/fooextra/plugin/extra.vim  	" optional plugin, defines commands
+   opt/fooextra/autoload/extra.vim  	" loaded when extra command used
+   opt/fooextra/doc/extra.txt  	        " help for extra.vim
+   opt/fooextra/doc/tags  	        " help tags
 
 This allows for the user to do: >
 	mkdir ~/.local/share/nvim/site/pack
@@ -687,7 +684,7 @@ found automatically.  Your package would have these files:
 <	pack/foo/start/lib/autoload/foolib.vim >
 		func foolib#getit()
 
-This works, because start packages will be searched for autoload files, when
+This works, because start packages will be searchd for autoload files, when
 sourcing the plugins.
 
 ==============================================================================

@@ -1,14 +1,18 @@
-# TODO(dundargoc): FindIconv is shipped by default on cmake version 3.11+. This
-# file can be removed once we decide to upgrade minimum cmake version.
+# - Try to find iconv
+# Once done, this will define
+#
+#  Iconv_FOUND        - system has iconv
+#  Iconv_INCLUDE_DIRS - the iconv include directories
+#  Iconv_LIBRARIES    - link these to use iconv
+
+include(LibFindMacros)
 
 find_path(ICONV_INCLUDE_DIR NAMES iconv.h)
 find_library(ICONV_LIBRARY NAMES iconv libiconv)
-find_package_handle_standard_args(Iconv DEFAULT_MSG
-  ICONV_INCLUDE_DIR)
-mark_as_advanced(ICONV_INCLUDE_DIR ICONV_LIBRARY)
 
-add_library(iconv INTERFACE)
-target_include_directories(iconv SYSTEM BEFORE INTERFACE ${ICONV_INCLUDE_DIR})
+set(Iconv_PROCESS_INCLUDES ICONV_INCLUDE_DIR)
 if(ICONV_LIBRARY)
-  target_link_libraries(iconv INTERFACE ${ICONV_LIBRARY})
+  set(Iconv_PROCESS_LIBS ICONV_LIBRARY)
 endif()
+
+libfind_process(Iconv)

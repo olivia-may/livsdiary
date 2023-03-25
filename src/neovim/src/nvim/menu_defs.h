@@ -1,7 +1,7 @@
 #ifndef NVIM_MENU_DEFS_H
 #define NVIM_MENU_DEFS_H
 
-#include <stdbool.h>
+#include <stdbool.h>  // for bool
 
 /// Indices into vimmenu_T->strings[] and vimmenu_T->noremap[] for each mode
 /// \addtogroup MENU_INDEX

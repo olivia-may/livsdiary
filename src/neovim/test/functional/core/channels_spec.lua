@@ -1,4 +1,5 @@
 local helpers = require('test.functional.helpers')(after_each)
+local uname = helpers.uname
 local clear, eq, eval, next_msg, ok, source = helpers.clear, helpers.eq,
    helpers.eval, helpers.next_msg, helpers.ok, helpers.source
 local command, funcs, meths = helpers.command, helpers.funcs, helpers.meths
@@ -11,7 +12,6 @@ local retry = helpers.retry
 local expect_twostreams = helpers.expect_twostreams
 local assert_alive = helpers.assert_alive
 local pcall_err = helpers.pcall_err
-local skip = helpers.skip
 
 describe('channels', function()
   local init = [[
@@ -145,7 +145,7 @@ describe('channels', function()
   end
 
   it('can use stdio channel with pty', function()
-    skip(is_os('win'))
+    if helpers.pending_win32(pending) then return end
     source([[
       let g:job_opts = {
       \ 'on_stdout': function('OnEvent'),
@@ -178,7 +178,8 @@ describe('channels', function()
 
     command("call chansend(id, 'incomplet\004')")
 
-    local bsdlike = is_os('bsd') or is_os('mac')
+    local is_bsd = not not string.find(uname(), 'bsd')
+    local bsdlike = is_bsd or is_os('mac')
     local extra = bsdlike and "^D\008\008" or ""
     expect_twoline(id, "stdout",
                    "incomplet"..extra, "[1, ['incomplet'], 'stdin']", true)
@@ -198,7 +199,7 @@ describe('channels', function()
 
 
   it('stdio channel can use rpc and stderr simultaneously', function()
-    skip(is_os('win'))
+    if helpers.pending_win32(pending) then return end
     source([[
       let g:job_opts = {
       \ 'on_stderr': function('OnEvent'),
@@ -230,7 +231,6 @@ describe('channels', function()
   end)
 
   it('can use buffered output mode', function()
-    skip(funcs.executable('grep') == 0, 'missing "grep" command')
     source([[
       let g:job_opts = {
       \ 'on_stdout': function('OnEvent'),
@@ -263,7 +263,6 @@ describe('channels', function()
   end)
 
   it('can use buffered output mode with no stream callback', function()
-    skip(funcs.executable('grep') == 0, 'missing "grep" command')
     source([[
       function! OnEvent(id, data, event) dict
         call rpcnotify(1, a:event, a:id, a:data, self.stdout)

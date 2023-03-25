@@ -10,16 +10,16 @@
 ==============================================================================
 Introduction                                                         *lua-guide*
 
-This guide will go through the basics of using Lua in Nvim. It is not meant
+This guide will go through the basics of using Lua in Neovim. It is not meant
 to be a comprehensive encyclopedia of all available features, nor will it
 detail all intricacies. Think of it as a survival kit -- the bare minimum
-needed to know to comfortably get started on using Lua in Nvim.
+needed to know to comfortably get started on using Lua in Neovim.
 
 An important thing to note is that this isn't a guide to the Lua language
-itself. Rather, this is a guide on how to configure and modify Nvim through
+itself. Rather, this is a guide on how to configure and modify Neovim through
 the Lua language and the functions we provide to help with this. Take a look
 at |luaref| and |lua-concepts| if you'd like to learn more about Lua itself.
-Similarly, this guide assumes some familiarity with the basics of Nvim
+Similarly, this guide assumes some familiarity with the basics of Neovim
 (commands, options, mappings, autocommands), which are covered in the
 |user-manual|.
 
@@ -27,7 +27,7 @@ Similarly, this guide assumes some familiarity with the basics of Nvim
 Some words on the API                                            *lua-guide-api*
 
 The purpose of this guide is to introduce the different ways of interacting
-with Nvim through Lua (the "API"). This API consists of three different
+with Neovim through Lua (the "API"). This API consists of three different
 layers:
 
 1. The "Vim API" inherited from Vim: |ex-commands| and |builtin-functions| as
@@ -35,14 +35,14 @@ well as |user-function|s in Vimscript. These are accessed through |vim.cmd()|
 and |vim.fn| respectively, which are discussed under |lua-guide-vimscript|
 below.
 
-2. The "Nvim API" written in C for use in remote plugins and GUIs; see |api|.
+2. The "Neovim API" written in C for use in remote plugins and GUIs; see |api|.
 These functions are accessed through |vim.api|.
 
 3. The "Lua API" written in and specifically for Lua. These are any other
 functions accessible through `vim.*` not mentioned already; see |lua-stdlib|.
 
 This distinction is important, as API functions inherit behavior from their
-original layer: For example, Nvim API functions always need all arguments to
+original layer: For example, Neovim API functions always need all arguments to
 be specified even if Lua itself allows omitting arguments (which are then
 passed as `nil`); and Vim API functions can use 0-based indexing even if Lua
 arrays are 1-indexed by default.
@@ -58,7 +58,7 @@ convenient to use from Lua.
 ==============================================================================
 Using Lua                                                  *lua-guide-using-Lua*
 
-To run Lua code from the Nvim command line, use the |:lua| command:
+To run Lua code from the Neovim command line, use the |:lua| command:
 >vim
     :lua print("Hello!")
 <
@@ -69,10 +69,10 @@ local keyword are not accessible outside of the command. This won't work:
     :lua print(foo)
     " prints "nil" instead of "1"
 <
-You can also use `:lua=`, which is equivalent to `:lua vim.print(...)`, to
-conveniently check the value of a variable or a table:
->vim
-    :lua =package
+You can also use `:lua=`, which is the same as `:lua vim.pretty_print(...)`,
+to conveniently check the value of a variable or a table:
+>lua
+    :lua=package
 <
 To run a Lua script in an external file, you can use the |:source| command
 exactly like for a Vimscript file:
@@ -92,7 +92,7 @@ Finally, you can include Lua code in a Vimscript file by putting it inside a
 ------------------------------------------------------------------------------
 Using Lua files on startup                                    *lua-guide-config*
 
-Nvim supports using `init.vim` or `init.lua` as the configuration file, but
+Neovim supports using `init.vim` or `init.lua` as the configuration file, but
 not both at the same time. This should be placed in your |config| directory,
 which is typically `~/.config/nvim` for Linux, BSD, or macOS, and
 `~/AppData/Local/nvim/` for Windows. Note that you can use Lua in `init.vim`
@@ -279,15 +279,15 @@ Note that you cannot directly change fields of array variables. This won't
 work:
 >lua
     vim.g.some_global_variable.key2 = 400
-    vim.print(vim.g.some_global_variable)
+    vim.pretty_print(vim.g.some_global_variable)
     --> { key1 = "value", key2 = 300 }
 <
 Instead, you need to create an intermediate Lua table and change this:
 >lua
     local temp_table = vim.g.some_global_variable
-    temp_table.key2 = 400
+    temp_table = keys = 400
     vim.g.some_global_variable = temp_table
-    vim.print(vim.g.some_global_variable)
+    vim.pretty_print(vim.g.some_global_variable)
     --> { key1 = "value", key2 = 400 }
 <
 To delete a variable, simply set it to `nil`:
@@ -350,7 +350,7 @@ use |vim.opt:get()|:
     --> {...} (big table)
     print(vim.opt.smarttab:get())
     --> false
-    vim.print(vim.opt.listchars:get())
+    vim.pretty_print(vim.opt.listchars:get())
     --> { space = '_', tab = '>~' }
 <
 ------------------------------------------------------------------------------
@@ -406,9 +406,9 @@ mandatory arguments:
   prefix for which the mapping will take effect. The prefixes are the ones
   listed in |:map-modes|, or "!" for |:map!|, or empty string for |:map|.
 • {lhs} is a string with the key sequences that should trigger the mapping.
-• {rhs} is either a string with a Vim command or a Lua function that should
-  be executed when the {lhs} is entered.
   An empty string is equivalent to |<Nop>|, which disables a key.
+• {rhs} is either a string with a Vim command or a Lua function that should
+  be execucted when the {lhs} is entered.
 
 Examples:
 >lua
@@ -488,7 +488,7 @@ Autocommands                                            *lua-guide-autocommands*
 An |autocommand| is a Vim command or a Lua function that is automatically
 executed whenever one or more |events| are triggered, e.g., when a file is
 read or written, or when a window is created. These are accessible from Lua
-through the Nvim API.
+through the Neovim API.
 
 ------------------------------------------------------------------------------
 Creating autocommands                             *lua-guide-autocommand-create*
@@ -530,7 +530,7 @@ Examples:
     })
 <
 
-Nvim will always call a Lua function with a single table containing information
+Neovim will always call a Lua function with a single table containing information
 about the triggered autocommand. The most useful keys are
 • `match`: a string that matched the `pattern` (see |<amatch>|)
 • `buf`:   the number of the buffer the event was triggered in (see |<abuf>|)
@@ -608,25 +608,25 @@ may be reloaded is
 This is equivalent to the following Lua code:
 >lua
     local mygroup = vim.api.nvim_create_augroup('vimrc', { clear = true })
-    vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
+    vim.api.nvim_create_autocmd( {'BufNewFile', 'BufRead' }, {
       pattern = '*.html',
       group = mygroup,
-      command = 'set shiftwidth=4',
+      cmd = 'set shiftwidth=4',
     })
-    vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
+    vim.api.nvim_create_autocmd( {'BufNewFile', 'BufRead' }, {
       pattern = '*.html',
       group = 'vimrc',  -- equivalent to group=mygroup
-      command = 'set expandtab',
+      cmd = 'set expandtab',
     })
 <
 Autocommand groups are unique for a given name, so you can reuse them, e.g.,
 in a different file:
 >lua
     local mygroup = vim.api.nvim_create_augroup('vimrc', { clear = false })
-    vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
+    vim.api.nvim_create_autocmd( {'BufNewFile', 'BufRead' }, {
       pattern = '*.html',
       group = mygroup,
-      command = 'set shiftwidth=4',
+      cmd = 'set shiftwidth=4',
     })
 <
 ------------------------------------------------------------------------------
@@ -657,7 +657,7 @@ See also
 • |nvim_exec_autocmds()|: execute all matching autocommands
 
 ==============================================================================
-User commands                                           *lua-guide-commands*
+User commands                                           *lua-guide-usercommands*
 
 |user-commands| are custom Vim commands that call a Vimscript or Lua function.
 Just like built-in commands, they can have arguments, act on ranges, or have
@@ -665,10 +665,11 @@ custom completion of arguments. As these are most useful for plugins, we will
 cover only the basics of this advanced topic.
 
 ------------------------------------------------------------------------------
-Creating user commands                           *lua-guide-commands-create*
+Creating user commands                           *lua-guide-usercommands-create*
 
-User commands can be created through with |nvim_create_user_command()|. This
-function takes three mandatory arguments:
+User commands can be created through the Neovim API with
+`vim.api.`|nvim_create_user_command()|. This function takes three mandatory
+arguments:
 • a string that is the name of the command (which must start with an uppercase
   letter to distinguish it from builtin commands);
 • a string containing Vim commands or a Lua function that is executed when the
@@ -733,7 +734,7 @@ the remaining arguments are the same as for |nvim_create_user_command()|:
       { nargs = 1 })
 <
 ------------------------------------------------------------------------------
-Deleting user commands                           *lua-guide-commands-delete*
+Deleting user commands                           *lua-guide-usercommands-delete*
 
 User commands can be deleted with `vim.api.`|nvim_del_user_command()|. The only
 argument is the name of the command:

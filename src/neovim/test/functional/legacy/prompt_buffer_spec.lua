@@ -3,6 +3,7 @@ local Screen = require('test.functional.ui.screen')
 local feed = helpers.feed
 local source = helpers.source
 local clear = helpers.clear
+local feed_command = helpers.feed_command
 local poke_eventloop = helpers.poke_eventloop
 local meths = helpers.meths
 local eq = helpers.eq
@@ -15,74 +16,64 @@ describe('prompt buffer', function()
     screen = Screen.new(25, 10)
     screen:attach()
     source([[
-      set laststatus=0 nohidden
-
       func TextEntered(text)
         if a:text == "exit"
-          " Reset &modified to allow the buffer to be closed.
           set nomodified
           stopinsert
           close
         else
-          " Add the output above the current prompt.
           call append(line("$") - 1, 'Command: "' . a:text . '"')
-          " Reset &modified to allow the buffer to be closed.
           set nomodified
           call timer_start(20, {id -> TimerFunc(a:text)})
         endif
       endfunc
 
       func TimerFunc(text)
-        " Add the output above the current prompt.
         call append(line("$") - 1, 'Result: "' . a:text .'"')
-        " Reset &modified to allow the buffer to be closed.
-        set nomodified
       endfunc
 
       func SwitchWindows()
         call timer_start(0, {-> execute("wincmd p", "")})
       endfunc
-
-      call setline(1, "other buffer")
-      set nomodified
-      new
-      set buftype=prompt
-      call prompt_setcallback(bufnr(''), function("TextEntered"))
-      eval bufnr("")->prompt_setprompt("cmd: ")
-      startinsert
     ]])
-    screen:expect([[
-      cmd: ^                    |
-      ~                        |
-      ~                        |
-      ~                        |
-      [Prompt] [+]             |
-      other buffer             |
-      ~                        |
-      ~                        |
-      ~                        |
-      -- INSERT --             |
-    ]])
+    feed_command("set noshowmode | set laststatus=0")
+    feed_command("call setline(1, 'other buffer')")
+    feed_command("new")
+    feed_command("set buftype=prompt")
+    feed_command("call prompt_setcallback(bufnr(''), function('TextEntered'))")
+    feed_command("eval bufnr('')->prompt_setprompt('cmd: ')")
   end)
 
   after_each(function()
     screen:detach()
   end)
 
-  -- oldtest: Test_prompt_basic()
   it('works', function()
+    screen:expect([[
+      ^                         |
+      ~                        |
+      ~                        |
+      ~                        |
+      [Prompt]                 |
+      other buffer             |
+      ~                        |
+      ~                        |
+      ~                        |
+                               |
+    ]])
+    feed("i")
     feed("hello\n")
     screen:expect([[
       cmd: hello               |
       Command: "hello"         |
       Result: "hello"          |
       cmd: ^                    |
-      [Prompt]                 |
+      [Prompt] [+]             |
       other buffer             |
       ~                        |
       ~                        |
       ~                        |
-      -- INSERT --             |
+                               |
     ]])
     feed("exit\n")
     screen:expect([[
@@ -99,8 +90,20 @@ describe('prompt buffer', function()
     ]])
   end)
 
-  -- oldtest: Test_prompt_editing()
   it('editing', function()
+    screen:expect([[
+      ^                         |
+      ~                        |
+      ~                        |
+      ~                        |
+      [Prompt]                 |
+      other buffer             |
+      ~                        |
+      ~                        |
+      ~                        |
+                               |
+    ]])
+    feed("i")
     feed("hello<BS><BS>")
     screen:expect([[
       cmd: hel^                 |
@@ -112,7 +115,7 @@ describe('prompt buffer', function()
       ~                        |
       ~                        |
       ~                        |
-      -- INSERT --             |
+                               |
     ]])
     feed("<Left><Left><Left><BS>-")
     screen:expect([[
@@ -125,7 +128,7 @@ describe('prompt buffer', function()
       ~                        |
       ~                        |
       ~                        |
-      -- INSERT --             |
+                               |
     ]])
     feed("<C-O>lz")
     screen:expect([[
@@ -138,7 +141,7 @@ describe('prompt buffer', function()
       ~                        |
       ~                        |
       ~                        |
-      -- INSERT --             |
+                               |
     ]])
     feed("<End>x")
     screen:expect([[
@@ -151,7 +154,7 @@ describe('prompt buffer', function()
       ~                        |
       ~                        |
       ~                        |
-      -- INSERT --             |
+                               |
     ]])
     feed("<C-U>exit\n")
     screen:expect([[
@@ -168,8 +171,21 @@ describe('prompt buffer', function()
     ]])
   end)
 
-  -- oldtest: Test_prompt_switch_windows()
   it('switch windows', function()
+    feed_command("set showmode")
+    feed("i")
+    screen:expect([[
+      cmd: ^                    |
+      ~                        |
+      ~                        |
+      ~                        |
+      [Prompt] [+]             |
+      other buffer             |
+      ~                        |
+      ~                        |
+      ~                        |
+      -- INSERT --             |
+    ]])
     feed("<C-O>:call SwitchWindows()<CR>")
     screen:expect{grid=[[
       cmd:                     |
@@ -211,11 +227,11 @@ describe('prompt buffer', function()
     ]])
   end)
 
-  -- oldtest: Test_prompt_while_writing_to_hidden_buffer()
   it('keeps insert mode after aucmd_restbuf in callback', function()
     source [[
       let s:buf = nvim_create_buf(1, 1)
       call timer_start(0, {-> nvim_buf_set_lines(s:buf, -1, -1, 0, ['walrus'])})
+      startinsert
     ]]
     poke_eventloop()
     eq({ mode = "i", blocking = false }, meths.get_mode())

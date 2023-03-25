@@ -27,34 +27,6 @@ local hashy = require'generators.hashy'
 
 local hashpipe = io.open(funcsfname, 'wb')
 
-hashpipe:write([[
-#include "nvim/arglist.h"
-#include "nvim/cmdexpand.h"
-#include "nvim/cmdhist.h"
-#include "nvim/digraph.h"
-#include "nvim/eval/buffer.h"
-#include "nvim/eval/funcs.h"
-#include "nvim/eval/typval.h"
-#include "nvim/eval/vars.h"
-#include "nvim/eval/window.h"
-#include "nvim/ex_docmd.h"
-#include "nvim/ex_getln.h"
-#include "nvim/fold.h"
-#include "nvim/getchar.h"
-#include "nvim/insexpand.h"
-#include "nvim/mapping.h"
-#include "nvim/match.h"
-#include "nvim/mbyte.h"
-#include "nvim/menu.h"
-#include "nvim/move.h"
-#include "nvim/quickfix.h"
-#include "nvim/runtime.h"
-#include "nvim/search.h"
-#include "nvim/sign.h"
-#include "nvim/testing.h"
-
-]])
-
 local funcs = require('eval').funcs
 for _, func in pairs(funcs) do
   if func.float_func then
@@ -74,13 +46,14 @@ for _,fun in ipairs(metadata) do
   end
 end
 
-local func_names = vim.tbl_keys(funcs)
-table.sort(func_names)
 local funcsdata = io.open(funcs_file, 'w')
-funcsdata:write(mpack.pack(func_names))
+funcsdata:write(mpack.pack(funcs))
 funcsdata:close()
 
-local neworder, hashfun = hashy.hashy_hash("find_internal_func", func_names, function (idx)
+
+local names = vim.tbl_keys(funcs)
+
+local neworder, hashfun = hashy.hashy_hash("find_internal_func", names, function (idx)
   return "functions["..idx.."].name"
 end)
 hashpipe:write("static const EvalFuncDef functions[] = {\n")

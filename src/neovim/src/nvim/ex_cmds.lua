@@ -673,6 +673,18 @@ module.cmds = {
     func='ex_cc',
   },
   {
+    command='cscope',
+    flags=bit.bor(EXTRA, NOTRLCOM, XFILE),
+    addr_type='ADDR_NONE',
+    func='ex_cscope',
+  },
+  {
+    command='cstag',
+    flags=bit.bor(BANG, TRLBAR, WORD1),
+    addr_type='ADDR_NONE',
+    func='ex_cstag',
+  },
+  {
     command='cunmap',
     flags=bit.bor(EXTRA, TRLBAR, NOTRLCOM, CTRLV, CMDWIN, LOCK_OK),
     addr_type='ADDR_NONE',
@@ -1105,6 +1117,12 @@ module.cmds = {
     func='ex_helptags',
   },
   {
+    command='hardcopy',
+    flags=bit.bor(RANGE, COUNT, EXTRA, TRLBAR, DFLALL, BANG),
+    addr_type='ADDR_LINES',
+    func='ex_hardcopy',
+  },
+  {
     command='highlight',
     flags=bit.bor(BANG, EXTRA, TRLBAR, SBOXOK, CMDWIN, LOCK_OK),
     addr_type='ADDR_NONE',
@@ -1385,6 +1403,12 @@ module.cmds = {
     flags=bit.bor(RANGE, COUNT, TRLBAR),
     addr_type='ADDR_OTHER',
     func='ex_cclose',
+  },
+  {
+    command='lcscope',
+    flags=bit.bor(EXTRA, NOTRLCOM, XFILE),
+    addr_type='ADDR_NONE',
+    func='ex_cscope',
   },
   {
     command='ldo',
@@ -2387,7 +2411,7 @@ module.cmds = {
   },
   {
     command='scriptnames',
-    flags=bit.bor(BANG, FILES, RANGE, COUNT, TRLBAR, CMDWIN, LOCK_OK),
+    flags=bit.bor(BANG, RANGE, COUNT, TRLBAR, CMDWIN, LOCK_OK),
     addr_type='ADDR_OTHER',
     func='ex_scriptnames',
   },
@@ -2396,6 +2420,12 @@ module.cmds = {
     flags=bit.bor(WORD1, TRLBAR, CMDWIN, LOCK_OK),
     addr_type='ADDR_NONE',
     func='ex_scriptencoding',
+  },
+  {
+    command='scscope',
+    flags=bit.bor(EXTRA, NOTRLCOM),
+    addr_type='ADDR_NONE',
+    func='ex_scscope',
   },
   {
     command='set',
@@ -2928,12 +2958,6 @@ module.cmds = {
     func='ex_tag',
   },
   {
-    command='trust',
-    flags=bit.bor(EXTRA, FILE1, TRLBAR, LOCK_OK),
-    addr_type='ADDR_NONE',
-    func='ex_trust',
-  },
-  {
     command='try',
     flags=bit.bor(TRLBAR, SBOXOK, CMDWIN, LOCK_OK),
     addr_type='ADDR_NONE',
@@ -3319,7 +3343,7 @@ module.cmds = {
   {
     command='=',
     enum='CMD_equal',
-    flags=bit.bor(RANGE, EXTRA, DFLALL, ARGOPT, CMDWIN, LOCK_OK),
+    flags=bit.bor(RANGE, TRLBAR, DFLALL, FLAGS, CMDWIN, LOCK_OK),
     addr_type='ADDR_LINES',
     func='ex_equal',
   },

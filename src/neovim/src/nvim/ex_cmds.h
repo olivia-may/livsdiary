@@ -5,7 +5,6 @@
 
 #include "nvim/buffer_defs.h"
 #include "nvim/eval/typval.h"
-#include "nvim/eval/typval_defs.h"
 #include "nvim/ex_cmds_defs.h"
 #include "nvim/os/time.h"
 #include "nvim/pos.h"

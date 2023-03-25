@@ -6,14 +6,13 @@ local mkdir, write_file, rmdir = helpers.mkdir, helpers.write_file, helpers.rmdi
 local eq = helpers.eq
 local feed = helpers.feed
 local feed_command = helpers.feed_command
+local iswin = helpers.iswin
 local clear = helpers.clear
 local command = helpers.command
 local testprg = helpers.testprg
 local nvim_dir = helpers.nvim_dir
 local has_powershell = helpers.has_powershell
 local set_shell_powershell = helpers.set_shell_powershell
-local skip = helpers.skip
-local is_os = helpers.is_os
 
 describe("shell command :!", function()
   local screen
@@ -37,7 +36,7 @@ describe("shell command :!", function()
   end)
 
   it("displays output without LF/EOF. #4646 #4569 #3772", function()
-    skip(is_os('win'))
+    if helpers.pending_win32(pending) then return end
     -- NOTE: We use a child nvim (within a :term buffer)
     --       to avoid triggering a UI flush.
     child_session.feed_data(":!printf foo; sleep 200\n")
@@ -53,8 +52,9 @@ describe("shell command :!", function()
   end)
 
   it("throttles shell-command output greater than ~10KB", function()
-    skip(is_os('openbsd'), 'FIXME #10804')
-    skip(is_os('win'))
+    if 'openbsd' == helpers.uname() then
+      pending('FIXME #10804')
+    end
     child_session.feed_data((":!%s REP 30001 foo\n"):format(testprg('shell-test')))
 
     -- If we observe any line starting with a dot, then throttling occurred.
@@ -96,7 +96,9 @@ describe("shell command :!", function()
   end)
 
   it('handles control codes', function()
-    skip(is_os('win'), 'missing printf')
+    if iswin() then
+      pending('missing printf')
+    end
     local screen = Screen.new(50, 4)
     screen:set_default_attr_ids {
       [1] = {bold = true, reverse = true};
@@ -171,10 +173,10 @@ describe("shell command :!", function()
     end)
 
     it("doesn't truncate Last line of shell output #3269", function()
-      command(is_os('win')
+      command(helpers.iswin()
         and [[nnoremap <silent>\l :!dir /b bang_filter_spec<cr>]]
         or  [[nnoremap <silent>\l :!ls bang_filter_spec<cr>]])
-      local result = (is_os('win')
+      local result = (helpers.iswin()
         and [[:!dir /b bang_filter_spec]]
         or  [[:!ls bang_filter_spec    ]])
       feed([[\l]])
@@ -213,7 +215,7 @@ describe("shell command :!", function()
 
     it('handles multibyte sequences split over buffer boundaries', function()
       command('cd '..nvim_dir)
-      local cmd = is_os('win') and '!shell-test UTF-8  ' or '!./shell-test UTF-8'
+      local cmd = iswin() and '!shell-test UTF-8  ' or '!./shell-test UTF-8'
       feed_command(cmd)
       -- Note: only the first example of split composed char works
       screen:expect([[
@@ -263,7 +265,7 @@ describe("shell command :!", function()
                                                      |
         Press ENTER or type command to continue^      |
       ]])
-      if is_os('win') then
+      if iswin() then
         feed_command([[!& 'cmd.exe' /c 'echo $a']])
         screen:expect([[
           :!& 'cmd.exe' /c 'echo $a'                   |

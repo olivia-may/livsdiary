@@ -99,10 +99,6 @@
 # undef FUNC_ATTR_NO_SANITIZE_UNDEFINED
 #endif
 
-#ifdef FUNC_ATTR_NO_SANITIZE_ADDRESS
-# undef FUNC_ATTR_NO_SANITIZE_ADDRESS
-#endif
-
 #ifdef FUNC_ATTR_PRINTF
 # undef FUNC_ATTR_PRINTF
 #endif
@@ -142,11 +138,6 @@
 #  elif NVIM_HAS_ATTRIBUTE(no_sanitize)
 #   define REAL_FATTR_NO_SANITIZE_UNDEFINED \
   __attribute__((no_sanitize("undefined")))
-#  endif
-
-#  if NVIM_HAS_ATTRIBUTE(no_sanitize_address)
-#   define REAL_FATTR_NO_SANITIZE_ADDRESS \
-  __attribute__((no_sanitize_address))
 #  endif
 # endif
 
@@ -208,10 +199,6 @@
 #  define REAL_FATTR_NO_SANITIZE_UNDEFINED
 # endif
 
-# ifndef REAL_FATTR_NO_SANITIZE_ADDRESS
-#  define REAL_FATTR_NO_SANITIZE_ADDRESS
-# endif
-
 # ifndef REAL_FATTR_PRINTF
 #  define REAL_FATTR_PRINTF(x, y)
 # endif
@@ -246,7 +233,6 @@
 # define FUNC_ATTR_NONNULL_RET REAL_FATTR_NONNULL_RET
 # define FUNC_ATTR_NORETURN REAL_FATTR_NORETURN
 # define FUNC_ATTR_NO_SANITIZE_UNDEFINED REAL_FATTR_NO_SANITIZE_UNDEFINED
-# define FUNC_ATTR_NO_SANITIZE_ADDRESS REAL_FATTR_NO_SANITIZE_ADDRESS
 # define FUNC_ATTR_PRINTF(x, y) REAL_FATTR_PRINTF(x, y)
 #elif !defined(DO_NOT_DEFINE_EMPTY_ATTRIBUTES)
 # define FUNC_ATTR_MALLOC
@@ -263,6 +249,5 @@
 # define FUNC_ATTR_NONNULL_RET
 # define FUNC_ATTR_NORETURN
 # define FUNC_ATTR_NO_SANITIZE_UNDEFINED
-# define FUNC_ATTR_NO_SANITIZE_ADDRESS
 # define FUNC_ATTR_PRINTF(x, y)
 #endif

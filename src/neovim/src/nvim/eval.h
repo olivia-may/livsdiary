@@ -1,17 +1,12 @@
 #ifndef NVIM_EVAL_H
 #define NVIM_EVAL_H
 
-#include <stdbool.h>
-#include <stddef.h>
-
 #include "nvim/buffer_defs.h"
 #include "nvim/channel.h"
-#include "nvim/eval/typval_defs.h"
-#include "nvim/event/time.h"
-#include "nvim/ex_cmds_defs.h"
-#include "nvim/hashtab.h"
-#include "nvim/os/fileio.h"
-#include "nvim/os/stdpaths_defs.h"
+#include "nvim/event/time.h"  // For TimeWatcher
+#include "nvim/ex_cmds_defs.h"  // For exarg_T
+#include "nvim/os/fileio.h"  // For FileDescriptor
+#include "nvim/os/stdpaths_defs.h"  // For XDGVarType
 
 #define COPYID_INC 2
 #define COPYID_MASK (~0x1)
@@ -157,7 +152,6 @@ typedef enum {
   VV_ARGV,
   VV_COLLATE,
   VV_EXITING,
-  VV_MAXCOL,
   // Nvim
   VV_STDERR,
   VV_MSGPACK_TYPES,
@@ -166,8 +160,6 @@ typedef enum {
   VV__NULL_DICT,  // Dictionary with NULL value. For test purposes only.
   VV__NULL_BLOB,  // Blob with NULL value. For test purposes only.
   VV_LUA,
-  VV_RELNUM,
-  VV_VIRTNUM,
 } VimVarIndex;
 
 /// All recognized msgpack types

@@ -5,6 +5,7 @@ local Screen = require('test.functional.ui.screen')
 local clear = helpers.clear
 local command = helpers.command
 local get_pathsep = helpers.get_pathsep
+local iswin = helpers.iswin
 local eq = helpers.eq
 local neq = helpers.neq
 local funcs = helpers.funcs
@@ -13,12 +14,8 @@ local pesc = helpers.pesc
 local rmdir = helpers.rmdir
 local sleep = helpers.sleep
 local meths = helpers.meths
-local skip = helpers.skip
-local is_os = helpers.is_os
 
 local file_prefix = 'Xtest-functional-ex_cmds-mksession_spec'
-
-if helpers.skip(helpers.is_os('win')) then return end
 
 describe(':mksession', function()
   local session_file = file_prefix .. '.vim'
@@ -180,7 +177,7 @@ describe(':mksession', function()
     command('cd ' .. cwd_dir)
     command('mksession ' .. session_path)
     command('%bwipeout!')
-    if is_os('win') then
+    if iswin() then
       sleep(100) -- Make sure all child processes have exited.
     end
 
@@ -191,13 +188,16 @@ describe(':mksession', function()
     local expected_cwd = cwd_dir .. '/' .. tab_dir
     matches('^term://' .. pesc(expected_cwd) .. '//%d+:', funcs.expand('%'))
     command('%bwipeout!')
-    if is_os('win') then
+    if iswin() then
       sleep(100) -- Make sure all child processes have exited.
     end
   end)
 
   it('restores CWD for :terminal buffer at root directory #16988', function()
-    skip(is_os('win'), 'N/A for Windows')
+    if iswin() then
+      pending('N/A for Windows')
+      return
+    end
 
     local screen
     local cwd_dir = funcs.fnamemodify('.', ':p:~'):gsub([[[\/]*$]], '')

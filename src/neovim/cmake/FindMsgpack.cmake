@@ -1,4 +1,20 @@
-find_path(MSGPACK_INCLUDE_DIR msgpack/version_master.h)
+# - Try to find msgpack
+# Once done this will define
+#  MSGPACK_FOUND - System has msgpack
+#  MSGPACK_INCLUDE_DIRS - The msgpack include directories
+#  MSGPACK_LIBRARIES - The libraries needed to use msgpack
+
+find_package(PkgConfig)
+if (PKG_CONFIG_FOUND)
+  pkg_search_module(PC_MSGPACK QUIET
+    msgpackc>=${Msgpack_FIND_VERSION}
+    msgpack>=${Msgpack_FIND_VERSION})
+endif()
+
+set(MSGPACK_DEFINITIONS ${PC_MSGPACK_CFLAGS_OTHER})
+
+find_path(MSGPACK_INCLUDE_DIR msgpack/version_master.h
+  HINTS ${PC_MSGPACK_INCLUDEDIR} ${PC_MSGPACK_INCLUDE_DIRS})
 
 if(MSGPACK_INCLUDE_DIR)
   file(READ ${MSGPACK_INCLUDE_DIR}/msgpack/version_master.h msgpack_version_h)
@@ -10,15 +26,28 @@ else()
   set(MSGPACK_VERSION_STRING)
 endif()
 
-find_library(MSGPACK_LIBRARY NAMES msgpackc msgpack msgpackc_import msgpack-c
-  NAMES_PER_DIR)
+if(MSVC)
+  # The import library for the msgpack DLL has a different name
+  list(APPEND MSGPACK_NAMES msgpackc_import)
+else()
+  list(APPEND MSGPACK_NAMES msgpackc msgpack)
+endif()
+
+find_library(MSGPACK_LIBRARY NAMES ${MSGPACK_NAMES}
+  # Check each directory for all names to avoid using headers/libraries from
+  # different places.
+  NAMES_PER_DIR
+  HINTS ${PC_MSGPACK_LIBDIR} ${PC_MSGPACK_LIBRARY_DIRS})
 
 mark_as_advanced(MSGPACK_INCLUDE_DIR MSGPACK_LIBRARY)
 
+set(MSGPACK_LIBRARIES ${MSGPACK_LIBRARY})
+set(MSGPACK_INCLUDE_DIRS ${MSGPACK_INCLUDE_DIR})
+
+include(FindPackageHandleStandardArgs)
+# handle the QUIETLY and REQUIRED arguments and set MSGPACK_FOUND to TRUE
+# if all listed variables are TRUE
 find_package_handle_standard_args(Msgpack
   REQUIRED_VARS MSGPACK_LIBRARY MSGPACK_INCLUDE_DIR
   VERSION_VAR MSGPACK_VERSION_STRING)
 
-add_library(msgpack INTERFACE)
-target_include_directories(msgpack SYSTEM BEFORE INTERFACE ${MSGPACK_INCLUDE_DIR})
-target_link_libraries(msgpack INTERFACE ${MSGPACK_LIBRARY})

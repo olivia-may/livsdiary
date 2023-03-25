@@ -1,6 +1,6 @@
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(LUA_TARGET linux)
-elseif(APPLE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   set(LUA_TARGET macosx)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   set(LUA_TARGET freebsd)
@@ -19,7 +19,7 @@ endif()
 set(LUA_CFLAGS "-O0 -g3 -fPIC")
 set(LUA_LDFLAGS "")
 
-if(ENABLE_ASAN_UBSAN)
+if(CLANG_ASAN_UBSAN)
   set(LUA_CFLAGS "${LUA_CFLAGS} -fsanitize=address")
   set(LUA_CFLAGS "${LUA_CFLAGS} -fno-omit-frame-pointer")
   set(LUA_CFLAGS "${LUA_CFLAGS} -fno-optimize-sibling-calls")
@@ -28,7 +28,7 @@ if(ENABLE_ASAN_UBSAN)
 endif()
 
 set(LUA_CONFIGURE_COMMAND
-  sed -e "/^CC/s@gcc@${CMAKE_C_COMPILER}@"
+  sed -e "/^CC/s@gcc@${CMAKE_C_COMPILER} ${CMAKE_C_COMPILER_ARG1}@"
       -e "/^CFLAGS/s@-O2@${LUA_CFLAGS}@"
       -e "/^MYLDFLAGS/s@$@${LUA_LDFLAGS}@"
       -e "s@-lreadline@@g"
@@ -43,20 +43,31 @@ set(LUA_INSTALL_TOP_ARG "INSTALL_TOP=${DEPS_INSTALL_DIR}")
 message(STATUS "Lua target is ${LUA_TARGET}")
 
 ExternalProject_Add(lua
+  PREFIX ${DEPS_BUILD_DIR}
   URL ${LUA_URL}
-  URL_HASH SHA256=${LUA_SHA256}
-  DOWNLOAD_NO_PROGRESS TRUE
   DOWNLOAD_DIR ${DEPS_DOWNLOAD_DIR}/lua
+  DOWNLOAD_COMMAND ${CMAKE_COMMAND}
+    -DPREFIX=${DEPS_BUILD_DIR}
+    -DDOWNLOAD_DIR=${DEPS_DOWNLOAD_DIR}/lua
+    -DURL=${LUA_URL}
+    -DEXPECTED_SHA256=${LUA_SHA256}
+    -DTARGET=lua
+    -DUSE_EXISTING_SRC_DIR=${USE_EXISTING_SRC_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DownloadAndExtractFile.cmake
   CONFIGURE_COMMAND "${LUA_CONFIGURE_COMMAND}"
   BUILD_IN_SOURCE 1
   BUILD_COMMAND ${MAKE_PRG} ${LUA_INSTALL_TOP_ARG} ${LUA_TARGET}
   INSTALL_COMMAND ${MAKE_PRG} ${LUA_INSTALL_TOP_ARG} install)
 
-set(BUSTED ${DEPS_BIN_DIR}/busted)
+list(APPEND THIRD_PARTY_DEPS lua)
+
+set(BUSTED ${DEPS_INSTALL_DIR}/bin/busted)
 set(BUSTED_LUA ${BUSTED}-lua)
 
 add_custom_command(OUTPUT ${BUSTED_LUA}
   COMMAND sed -e 's/^exec/exec $$LUA_DEBUGGER/' -e 's/jit//g' < ${BUSTED} > ${BUSTED_LUA} && chmod +x ${BUSTED_LUA}
   DEPENDS lua busted ${BUSTED})
-add_custom_target(busted-lua ALL
-  DEPENDS ${DEPS_BIN_DIR}/busted-lua)
+add_custom_target(busted-lua
+  DEPENDS ${DEPS_INSTALL_DIR}/bin/busted-lua)
+
+list(APPEND THIRD_PARTY_DEPS busted-lua)

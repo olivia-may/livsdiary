@@ -9,8 +9,6 @@ typedef struct {
   int hl_id;
 } VirtTextChunk;
 
-typedef kvec_t(VirtTextChunk) VirtText;
-
 typedef struct undo_object ExtmarkUndoObject;
 typedef kvec_t(ExtmarkUndoObject) extmark_undo_vec_t;
 

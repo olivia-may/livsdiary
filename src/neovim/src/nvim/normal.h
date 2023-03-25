@@ -3,8 +3,7 @@
 
 #include <stdbool.h>
 
-#include "nvim/buffer_defs.h"
-#include "nvim/macros.h"
+#include "nvim/buffer_defs.h"  // for win_T
 #include "nvim/pos.h"
 
 // Values for find_ident_under_cursor()
@@ -72,12 +71,6 @@ typedef struct cmdarg_S {
 // values for retval:
 #define CA_COMMAND_BUSY     1   // skip restarting edit() once
 #define CA_NO_ADJ_OP_END    2   // don't adjust operator end
-
-// columns needed by shown command
-#define SHOWCMD_COLS 10
-// 'showcmd' buffer shared between normal.c and statusline.c
-#define SHOWCMD_BUFLEN (SHOWCMD_COLS + 1 + 30)
-EXTERN char showcmd_buf[SHOWCMD_BUFLEN];
 
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "normal.h.generated.h"

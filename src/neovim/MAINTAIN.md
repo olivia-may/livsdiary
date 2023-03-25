@@ -64,12 +64,11 @@ Third-party dependencies
 ------------------------
 
 These "bundled" dependencies can be updated by bumping their versions in `cmake.deps/CMakeLists.txt`.
-Some can be auto-bumped by `scripts/bump_deps.lua`.
+Some can be auto-bumped by `scripts/bump-deps.sh`.
 
 * [LuaJIT](https://github.com/LuaJIT/LuaJIT)
 * [Lua](https://www.lua.org/download.html)
 * [Luv](https://github.com/luvit/luv)
-    * When bumping, also sync [our bundled documentation](https://github.com/neovim/neovim/blob/master/runtime/doc/luvref.txt) with [the upstream documentation](https://github.com/luvit/luv/blob/master/docs.md).
 * [gettext](https://ftp.gnu.org/pub/gnu/gettext/)
 * [libiconv](https://ftp.gnu.org/pub/gnu/libiconv)
 * [libtermkey](https://github.com/neovim/libtermkey)
@@ -93,43 +92,11 @@ These dependencies are "vendored" (inlined), we must update the sources manually
 * `runtime/lua/vim/inspect.lua`: [inspect.lua](https://github.com/kikito/inspect.lua)
 * `src/nvim/tui/terminfo_defs.h`: terminfo definitions
     * Run `scripts/update_terminfo.sh` to update these definitions.
-* `src/bit.c`: only for PUC lua: port of `require'bit'` from luajit https://bitop.luajit.org/
 * [treesitter parsers](https://github.com/neovim/neovim/blob/fcc24e43e0b5f9d801a01ff2b8f78ce8c16dd551/cmake.deps/CMakeLists.txt#L197-L210)
 
 ### Forks
 
 We may maintain forks, if we are waiting on upstream changes: https://github.com/neovim/neovim/wiki/Deps
-
-CI
---------------
-
-### General
-
-As our CI is primarily dependent on GitHub Actions at the moment, then so will
-our CI strategy be. The following guidelines have worked well for us so far:
-
-* Never use a macOS runner if an Ubuntu or a Windows runner can be used
-  instead. This is because macOS runners have a [tighter restrictions on the
-  number of concurrent jobs](https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration#usage-limits).
-
-### Runner versions
-
-* For special-purpose jobs where the runner version doesn't really matter,
-  prefer `-latest` tags so we don't need to manually bump the versions. An
-  example of a special-purpose workflow is `labeler.yml`.
-
-* For our testing jobs, which are in `test.yml` and `build.yml`, prefer to use
-  the latest stable (i.e. non-beta) version explicitly. Avoid using the
-  `-latest` tags here as it makes it difficult to determine from an unrelated
-  PR if a failure is due to the PR itself or due to GitHub bumping the
-  `-latest` tag without our knowledge. There's also a high risk that automatic
-  bumping the CI versions will fail due to manual work being required from
-  experience.
-
-* For our release job, which is `release.yml`, prefer to use the oldest stable
-  (i.e. non-deprecated) versions available. The reason is that we're trying to
-  produce images that work in the broadest number of environments, and
-  therefore want to use older releases.
 
 See also
 --------

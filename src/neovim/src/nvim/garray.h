@@ -1,11 +1,9 @@
 #ifndef NVIM_GARRAY_H
 #define NVIM_GARRAY_H
 
-#include <stdbool.h>
-#include <stddef.h>
+#include <stddef.h>  // for size_t
 
 #include "nvim/log.h"
-#include "nvim/memory.h"
 #include "nvim/types.h"
 
 /// Structure used for growing arrays.
@@ -27,8 +25,7 @@ typedef struct growarray {
 #define GA_APPEND(item_type, gap, item) \
   do { \
     ga_grow(gap, 1); \
-    ((item_type *)(gap)->ga_data)[(gap)->ga_len] = (item); \
-    (gap)->ga_len++; \
+    ((item_type *)(gap)->ga_data)[(gap)->ga_len++] = (item); \
   } while (0)
 
 #define GA_APPEND_VIA_PTR(item_type, gap) \
@@ -52,7 +49,7 @@ static inline void *ga_append_via_ptr(garray_T *gap, size_t item_size)
 ///
 /// @param gap the garray to be freed
 /// @param item_type type of the item in the garray
-/// @param free_item_fn free function that takes (item_type *) as parameter
+/// @param free_item_fn free function that takes (*item_type) as parameter
 #define GA_DEEP_CLEAR(gap, item_type, free_item_fn) \
   do { \
     garray_T *_gap = (gap); \

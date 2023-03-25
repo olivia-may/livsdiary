@@ -14,31 +14,14 @@ before_each(clear)
 
 describe('autocmd api', function()
   describe('nvim_create_autocmd', function()
-    it('validation', function()
-      eq("Cannot use both 'callback' and 'command'", pcall_err(meths.create_autocmd, 'BufReadPost', {
-        pattern = '*.py,*.pyi',
+    it('does not allow "command" and "callback" in the same autocmd', function()
+      local ok, _ = pcall(meths.create_autocmd, "BufReadPost", {
+        pattern = "*.py,*.pyi",
         command = "echo 'Should Have Errored",
-        callback = 'NotAllowed',
-      }))
-      eq("Cannot use both 'pattern' and 'buffer' for the same autocmd", pcall_err(meths.create_autocmd, 'FileType', {
-        command = 'let g:called = g:called + 1',
-        buffer = 0,
-        pattern = '*.py',
-      }))
-      eq("Required: 'event'", pcall_err(meths.create_autocmd, {}, {
-        command = 'ls',
-      }))
-      eq("Required: 'command' or 'callback'", pcall_err(meths.create_autocmd, 'FileType', {
-      }))
-      eq("Invalid 'desc': expected String, got Integer", pcall_err(meths.create_autocmd, 'FileType', {
-        command = 'ls',
-        desc = 42,
-      }))
-      eq("Invalid 'callback': expected Lua function or Vim function name, got Integer", pcall_err(meths.create_autocmd, 'FileType', {
-        callback = 0,
-      }))
-      eq("Invalid 'event' item: expected String, got Array", pcall_err(meths.create_autocmd,
-        {'FileType', {}}, {}))
+        callback = "not allowed",
+      })
+
+      eq(false, ok)
     end)
 
     it('doesnt leak when you use ++once', function()
@@ -76,8 +59,18 @@ describe('autocmd api', function()
       eq(1, meths.get_var('called'))
     end)
 
+    it('does not allow passing buffer and patterns', function()
+      local ok = pcall(meths.create_autocmd, "Filetype", {
+        command = "let g:called = g:called + 1",
+        buffer = 0,
+        pattern = "*.py",
+      })
+
+      eq(false, ok)
+    end)
+
     it('does not allow passing invalid buffers', function()
-      local ok, msg = pcall(meths.create_autocmd, 'FileType', {
+      local ok, msg = pcall(meths.create_autocmd, "Filetype", {
         command = "let g:called = g:called + 1",
         buffer = -1,
       })
@@ -216,7 +209,7 @@ describe('autocmd api', function()
 
       local aus = meths.get_autocmds({ event = 'User', pattern = 'Test' })
       local first = aus[1]
-      eq(true, first.id > 0)
+      eq(first.id, 1)
 
       meths.set_var("some_condition", true)
       meths.exec_autocmds("User", {pattern = "Test"})
@@ -301,29 +294,8 @@ describe('autocmd api', function()
   end)
 
   describe('nvim_get_autocmds', function()
-    it('validation', function()
-      eq("Invalid 'group': 9997999", pcall_err(meths.get_autocmds, {
-        group = 9997999,
-      }))
-      eq("Invalid 'group': 'bogus'", pcall_err(meths.get_autocmds, {
-        group = 'bogus',
-      }))
-      eq("Invalid 'group': expected String or Integer, got Array", pcall_err(meths.get_autocmds, {
-        group = {},
-      }))
-      eq("Invalid 'buffer': expected Integer or Array, got Boolean", pcall_err(meths.get_autocmds, {
-        buffer = true,
-      }))
-      eq("Invalid 'event': expected String or Array", pcall_err(meths.get_autocmds, {
-        event = true,
-      }))
-      eq("Invalid 'pattern': expected String or Array, got Boolean", pcall_err(meths.get_autocmds, {
-        pattern = true,
-      }))
-    end)
-
     describe('events', function()
-      it('returns one autocmd when there is only one for an event', function()
+      it('should return one autocmd when there is only one for an event', function()
         command [[au! InsertEnter]]
         command [[au InsertEnter * :echo "1"]]
 
@@ -331,7 +303,7 @@ describe('autocmd api', function()
         eq(1, #aus)
       end)
 
-      it('returns two autocmds when there are two for an event', function()
+      it('should return two autocmds when there are two for an event', function()
         command [[au! InsertEnter]]
         command [[au InsertEnter * :echo "1"]]
         command [[au InsertEnter * :echo "2"]]
@@ -340,7 +312,7 @@ describe('autocmd api', function()
         eq(2, #aus)
       end)
 
-      it('returns the same thing if you use string or list', function()
+      it('should return the same thing if you use string or list', function()
         command [[au! InsertEnter]]
         command [[au InsertEnter * :echo "1"]]
         command [[au InsertEnter * :echo "2"]]
@@ -350,7 +322,7 @@ describe('autocmd api', function()
         eq(string_aus, array_aus)
       end)
 
-      it('returns two autocmds when there are two for an event', function()
+      it('should return two autocmds when there are two for an event', function()
         command [[au! InsertEnter]]
         command [[au! InsertLeave]]
         command [[au InsertEnter * :echo "1"]]
@@ -360,7 +332,7 @@ describe('autocmd api', function()
         eq(2, #aus)
       end)
 
-      it('returns different IDs for different autocmds', function()
+      it('should return different IDs for different autocmds', function()
         command [[au! InsertEnter]]
         command [[au! InsertLeave]]
         command [[au InsertEnter * :echo "1"]]
@@ -384,7 +356,7 @@ describe('autocmd api', function()
         eq(first, new_aus[1])
       end)
 
-      it('returns event name', function()
+      it('should return event name', function()
         command [[au! InsertEnter]]
         command [[au InsertEnter * :echo "1"]]
 
@@ -392,7 +364,7 @@ describe('autocmd api', function()
         eq({ { buflocal = false, command = ':echo "1"', event = "InsertEnter", once = false, pattern = "*" } }, aus)
       end)
 
-      it('works with buffer numbers', function()
+      it('should work with buffer numbers', function()
         command [[new]]
         command [[au! InsertEnter]]
         command [[au InsertEnter <buffer=1> :echo "1"]]
@@ -435,8 +407,8 @@ describe('autocmd api', function()
           pattern = "<buffer=2>",
         }}, aus)
 
-        eq("Invalid 'buffer': expected Integer or Array, got String", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = "foo" }))
-        eq("Invalid 'buffer': expected Integer, got String", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = { "foo", 42 } }))
+        eq("Invalid value for 'buffer': must be an integer or array of integers", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = "foo" }))
+        eq("Invalid value for 'buffer': must be an integer", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = { "foo", 42 } }))
         eq("Invalid buffer id: 42", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = { 42 } }))
 
         local bufs = {}
@@ -444,10 +416,10 @@ describe('autocmd api', function()
           table.insert(bufs, meths.create_buf(true, false))
         end
 
-        eq("Too many buffers (maximum of 256)", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = bufs }))
+        eq("Too many buffers. Please limit yourself to 256 or fewer", pcall_err(meths.get_autocmds, { event = "InsertEnter", buffer = bufs }))
       end)
 
-      it('returns autocmds when group is specified by id', function()
+      it('should return autocmds when group is specified by id', function()
         local auid = meths.create_augroup("nvim_test_augroup", { clear = true })
         meths.create_autocmd("FileType", { group = auid, command = 'echo "1"' })
         meths.create_autocmd("FileType", { group = auid, command = 'echo "2"' })
@@ -459,7 +431,7 @@ describe('autocmd api', function()
         eq(0, #aus2)
       end)
 
-      it('returns autocmds when group is specified by name', function()
+      it('should return autocmds when group is specified by name', function()
         local auname = "nvim_test_augroup"
         meths.create_augroup(auname, { clear = true })
         meths.create_autocmd("FileType", { group = auname, command = 'echo "1"' })
@@ -559,7 +531,7 @@ describe('autocmd api', function()
         command [[augroup END]]
       end)
 
-      it('returns all groups if no group is specified', function()
+      it('should return all groups if no group is specified', function()
         local aus = meths.get_autocmds { event = "InsertEnter" }
         if #aus ~= 4 then
           eq({}, aus)
@@ -568,7 +540,7 @@ describe('autocmd api', function()
         eq(4, #aus)
       end)
 
-      it('returns only the group specified', function()
+      it('should return only the group specified', function()
         local aus = meths.get_autocmds {
           event = "InsertEnter",
           group = "GroupOne",
@@ -579,7 +551,7 @@ describe('autocmd api', function()
         eq("GroupOne", aus[1].group_name)
       end)
 
-      it('returns only the group specified, multiple values', function()
+      it('should return only the group specified, multiple values', function()
         local aus = meths.get_autocmds {
           event = "InsertEnter",
           group = "GroupTwo",
@@ -606,7 +578,7 @@ describe('autocmd api', function()
         ]], {}))
 
         eq(false, success)
-        matches("Invalid 'group': 'NotDefined'", code)
+        matches('invalid augroup: NotDefined', code)
       end)
 
       it('raises error for undefined augroup id', function()
@@ -624,7 +596,7 @@ describe('autocmd api', function()
         ]], {}))
 
         eq(false, success)
-        matches("Invalid 'group': 1", code)
+        matches('invalid augroup: 1', code)
       end)
 
       it('raises error for invalid group type', function()
@@ -639,7 +611,7 @@ describe('autocmd api', function()
         ]], {}))
 
         eq(false, success)
-        matches("Invalid 'group': expected String or Integer, got Boolean", code)
+        matches("'group' must be a string or an integer", code)
       end)
 
       it('raises error for invalid pattern array', function()
@@ -653,7 +625,7 @@ describe('autocmd api', function()
         ]], {}))
 
         eq(false, success)
-        matches("Invalid 'pattern' item: expected String, got Array", code)
+        matches("All entries in 'pattern' must be strings", code)
       end)
     end)
 
@@ -668,7 +640,7 @@ describe('autocmd api', function()
         command [[au InsertEnter <buffer> :echo "Buffer"]]
       end)
 
-      it('returns for literal match', function()
+      it('should should return for literal match', function()
         local aus = meths.get_autocmds {
           event = "InsertEnter",
           pattern = "*"
@@ -678,7 +650,7 @@ describe('autocmd api', function()
         eq([[:echo "No Group"]], aus[1].command)
       end)
 
-      it('returns for multiple matches', function()
+      it('should return for multiple matches', function()
         -- vim.api.nvim_get_autocmds
         local aus = meths.get_autocmds {
           event = "InsertEnter",
@@ -715,23 +687,6 @@ describe('autocmd api', function()
   end)
 
   describe('nvim_exec_autocmds', function()
-    it('validation', function()
-      eq("Invalid 'group': 9997999", pcall_err(meths.exec_autocmds, 'FileType', {
-        group = 9997999,
-      }))
-      eq("Invalid 'group': 'bogus'", pcall_err(meths.exec_autocmds, 'FileType', {
-        group = 'bogus',
-      }))
-      eq("Invalid 'group': expected String or Integer, got Array", pcall_err(meths.exec_autocmds, 'FileType', {
-        group = {},
-      }))
-      eq("Invalid 'buffer': expected Integer, got Array", pcall_err(meths.exec_autocmds, 'FileType', {
-        buffer = {},
-      }))
-      eq("Invalid 'event' item: expected String, got Array", pcall_err(meths.exec_autocmds,
-        {'FileType', {}}, {}))
-    end)
-
     it("can trigger builtin autocmds", function()
       meths.set_var("autocmd_executed", false)
 
@@ -1081,7 +1036,7 @@ describe('autocmd api', function()
       local augroup = "WillBeDeleted"
 
       meths.create_augroup(augroup, { clear = true })
-      meths.create_autocmd({"FileType"}, {
+      meths.create_autocmd({"Filetype"}, {
         pattern = "*",
         command = "echo 'does not matter'",
       })
@@ -1100,7 +1055,7 @@ describe('autocmd api', function()
       meths.set_var("value_set", false)
 
       meths.create_augroup(augroup, { clear = true })
-      meths.create_autocmd("FileType", {
+      meths.create_autocmd("Filetype", {
         pattern = "<buffer>",
         command = "let g:value_set = v:true",
       })
@@ -1216,16 +1171,6 @@ describe('autocmd api', function()
   end)
 
   describe('nvim_clear_autocmds', function()
-    it('validation', function()
-      eq("Cannot use both 'pattern' and 'buffer'", pcall_err(meths.clear_autocmds, {
-        pattern = '*',
-        buffer = 42,
-      }))
-      eq("Invalid 'event' item: expected String, got Array", pcall_err(meths.clear_autocmds, {
-        event = {'FileType', {}}
-      }))
-    end)
-
     it('should clear based on event + pattern', function()
       command('autocmd InsertEnter *.py  :echo "Python can be cool sometimes"')
       command('autocmd InsertEnter *.txt :echo "Text Files Are Cool"')

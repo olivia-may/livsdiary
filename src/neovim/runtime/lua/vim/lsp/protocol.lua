@@ -39,7 +39,6 @@ local constants = {
     Deprecated = 2,
   },
 
-  ---@enum lsp.MessageType
   MessageType = {
     -- An error message.
     Error = 1,
@@ -52,7 +51,6 @@ local constants = {
   },
 
   -- The file event type.
-  ---@enum lsp.FileChangeType
   FileChangeType = {
     -- The file got created.
     Created = 1,
@@ -144,7 +142,6 @@ local constants = {
   },
 
   -- Represents reasons why a text document is saved.
-  ---@enum lsp.TextDocumentSaveReason
   TextDocumentSaveReason = {
     -- Manually triggered, e.g. by the user pressing save, by starting debugging,
     -- or by an API call.
@@ -296,17 +293,6 @@ local constants = {
     Source = 'source',
     -- Base kind for an organize imports source action
     SourceOrganizeImports = 'source.organizeImports',
-  },
-  -- The reason why code actions were requested.
-  ---@enum lsp.CodeActionTriggerKind
-  CodeActionTriggerKind = {
-    -- Code actions were explicitly requested by the user or by an extension.
-    Invoked = 1,
-    -- Code actions were requested automatically.
-    --
-    -- This typically happens when current selection in a file changes, but can
-    -- also be triggered when file content changes.
-    Automatic = 2,
   },
 }
 
@@ -633,63 +619,14 @@ export interface WorkspaceClientCapabilities {
 function protocol.make_client_capabilities()
   return {
     textDocument = {
-      semanticTokens = {
-        dynamicRegistration = false,
-        tokenTypes = {
-          'namespace',
-          'type',
-          'class',
-          'enum',
-          'interface',
-          'struct',
-          'typeParameter',
-          'parameter',
-          'variable',
-          'property',
-          'enumMember',
-          'event',
-          'function',
-          'method',
-          'macro',
-          'keyword',
-          'modifier',
-          'comment',
-          'string',
-          'number',
-          'regexp',
-          'operator',
-          'decorator',
-        },
-        tokenModifiers = {
-          'declaration',
-          'definition',
-          'readonly',
-          'static',
-          'deprecated',
-          'abstract',
-          'async',
-          'modification',
-          'documentation',
-          'defaultLibrary',
-        },
-        formats = { 'relative' },
-        requests = {
-          -- TODO(jdrouhard): Add support for this
-          range = false,
-          full = { delta = true },
-        },
-
-        overlappingTokenSupport = true,
-        -- TODO(jdrouhard): Add support for this
-        multilineTokenSupport = false,
-        serverCancelSupport = false,
-        augmentsSyntaxTokens = true,
-      },
       synchronization = {
         dynamicRegistration = false,
 
-        willSave = true,
-        willSaveWaitUntil = true,
+        -- TODO(ashkan) Send textDocument/willSave before saving (BufWritePre)
+        willSave = false,
+
+        -- TODO(ashkan) Implement textDocument/willSaveWaitUntil
+        willSaveWaitUntil = false,
 
         -- Send textDocument/didSave after saving (BufWritePost)
         didSave = true,
@@ -700,7 +637,7 @@ function protocol.make_client_capabilities()
         codeActionLiteralSupport = {
           codeActionKind = {
             valueSet = (function()
-              local res = vim.tbl_values(constants.CodeActionKind)
+              local res = vim.tbl_values(protocol.CodeActionKind)
               table.sort(res)
               return res
             end)(),
@@ -805,9 +742,6 @@ function protocol.make_client_capabilities()
           end)(),
         },
       },
-      callHierarchy = {
-        dynamicRegistration = false,
-      },
     },
     workspace = {
       symbol = {
@@ -831,13 +765,9 @@ function protocol.make_client_capabilities()
       workspaceEdit = {
         resourceOperations = { 'rename', 'create', 'delete' },
       },
-      semanticTokens = {
-        refreshSupport = true,
-      },
-      didChangeWatchedFiles = {
-        dynamicRegistration = false,
-        relativePatternSupport = true,
-      },
+    },
+    callHierarchy = {
+      dynamicRegistration = false,
     },
     experimental = nil,
     window = {
@@ -848,12 +778,13 @@ function protocol.make_client_capabilities()
         },
       },
       showDocument = {
-        support = true,
+        support = false,
       },
     },
   }
 end
 
+local if_nil = vim.F.if_nil
 --- Creates a normalized object describing LSP server capabilities.
 ---@param server_capabilities table Table of capabilities supported by the server
 ---@return table Normalized table of capabilities
@@ -889,6 +820,179 @@ function protocol.resolve_capabilities(server_capabilities)
     return nil, string.format('Invalid type for textDocumentSync: %q', type(textDocumentSync))
   end
   return server_capabilities
+end
+
+---@private
+--- Creates a normalized object describing LSP server capabilities.
+-- @deprecated access resolved_capabilities instead
+---@param server_capabilities table Table of capabilities supported by the server
+---@return table Normalized table of capabilities
+function protocol._resolve_capabilities_compat(server_capabilities)
+  local general_properties = {}
+  local text_document_sync_properties
+  do
+    local TextDocumentSyncKind = protocol.TextDocumentSyncKind
+    local textDocumentSync = server_capabilities.textDocumentSync
+    if textDocumentSync == nil then
+      -- Defaults if omitted.
+      text_document_sync_properties = {
+        text_document_open_close = false,
+        text_document_did_change = TextDocumentSyncKind.None,
+        --        text_document_did_change = false;
+        text_document_will_save = false,
+        text_document_will_save_wait_until = false,
+        text_document_save = false,
+        text_document_save_include_text = false,
+      }
+    elseif type(textDocumentSync) == 'number' then
+      -- Backwards compatibility
+      if not TextDocumentSyncKind[textDocumentSync] then
+        return nil, 'Invalid server TextDocumentSyncKind for textDocumentSync'
+      end
+      text_document_sync_properties = {
+        text_document_open_close = true,
+        text_document_did_change = textDocumentSync,
+        text_document_will_save = false,
+        text_document_will_save_wait_until = false,
+        text_document_save = true,
+        text_document_save_include_text = false,
+      }
+    elseif type(textDocumentSync) == 'table' then
+      text_document_sync_properties = {
+        text_document_open_close = if_nil(textDocumentSync.openClose, false),
+        text_document_did_change = if_nil(textDocumentSync.change, TextDocumentSyncKind.None),
+        text_document_will_save = if_nil(textDocumentSync.willSave, false),
+        text_document_will_save_wait_until = if_nil(textDocumentSync.willSaveWaitUntil, false),
+        text_document_save = if_nil(textDocumentSync.save, false),
+        text_document_save_include_text = if_nil(
+          type(textDocumentSync.save) == 'table' and textDocumentSync.save.includeText,
+          false
+        ),
+      }
+    else
+      return nil, string.format('Invalid type for textDocumentSync: %q', type(textDocumentSync))
+    end
+  end
+  general_properties.completion = server_capabilities.completionProvider ~= nil
+  general_properties.hover = server_capabilities.hoverProvider or false
+  general_properties.goto_definition = server_capabilities.definitionProvider or false
+  general_properties.find_references = server_capabilities.referencesProvider or false
+  general_properties.document_highlight = server_capabilities.documentHighlightProvider or false
+  general_properties.document_symbol = server_capabilities.documentSymbolProvider or false
+  general_properties.workspace_symbol = server_capabilities.workspaceSymbolProvider or false
+  general_properties.document_formatting = server_capabilities.documentFormattingProvider or false
+  general_properties.document_range_formatting = server_capabilities.documentRangeFormattingProvider
+    or false
+  general_properties.call_hierarchy = server_capabilities.callHierarchyProvider or false
+  general_properties.execute_command = server_capabilities.executeCommandProvider ~= nil
+
+  if server_capabilities.renameProvider == nil then
+    general_properties.rename = false
+  elseif type(server_capabilities.renameProvider) == 'boolean' then
+    general_properties.rename = server_capabilities.renameProvider
+  else
+    general_properties.rename = true
+  end
+
+  if server_capabilities.codeLensProvider == nil then
+    general_properties.code_lens = false
+    general_properties.code_lens_resolve = false
+  elseif type(server_capabilities.codeLensProvider) == 'table' then
+    general_properties.code_lens = true
+    general_properties.code_lens_resolve = server_capabilities.codeLensProvider.resolveProvider
+      or false
+  else
+    error('The server sent invalid codeLensProvider')
+  end
+
+  if server_capabilities.codeActionProvider == nil then
+    general_properties.code_action = false
+  elseif
+    type(server_capabilities.codeActionProvider) == 'boolean'
+    or type(server_capabilities.codeActionProvider) == 'table'
+  then
+    general_properties.code_action = server_capabilities.codeActionProvider
+  else
+    error('The server sent invalid codeActionProvider')
+  end
+
+  if server_capabilities.declarationProvider == nil then
+    general_properties.declaration = false
+  elseif type(server_capabilities.declarationProvider) == 'boolean' then
+    general_properties.declaration = server_capabilities.declarationProvider
+  elseif type(server_capabilities.declarationProvider) == 'table' then
+    general_properties.declaration = server_capabilities.declarationProvider
+  else
+    error('The server sent invalid declarationProvider')
+  end
+
+  if server_capabilities.typeDefinitionProvider == nil then
+    general_properties.type_definition = false
+  elseif type(server_capabilities.typeDefinitionProvider) == 'boolean' then
+    general_properties.type_definition = server_capabilities.typeDefinitionProvider
+  elseif type(server_capabilities.typeDefinitionProvider) == 'table' then
+    general_properties.type_definition = server_capabilities.typeDefinitionProvider
+  else
+    error('The server sent invalid typeDefinitionProvider')
+  end
+
+  if server_capabilities.implementationProvider == nil then
+    general_properties.implementation = false
+  elseif type(server_capabilities.implementationProvider) == 'boolean' then
+    general_properties.implementation = server_capabilities.implementationProvider
+  elseif type(server_capabilities.implementationProvider) == 'table' then
+    general_properties.implementation = server_capabilities.implementationProvider
+  else
+    error('The server sent invalid implementationProvider')
+  end
+
+  local workspace = server_capabilities.workspace
+  local workspace_properties = {}
+  if workspace == nil or workspace.workspaceFolders == nil then
+    -- Defaults if omitted.
+    workspace_properties = {
+      workspace_folder_properties = {
+        supported = false,
+        changeNotifications = false,
+      },
+    }
+  elseif type(workspace.workspaceFolders) == 'table' then
+    workspace_properties = {
+      workspace_folder_properties = {
+        supported = if_nil(workspace.workspaceFolders.supported, false),
+        changeNotifications = if_nil(workspace.workspaceFolders.changeNotifications, false),
+      },
+    }
+  else
+    error('The server sent invalid workspace')
+  end
+
+  local signature_help_properties
+  if server_capabilities.signatureHelpProvider == nil then
+    signature_help_properties = {
+      signature_help = false,
+      signature_help_trigger_characters = {},
+    }
+  elseif type(server_capabilities.signatureHelpProvider) == 'table' then
+    signature_help_properties = {
+      signature_help = true,
+      -- The characters that trigger signature help automatically.
+      signature_help_trigger_characters = server_capabilities.signatureHelpProvider.triggerCharacters
+        or {},
+    }
+  else
+    error('The server sent invalid signatureHelpProvider')
+  end
+
+  local capabilities = vim.tbl_extend(
+    'error',
+    text_document_sync_properties,
+    signature_help_properties,
+    workspace_properties,
+    general_properties
+  )
+
+  return capabilities
 end
 
 return protocol

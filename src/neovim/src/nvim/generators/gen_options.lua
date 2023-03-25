@@ -29,14 +29,14 @@ local type_flags={
 }
 
 local redraw_flags={
-  ui_option='P_UI_OPTION',
-  tabline='P_RTABL',
   statuslines='P_RSTAT',
   current_window='P_RWIN',
   current_window_only='P_RWINONLY',
   current_buffer='P_RBUF',
   all_windows='P_RALL',
+  everything='P_RCLR',
   curswant='P_CURSWANT',
+  ui_option='P_UI_OPTION',
 }
 
 local list_flags={
@@ -78,7 +78,6 @@ local get_flags = function(o)
     {'deny_in_modelines', 'P_NO_ML'},
     {'deny_duplicates', 'P_NODUP'},
     {'modelineexpr', 'P_MLE'},
-    {'func'}
   }) do
     local key_name = flag_desc[1]
     local def_name = flag_desc[2] or ('P_' .. key_name:upper())
@@ -159,7 +158,7 @@ local dump_option = function(i, o)
     if #o.scope == 2 then
       pv_name = 'OPT_BOTH(' .. pv_name .. ')'
     end
-    table.insert(defines,  { 'PV_' .. varname:sub(3):upper() , pv_name})
+    defines['PV_' .. varname:sub(3):upper()] = pv_name
     w('    .indir=' .. pv_name)
   end
   if o.enable_if then
@@ -192,7 +191,7 @@ w('  [' .. ('%u'):format(#options.options) .. ']={.fullname=NULL}')
 w('};')
 w('')
 
-for _, v in ipairs(defines) do
-  w('#define ' .. v[1] .. ' ' .. v[2])
+for k, v in pairs(defines) do
+  w('#define ' .. k .. ' ' .. v)
 end
 opt_fd:close()
