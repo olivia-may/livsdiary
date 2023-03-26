@@ -51,13 +51,11 @@ SRCS_C=\
 
 SRCS_CPP=\
 	main.cpp \
-	page.cpp
 
 OBJS=\
 	$(OBJS_DIR)converters.c.o \
 	$(OBJS_DIR)filesystem.c.o \
 	$(OBJS_DIR)main.cpp.o \
-	$(OBJS_DIR)page.cpp.o \
 	$(OBJS_DIR)time.c.o \
 	$(VIM_OBJS_DIR)__/__/cmake.config/auto/pathdef.c.o \
 	$(VIM_OBJS_DIR)__/cjson/fpconv.c.o \

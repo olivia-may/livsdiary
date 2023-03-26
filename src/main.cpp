@@ -28,9 +28,8 @@
 #include "converters.h"
 #include "filesystem.h"
 #include "main.hpp"
-#include "page.hpp"
+#include "neovim.h"
 #include "program.h"
-#include "vim.h"
 
 /* The command-line options */
 void invalid(char *argv)
@@ -71,7 +70,7 @@ void edit(char * page_num)
 	char *page_loc = get_page_loc(); strcat(page_loc, page_num);
 	// `+ 5` for `nvim` and '\0'
 	char **nvim_args = (char **)malloc(sizeof(char*) * (strlen(page_loc) + 5));
-	nvim_args[0] = "nvim";
+	nvim_args[0] = (char *)"nvim";
 	nvim_args[1] = page_loc;
 	nvim_main((int)2, nvim_args);
 }
