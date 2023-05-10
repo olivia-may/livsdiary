@@ -28,7 +28,7 @@
 #include "converters.h"
 #include "filesystem.h"
 #include "main.hpp"
-#include "program.h"
+#include "config.h"
 
 /* The command-line options */
 void invalid(char *argv)
@@ -41,7 +41,7 @@ void no_arg()
 }
 void version()
 {
-	printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", PROGRAM_VERSION);
+	printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", VERSION);
 	printf("Copyright (C) 2022 Olivia May.\n");
 	printf("License GPLv3+, this is free software.\n\n");
 	printf("Written in C/C++ by Olivia May.\n");

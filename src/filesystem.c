@@ -25,8 +25,9 @@
 
 #include "converters.h"
 #include "filesystem.h"
-#include "program.h"
 #include "time.h"
+
+#define PROGRAM_DIR "/.livsdiary/"
 
 char * get_page_loc()
 {
