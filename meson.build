@@ -22,8 +22,9 @@ configure_file(
 )
 
 executable(
-    'livsdiary.o', 
+    'livsdiary', 
     srcs, 
     dependencies: deps, 
-    include_directories: inc
+    include_directories: inc,
+    install : true
 )
