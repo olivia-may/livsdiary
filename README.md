@@ -1,26 +1,22 @@
-### LIVSDiary - (LI)ghtweight (V)irtual (S)imple Diary
-A command-line program that starts up fast and makes writing a virtual diary easy.
-Only tested on GNU/Linux, most likely wont compile/run on other operating systems.
-#### GNU/Linux
-##### Archlinux based distros:
-Get from the AUR.
-https://aur.archlinux.org/packages/livsdiary
-##### Other distros
-Compile from source. Check that you have neovim's dependencies.
+# LIVSDiary - (LI)ghtweight (V)irtual (S)imple Diary
+A command-line program that starts up fast 
+and makes writing a virtual diary easy.
+Should only work for unix systems,
+most likely wont compile/run on other 
+operating systems, but you can try.
 
-`git clone https://github.com/olivia-livs/livsdiary`
+## Install
+First clone this repository. <br>
+`git clone https://github.com/olivia-may/livsdiary` <br>
+`cd livsdiary` <br>
 
-`cd livsdiary`
+If you don't have muon installed, 
+you will need to compile then install muon using meson. <br>
+`sudo ./install-muon.py` <br>
 
-`make nvim` The linking for this will fail. That's alright though because we're linking nvim with LIVSDiary.
+Then install livsdiary to /usr/local/bin <br>
+`sudo ./install.py` <br>
+`livsdiary --help` <br>
 
-`make -j$(nproc)` Make LIVSDiary files, and link everything.
-
-`./livsdiary` Check if nothing crashed horribly. Should be on Table of Contents page.
-
-`sudo make install` (Optional) To install LIVSDiary to /usr/local/bin to be called from your shell.
-
-`livsdiary --help` Try it out!
-
-### Licenses
-LIVSDiary has the GPLv3 license `LICENSE`. Neovim has the Apache 2.0 license and vim license. Read `src/neovim/LICENSE.txt` for more information.
+## License
+LIVSDiary is GPL'd. See [LICENSE.txt](./LICENSE.txt)
