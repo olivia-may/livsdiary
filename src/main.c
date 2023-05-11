@@ -22,13 +22,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <cstring>
-#include <iostream>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "converters.h"
 #include "filesystem.h"
-#include "main.hpp"
+#include "main.h"
 #include "config.h"
 
 /* The command-line options */
@@ -39,7 +41,7 @@ void version() {
 	printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", VERSION);
 	printf("Copyright (C) 2022 Olivia May.\n");
 	printf("License GPLv3+, this is free software.\n\n");
-	printf("Written in C/C++ by Olivia May.\n");
+	printf("Written in C by Olivia May.\n");
 }
 void help() {
 	printf("A command line virtual diary.\n");

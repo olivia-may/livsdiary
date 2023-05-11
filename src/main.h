@@ -16,8 +16,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MAIN_HPP
-#define MAIN_HPP
+#ifndef MAIN_H
+#define MAIN_H
 
 #define PAGE_COUNT_BUFFER 8
 
@@ -30,5 +30,3 @@ void view(char *page_num_str);
 void list_pages();
 
 #endif
-
-

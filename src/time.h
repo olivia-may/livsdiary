@@ -18,13 +18,7 @@
 
 #ifndef TIME_H
 #define TIME_H
-#ifdef __cplusplus
-extern C {
-#endif
 
 char *get_current_time();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

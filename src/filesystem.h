@@ -18,9 +18,6 @@
 
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define DIR_BUFFER 48
 
@@ -36,7 +33,4 @@ char get_page_count();
 void make_new_page();
 void remove_newest_page();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

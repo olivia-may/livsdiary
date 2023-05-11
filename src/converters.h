@@ -18,15 +18,11 @@
 
 #ifndef CONVERTERS_H
 #define CONVERTERS_H
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+#include <stdbool.h>
 
 char *convert_to_char_array(int number);
 int convert_to_int(char *str);
 bool check_input_is_int(char *input);
 
-#ifdef __cplusplus
-}
-#endif
 #endif
