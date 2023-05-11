@@ -18,21 +18,23 @@
 
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
-
-#define HOME_DIR getenv("HOME")
-#define PAGE_COUNT_DIR get_page_count_loc()
-#define DIR_BUFFER 48
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-char *get_page_loc();
-char *get_page_count_loc();
-void init();
-char *copy_file_to_memory(char *dir);
+#define DIR_BUFFER 48
+
+char *loc_malloc();
+void initialize_diary();
+char *get_diary_dir();
+char *get_page_counter_loc();
+char *get_file_contents(char *loc);
+// Use first char as the counter
+void set_page_count(char count);
+char get_page_count();
+
 void make_new_page();
-void remove_most_recent_page();
+void remove_newest_page();
 
 #ifdef __cplusplus
 }

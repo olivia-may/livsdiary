@@ -16,83 +16,84 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <string.h>
-#include <stdbool.h>
+#include <sys/stat.h>
 
 #include "converters.h"
 #include "filesystem.h"
 #include "time.h"
 
-#define PROGRAM_DIR "/.livsdiary/"
-
-char * get_page_loc()
-{
-	char * dir = NULL;
-	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
-	strcpy(dir, HOME_DIR);
-	strcat(dir, PROGRAM_DIR);
-	strcat(dir, "\0");
-
-	return dir;
+char *loc_malloc() {
+    return (char *)malloc(
+        (strlen(getenv("HOME")) + DIR_BUFFER) * sizeof(char)
+    );
 }
 
-char * get_page_count_loc()
-{
-	char * dir;
-	dir = (char *)malloc((strlen(HOME_DIR) + DIR_BUFFER) * sizeof(dir));
-	strcpy(dir, HOME_DIR);
-	strcat(dir, PROGRAM_DIR);
-	strcat(dir, "page_counter\0");
+void initialize_diary() {
+    char *working_loc = NULL; working_loc = loc_malloc();
+    FILE *page_counter_file = NULL;
+    FILE *table_of_contents_file = NULL;
 
-	return dir;
+    strcat(working_loc, getenv("HOME"));
+    strcat(working_loc, "/.local/");
+    mkdir(working_loc, 0777); // permissions are weird
+    strcat(working_loc, "share/");
+    mkdir(working_loc, 0777);
+    strcat(working_loc, "livsdiary/"); 
+    mkdir(working_loc, 0777);
+    
+    strcat(working_loc, "page_counter");
+    page_counter_file = fopen(working_loc, "w");
+    fputc((char)0, page_counter_file);
+    // 12 is length of `"page_counter"`
+    working_loc[strlen(working_loc) - 12] = '\0';
+
+    strcat(working_loc, "0");
+    table_of_contents_file = fopen(working_loc, "w");
+    fprintf(table_of_contents_file, "** Table of Contents **\n");
+    fprintf(table_of_contents_file, "This page cannot be removed.\n");
+    fprintf(table_of_contents_file, "Feel free remove this message and\n");
+    fprintf(table_of_contents_file, "write anything you want here!\n");
+    fprintf(table_of_contents_file, "Type and enter ':n' to make a new diary entry.\n");
+    
+    free(working_loc);
+    fclose(page_counter_file);
+    fclose(table_of_contents_file);
 }
 
-void init()
-{
-	// check if PAGE_COUNT_DIR does not exist
-	if (access(PAGE_COUNT_DIR, F_OK) != 0)
-	{
-		// make needed dirs
-		mkdir(get_page_loc(), 0777);
-		
-		// make page counter
-		FILE * working_file = fopen(PAGE_COUNT_DIR, "w");
-		fprintf(working_file, "0");
-		fclose(working_file);
+char *get_diary_dir() {
+    char *dir = NULL; dir = loc_malloc();
+	strcpy(dir, getenv("HOME"));
+	strcat(dir, "/.local/share/livsdiary/");
 
-		// make toc page
-		char * page_loc = get_page_loc();
-		strcat(page_loc, "0");
-		working_file = fopen(page_loc, "w");
-		fprintf(working_file, "** Table of Contents **\n");
-		fprintf(working_file, "This page cannot be removed.\n");
-		fprintf(working_file, "Feel free remove this message and\n");
-		fprintf(working_file, "write anything you want here!\n");
-		fprintf(working_file, "Type and enter ':n' to make a new diary entry.\n");
-		fclose(working_file);
-		page_loc[strlen(page_loc) - 1] = '\0';
-	}
+    return dir;
 }
 
-char * copy_file_to_memory(char * dir)
-{
-	FILE * file = fopen(dir, "r");
-	char * file_contents = NULL;
+char *get_page_counter_loc() {
+	char *loc = NULL; loc = loc_malloc();
+    strcpy(loc, get_diary_dir());
+    strcat(loc, "page_counter\0");
+
+	return loc;
+}
+
+char *get_file_contents(char *loc) {
+	FILE *file = fopen(loc, "r");
+	char *file_contents = NULL;
 	// 2 because null char
-	file_contents = (char *)malloc(2 * sizeof(file_contents));
+	file_contents = (char *)malloc(2 * sizeof(char));
 	int i = 0;
 	int ch;
-	while (true)
-	{
+	while (true) {
 		ch = fgetc(file);
-		if (ch < 0) { break; }
+		if (ch < 0) break;
 		file_contents[i] = ch;
 		i++;
-		file_contents = (char *)realloc(file_contents, (i + 2) * sizeof(file_contents));
+		file_contents = 
+        (char *)realloc(file_contents, (i + 2) * sizeof(char));
 	}
 	file_contents[i] = '\0';
 	fclose(file);
@@ -100,41 +101,46 @@ char * copy_file_to_memory(char * dir)
 	return file_contents;
 }
 
-void make_new_page()
-{
-	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");	
-	char * temp = convert_to_char_array(convert_to_int(copy_file_to_memory(PAGE_COUNT_DIR)) + 1);
-	fclose(page_count_file);
-	page_count_file = fopen(PAGE_COUNT_DIR, "w");
-	fprintf(page_count_file, temp);
-	fprintf(page_count_file, "\0");
-	free(temp);
-	fclose(page_count_file);
-	
-	char * latest_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
-	char * page_loc = get_page_loc();
-	strcat(page_loc, latest_page_num);
-	FILE * current_page_file = fopen(page_loc, "w");
-	fprintf(current_page_file, "** Page %s **\n", latest_page_num);
-	fprintf(current_page_file, "%s\n", get_current_time());
-	page_loc[strlen(page_loc) - strlen(latest_page_num)] = '\0';
-	fclose(current_page_file);
+void set_page_count(char count) {
+    FILE *file = fopen(get_page_counter_loc(), "w");
+    fputc(count, file);
+    fclose(file);
+}
+char get_page_count() {
+    FILE *file = fopen(get_page_counter_loc(), "r");
+	char count;
+    count = fgetc(file);
+    fclose(file);
+
+    return count;
 }
 
-void remove_most_recent_page()
-{	
-	char * most_recent_page_num = copy_file_to_memory(PAGE_COUNT_DIR);
-	char * page_loc = get_page_loc();
-	strcat(page_loc, most_recent_page_num);
-	remove(page_loc); // remove file
-	page_loc[strlen(page_loc) - strlen(most_recent_page_num)] = '\0';
+void make_new_page() {
+    char *working_loc = NULL; working_loc = loc_malloc();
+    FILE *new_page_file = NULL;
+    char page_count = get_page_count();
+
+    set_page_count(page_count + 1);
 	
-	FILE * page_count_file = fopen(PAGE_COUNT_DIR, "r");	
-	char * temp = convert_to_char_array(convert_to_int(copy_file_to_memory(PAGE_COUNT_DIR)) - 1);
-	fclose(page_count_file);
-	page_count_file = fopen(PAGE_COUNT_DIR, "w");
-	fprintf(page_count_file, temp);
-	fprintf(page_count_file, "\0");
-	free(temp);
-	fclose(page_count_file);
+    strcpy(working_loc, get_diary_dir());
+    // Use '13' string instead of unicode 13 char
+	strcat(working_loc, convert_to_char_array((int)get_page_count()));
+	new_page_file = fopen(working_loc, "w");
+	fprintf(new_page_file, "** Page %d **\n", get_page_count());
+	fprintf(new_page_file, "%s\n", get_current_time());
+
+    free(working_loc);
+    fclose(new_page_file);
+}
+
+void remove_newest_page() {
+    char *working_loc = NULL; working_loc = loc_malloc();
+
+	strcpy(working_loc, get_diary_dir());
+	strcat(working_loc, convert_to_char_array((int)get_page_count()));
+	remove(working_loc); // remove file
+	
+    set_page_count(get_page_count() - 1);
+
+    free(working_loc);
 }

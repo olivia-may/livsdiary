@@ -26,7 +26,7 @@ void no_arg();
 void version();
 void help();
 void edit();
-void view(char input[]);
+void view(char *page_num_str);
 void list_pages();
 
 #endif
