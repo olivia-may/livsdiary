@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "converters.h"
+#include "editor.h"
 #include "filesystem.h"
 #include "main.h"
 #include "config.h"
@@ -60,6 +61,9 @@ void edit(char *page_num_str) {
 	printf("This is free software, and you are welcome to\n");
 	printf("redistribute it under certain conditions.\n\n");
 	*/
+    editor_enter();
+    editor_open_page(page_num_str);
+    editor_exit();
 }
 void view(char *page_num_str) {
 	char *page_loc = NULL; page_loc = loc_malloc();

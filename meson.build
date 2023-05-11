@@ -1,9 +1,10 @@
-project('livsdiary', 'c', 'cpp', version : '3.0.0')
+project('livsdiary', 'c', version : '3.0.0')
 
 srcs = [
     'src/converters.c',
+    'src/editor.c',
     'src/filesystem.c',
-    'src/main.cpp',
+    'src/main.c',
     'src/time.c'
 ]
 deps = [
@@ -11,6 +12,11 @@ deps = [
 ]
 inc = [
     include_directories('.'),
+]
+
+linker_flags = [
+    '-lncurses',
+    '-lm'
 ]
 
 conf_data = configuration_data()
@@ -21,10 +27,13 @@ configure_file(
     configuration: conf_data
 )
 
+add_global_arguments(linker_flags, language : 'c')
+
 executable(
     'livsdiary', 
     srcs, 
-    dependencies: deps, 
+    link_args : linker_flags,
+    dependencies : deps, 
     include_directories: inc,
     install : true
 )
