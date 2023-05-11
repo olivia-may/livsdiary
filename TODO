@@ -1,6 +1,5 @@
 -- Mostly just ideas that I didn't want to forget --
-[ ] Use something to encrypt diary files
+[ ] Encrypt diary files
 	[ ] OpenSSL
-[x] Use vim source code
-	[ ] Edit vim commands for LIVSDiary.
-[ ] Use git somehow to be able to transfer diary across computers
+[ ] Method to transfer diary across machines
+[ ] Simple file editor
