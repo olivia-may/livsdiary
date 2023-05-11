@@ -30,17 +30,21 @@
 #include "editor.h"
 #include "filesystem.h"
 
-void editor_enter() {
+void editor_draw_command_line() {
     CoordYX stdscr_max;
-    
-    initscr();
-    cbreak();
-    echo();
 
     getmaxyx(stdscr, stdscr_max.y, stdscr_max.x);
     move(stdscr_max.y - 1, 0);
     addch(':');
     move(0, 0);
+}
+
+void editor_enter() {
+    initscr();
+    cbreak();
+    echo();
+
+    editor_draw_command_line();
 }
 void editor_exit() {
     endwin();
@@ -79,9 +83,8 @@ int editor_command_mode() {
 void editor_open_page(char *page_num_str) {
     char *page_loc = NULL; page_loc = loc_malloc();
     char *editor_buffer = NULL;
-    char line_buffer[128];
     char ch;
-    int i;
+    int editor_buffer_len;
     CoordYX cursor_coord;
 
     strcpy(page_loc, get_diary_dir());
@@ -90,56 +93,41 @@ void editor_open_page(char *page_num_str) {
     editor_buffer = get_file_contents(page_loc);
     printw(editor_buffer);
 
-    i = 0;
     while (true) {
         ch = getch();
+        editor_buffer_len = strlen(editor_buffer);
+        editor_buffer = realloc(editor_buffer,
+        (editor_buffer_len + 2) * sizeof(char));
 
         if (ch == '\n') {
-            line_buffer[i] = ch;
-            line_buffer[i + 1] = '\0';
-            editor_buffer = realloc(editor_buffer,
-                (strlen(editor_buffer) + strlen(line_buffer))
-                * sizeof(char)
-            );
-            strcat(editor_buffer, line_buffer);
-            
             getyx(stdscr, cursor_coord.y, cursor_coord.x);
             move(cursor_coord.y + 1, 0);
         }
-        else if (ch == '\x7F') { // backspace char ^?
-            clear();
+        
+        if (ch == '\x7F') { // backspace char "^?"
             move(0, 0);
+            clear();
+            editor_draw_command_line();
             if (editor_buffer[0] != '\0') { 
-                editor_buffer[strlen(editor_buffer) - 1] = '\0';
-                editor_buffer = realloc(editor_buffer,
-                (strlen(editor_buffer) + strlen(line_buffer))
-                * sizeof(char)
-                );
+                editor_buffer[editor_buffer_len - 1] = '\0';
                 printw(editor_buffer);
             }
         }
         else if (ch == ':') {
-            getyx(stdscr, cursor_coord.y, cursor_coord.x);
-            move(cursor_coord.y, cursor_coord.x - 1);
-            addch(' ');
-            move(cursor_coord.y, cursor_coord.x - 1);
+            printw("\b \b"); // dont show ':'
             switch (editor_command_mode()) {
                 case QUIT: { editor_exit(); return; }
                 case WRITE: {
-                    line_buffer[i] = '\0';
-                    editor_buffer = realloc(editor_buffer,
-                    (strlen(editor_buffer) + strlen(line_buffer))
-                    * sizeof(char)
-                    );
-                    strcat(editor_buffer, line_buffer);
+                    editor_buffer[editor_buffer_len] = '\0';
                     
                     FILE *page_file = fopen(page_loc, "w");
                     fprintf(page_file, editor_buffer);
                 } break;
             }
         }
-        else line_buffer[i] = ch;
-
-        i++;
+        else {
+            editor_buffer[editor_buffer_len] = ch;
+            editor_buffer[editor_buffer_len + 1] = '\0';
+        }
     }
 }
