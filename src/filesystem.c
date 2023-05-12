@@ -1,6 +1,6 @@
 /*
  * LIVSDiary - (LI)ghtweight (V)irtual (S)imple Diary
- * Copyright (C) 2022 Olivia May - olmay@tuta.io
+ * Copyright (C) 2022 Olivia May - olivia.may@tuta.io
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
