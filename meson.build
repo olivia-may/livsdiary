@@ -1,4 +1,4 @@
-project('livsdiary', 'c', version : '3.1.0')
+project('livsdiary', 'c', version : '3.1.1')
 
 srcs = [
     'src/converters.c',
