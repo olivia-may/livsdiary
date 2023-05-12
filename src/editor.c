@@ -27,16 +27,39 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "converters.h"
 #include "editor.h"
 #include "filesystem.h"
+#include "config.h"
+
+void editor_help() {
+    clear();
+    printw("** LIVSDiary %s Editor Help **\n", VERSION);
+    printw(":e [number]<enter>          open page [number]\n");
+    printw(":h<enter>   :help<enter>    show this menu\n");
+    printw(":n<enter>                   make new page\n");
+    printw(":q<enter>                   quit editor\n");
+    printw(":r<enter>                   remove newest page\n");
+    printw(":w<enter>                   save changes\n");
+    printw(":wq<enter>                  save and quit\n");
+    printw("\n");
+    printw("Press any key to go back to editing.\n");
+    getch();
+    clear();
+}
+
+CoordYX *get_stdscr_maxyx() {
+    CoordYX *stdscr_maxyx = NULL;
+
+    stdscr_maxyx = malloc(2 * sizeof(int));
+    getmaxyx(stdscr, stdscr_maxyx->y, stdscr_maxyx->x);
+
+    return stdscr_maxyx;
+}
 
 void editor_draw_command_line() {
-    CoordYX stdscr_max;
-
-    getmaxyx(stdscr, stdscr_max.y, stdscr_max.x);
-    move(stdscr_max.y - 1, 0);
+    move(get_stdscr_maxyx()->y - 1, 0);
     addch(':');
-    move(0, 0);
 }
 
 void editor_enter() {
@@ -45,28 +68,29 @@ void editor_enter() {
     echo();
 
     editor_draw_command_line();
+    move(0, 0);
 }
 void editor_exit() {
     endwin();
 }
-int editor_command_mode() {
+
+// CoordYX so it can pass ':e 2' for example
+CoordYX editor_command_mode() {
     CoordYX cursor_coord;
-    CoordYX stdscr_max;
     char ch;
     int i;
     char command_str[8];
     
     getyx(stdscr, cursor_coord.y, cursor_coord.x);
-    getmaxyx(stdscr, stdscr_max.y, stdscr_max.x);
-    move(stdscr_max.y - 1, 1);
+    move(get_stdscr_maxyx()->y - 1, 1);
 
     i = 0;
     while (true) {
         ch = getch();
         if (ch == '\n') {
             command_str[i] = '\0';
-            move(stdscr_max.y - 1, 1);
-            for (i = 1; i < stdscr_max.x; i++) addch(' ');
+            move(get_stdscr_maxyx()->y - 1, 1);
+            for (i = 1; i < get_stdscr_maxyx()->x; i++) addch(' ');
             move(cursor_coord.y, cursor_coord.x);
             break;
         }
@@ -74,15 +98,58 @@ int editor_command_mode() {
 
         if (i != 7) i++;
     }
+
+    CoordYX retval;
+    retval.y = -1; retval.x = 0;
     
-    if (command_str[0] == 'q') return QUIT;
-    if (command_str[0] == 'w') return WRITE;
-    else return -1;
+    if (strncmp(command_str, "q", 2) == 0) {
+        retval.y = QUIT; retval.x = 0; return retval;
+    }
+    if (strncmp(command_str, "w", 2) == 0) {
+        retval.y = WRITE; retval.x = 0; return retval;
+    }
+    if (strncmp(command_str, "wq", 3) == 0) {
+        retval.y = WRITE_QUIT; retval.x = 0; return retval;
+    }
+    if (strncmp(command_str, "h", 2) == 0 ||
+    strncmp(command_str, "help", 5) == 0) { retval.y = HELP; retval.x = 0; return retval;
+    }
+    if (strncmp(command_str, "n", 2) == 0) { retval.y = NEW_PAGE; retval.x = 0; return retval; 
+    }
+    if (strncmp(command_str, "r", 2) == 0) {
+        retval.y = REMOVE_PAGE; retval.x = 0; return retval;
+    }
+    if (strncmp(command_str, "e", 1) == 0) { 
+        retval.y = OPEN;
+        char arg_str[7];
+        int offset = 0;
+        for (int i = 0; i < 7; i++) {
+            if (command_str[i + 1] == ' ') offset+=1;
+            else arg_str[i - offset] = command_str[i + 1];
+        }
+        if (check_input_is_int(arg_str)) {
+			int arg_int = convert_to_int(arg_str);		
+
+            if (arg_int <= (int)get_page_count()
+            && arg_int >= 0) retval.x = arg_int;
+		    else retval.x = get_page_count();
+        }
+		else retval.x = get_page_count();
+        
+        return retval;
+    }
+    
+    return retval;
 }
 
 void editor_open_page(char *page_num_str) {
+#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(page_loc); free(editor_buffer);
+#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
+
+    
     char *page_loc = NULL; page_loc = loc_malloc();
     char *editor_buffer = NULL;
+    FILE *page_file = NULL;
     char ch;
     int editor_buffer_len;
     CoordYX cursor_coord;
@@ -105,9 +172,9 @@ void editor_open_page(char *page_num_str) {
         }
         
         if (ch == '\x7F') { // backspace char "^?"
-            move(0, 0);
             clear();
             editor_draw_command_line();
+            move(0, 0);
             if (editor_buffer[0] != '\0') { 
                 editor_buffer[editor_buffer_len - 1] = '\0';
                 printw(editor_buffer);
@@ -115,13 +182,39 @@ void editor_open_page(char *page_num_str) {
         }
         else if (ch == ':') {
             printw("\b \b"); // dont show ':'
-            switch (editor_command_mode()) {
-                case QUIT: { editor_exit(); return; }
+            CoordYX command_retval = editor_command_mode();
+            switch (command_retval.y) {
+                case QUIT: { editor_exit(); exit(0); } break;
                 case WRITE: {
-                    editor_buffer[editor_buffer_len] = '\0';
-                    
-                    FILE *page_file = fopen(page_loc, "w");
-                    fprintf(page_file, editor_buffer);
+                    WRITE_PAGE
+                } break;
+                case WRITE_QUIT: {
+                    WRITE_PAGE
+                    editor_exit(); return;
+                } break;
+                case HELP: {
+                    editor_help();
+                    editor_draw_command_line();
+                    move(0, 0);
+                    printw(editor_buffer);
+                } break;
+                case NEW_PAGE: {
+                    make_new_page();
+                    WRITE_PAGE
+                    CLOSE_PAGE
+                    // recursion B)
+                    editor_open_page(convert_to_char_array(get_page_count()));
+                } break;
+                case REMOVE_PAGE: {
+                    WRITE_PAGE
+                    remove_newest_page();
+                    CLOSE_PAGE
+                    editor_open_page(convert_to_char_array(get_page_count()));
+                } break;
+                case OPEN: {
+                    WRITE_PAGE
+                    CLOSE_PAGE
+                    editor_open_page(convert_to_char_array(command_retval.x));
                 } break;
             }
         }

@@ -31,8 +31,13 @@ typedef struct {
 } CoordYX;
 
 enum {
-    QUIT,
-    WRITE
+    QUIT = 0,
+    WRITE,
+    WRITE_QUIT,
+    HELP,
+    NEW_PAGE,
+    REMOVE_PAGE,
+    OPEN
 };
 
 void editor_enter();
