@@ -166,12 +166,9 @@ void editor_open_page(char *page_num_str) {
         }
         
         if (ch == '\x7F') { // backspace char "^?"
-            clear();
-            editor_draw_command_line();
-            move(0, 0);
+            printw("\b \b\b \b\b \b");
             if (editor_buffer[0] != '\0') { 
                 editor_buffer[editor_buffer_len - 1] = '\0';
-                printw(editor_buffer);
             }
         }
         else if (ch == ':') {
