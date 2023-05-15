@@ -6,6 +6,8 @@ most likely wont compile/run on other
 operating systems, but you can try.
 
 ## Install
+You will need to install ncurses if you do not already have it.
+
 First clone this repository. <br>
 `git clone https://github.com/olivia-may/livsdiary` <br>
 `cd livsdiary` <br>
