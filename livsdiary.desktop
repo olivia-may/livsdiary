@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Comment=(LI)ghtweight (V)irtual (S)imple diary.
+Version=1.0
+Name=LIVSDiary
+Exec=livsdiary
+Terminal=true
