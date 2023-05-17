@@ -25,7 +25,6 @@
 #include "converters.h"
 #include "editor.h"
 #include "filesystem.h"
-#include "main.h"
 #include "config.h"
 
 /* The command-line options */
