@@ -26,6 +26,13 @@
 #include "filesystem.h"
 #include "config.h"
 
+char current_char;
+int editor_buffer_len;
+CoordYX cursoryx;
+char *editor_buffer = NULL;
+
+#define UPDATE_CURSORYX getyx(stdscr, cursoryx.y, cursoryx.x);
+
 void editor_help() {
     clear();
     printw("** LIVSDiary %s Editor Help **\n", VERSION);
@@ -68,27 +75,34 @@ void editor_exit() {
     endwin();
 }
 
+void editor_backspace(char *buffer, int buffer_len) {
+    printw("\b \b\b \b\b \b");
+    if (buffer[0] != '\0') { 
+        buffer[buffer_len - 1] = '\0';
+    }
+}
+
 // CoordYX so it can pass ':e 2' for example
 CoordYX editor_command_mode() {
-    CoordYX cursor_coord;
-    char ch;
     int i;
     char command_str[8];
     
-    getyx(stdscr, cursor_coord.y, cursor_coord.x);
+    UPDATE_CURSORYX
     move(get_stdscr_maxyx()->y - 1, 1);
 
     i = 0;
     while (true) {
-        ch = getch();
-        if (ch == '\n') {
+        current_char = getch();
+        if (current_char == '\n') {
             command_str[i] = '\0';
             move(get_stdscr_maxyx()->y - 1, 1);
             for (i = 1; i < get_stdscr_maxyx()->x; i++) addch(' ');
-            move(cursor_coord.y, cursor_coord.x);
+            move(cursoryx.y, cursoryx.x);
             break;
         }
-        command_str[i] = ch;
+        if (current_char == '\x7F') // backspace char "^?"
+        editor_backspace(command_str, strlen(command_str));
+        command_str[i] = current_char;
 
         if (i != 7) i++;
     }
@@ -139,15 +153,11 @@ CoordYX editor_command_mode() {
 void editor_open_page(char *page_num_str) {
 #define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(page_loc); free(editor_buffer);
 #define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
-
     
-    char *page_loc = NULL; page_loc = loc_malloc();
-    char *editor_buffer = NULL;
+    char *page_loc = NULL;
     FILE *page_file = NULL;
-    char ch;
-    int editor_buffer_len;
-    CoordYX cursor_coord;
 
+    page_loc = loc_malloc();
     strcpy(page_loc, get_diary_dir());
     strcat(page_loc, page_num_str);
 
@@ -155,23 +165,25 @@ void editor_open_page(char *page_num_str) {
     printw(editor_buffer);
 
     while (true) {
-        ch = getch();
+        current_char = getch();
         editor_buffer_len = strlen(editor_buffer);
         editor_buffer = realloc(editor_buffer,
         (editor_buffer_len + 2) * sizeof(char));
 
-        if (ch == '\n') {
-            getyx(stdscr, cursor_coord.y, cursor_coord.x);
-            move(cursor_coord.y + 1, 0);
+        if (current_char == '\n') {
+            UPDATE_CURSORYX
+            move(cursoryx.y + 1, 0);
         }
         
-        if (ch == '\x7F') { // backspace char "^?"
-            printw("\b \b\b \b\b \b");
-            if (editor_buffer[0] != '\0') { 
-                editor_buffer[editor_buffer_len - 1] = '\0';
-            }
+        if (current_char == '\x7F') { 
+            editor_backspace(editor_buffer, editor_buffer_len);
+            clear();
+            printw(editor_buffer);
+            UPDATE_CURSORYX
+            editor_draw_command_line();
+            move(cursoryx.y, cursoryx.x);
         }
-        else if (ch == ':') {
+        if (current_char == ':') {
             printw("\b \b"); // dont show ':'
             CoordYX command_retval = editor_command_mode();
             switch (command_retval.y) {
@@ -210,7 +222,7 @@ void editor_open_page(char *page_num_str) {
             }
         }
         else {
-            editor_buffer[editor_buffer_len] = ch;
+            editor_buffer[editor_buffer_len] = current_char;
             editor_buffer[editor_buffer_len + 1] = '\0';
         }
     }
