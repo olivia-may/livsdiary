@@ -137,8 +137,7 @@ CoordYX editor_command_mode() {
         }
         if (check_input_is_int(arg_str)) {
 			int arg_int = convert_to_int(arg_str);		
-
-            if (arg_int <= get_page_count()
+            if (arg_int <= (int)get_page_count()
             && arg_int >= 0) retval.x = arg_int;
 		    else retval.x = get_page_count();
         }

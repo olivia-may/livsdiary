@@ -151,7 +151,7 @@ void make_new_page() {
 
 void remove_newest_page() {
     page_count = get_page_count();
-	remove(get_page_loc(convert_to_int(page_count))); // remove file
+	remove(get_page_loc(convert_to_char_array(page_count))); // remove file
     set_page_count(page_count - 1);
 
     free(get_page_loc(convert_to_char_array(page_count)));

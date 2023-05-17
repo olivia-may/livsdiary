@@ -65,7 +65,7 @@ void view(char *page_num_str) {
 }
 void list_pages() {
     unsigned int page_count = get_page_count();
-    for (int i = 0; i <= page_count; i++)
+    for (unsigned int i = 0; i <= page_count; i++)
     view(convert_to_char_array(i));
 }
 
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 			else {
 				if (check_input_is_int(argv[2]) == true) {
 					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= newest_page_num
+					if (argv2_int <= (int)newest_page_num
 					&& argv2_int >= 0) edit(argv[2]);
 					else printf("error: found no page with number '%s'\n", argv[2]);
 				}
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 			else {
 				if (check_input_is_int(argv[2]) == true) {
 					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= newest_page_num
+					if (argv2_int <= (int)newest_page_num
 					&& argv2_int >= 0) view(argv[2]);
 					else printf("error: found no page with number '%s'\n", argv[2]);
 				}
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 		// 7 because not checking for null char at the end
 		else if (strncmp(argv[1], "--edit=", 7) == 0) {
 			int i;
-			for (i = 7; i < strlen(argv[1]); i++)
+			for (i = 7; i < (int)strlen(argv[1]); i++)
             argv[1][i - 7] = argv[1][i];
 			argv[1][i - 7] = '\0';
 			
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
 		else if (strncmp(argv[1], "--view=", 7) == 0) {
 			int i;
-			for (i = 7; i < strlen(argv[1]); i++)
+			for (i = 7; i < (int)strlen(argv[1]); i++)
 			argv[1][i - 7] = argv[1][i];
 			argv[1][i - 7] = '\0';
 			

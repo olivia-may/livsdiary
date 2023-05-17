@@ -67,7 +67,6 @@ char *convert_to_char_array(int number) {
 	return converted_int;
 }
 
-// warning: will break for long numbers (int digit_slot overflows), like '12343678912'
 int convert_to_int(char *str) {
 	int number = 0;
 	int len = strlen(str);
@@ -91,7 +90,7 @@ int convert_to_int(char *str) {
 
 bool check_input_is_int(char *input) {
 	if (input[0] == '\0') return false;
-	for (int i = 0; i < strlen(input); i++) {				
+	for (int i = 0; i < (int)strlen(input); i++) {				
 		if (input[i] == '0' ||
 		input[i] == '1' ||
 		input[i] == '2' ||
