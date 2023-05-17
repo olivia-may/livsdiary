@@ -26,6 +26,8 @@
 #include "filesystem.h"
 #include "time.h"
 
+unsigned int page_count = 0;
+
 char *loc_malloc() {
     return (char *)malloc(
         // `48` is a buffer
@@ -49,7 +51,7 @@ void initialize_diary() {
     
     strcat(working_loc, "page_counter");
     page_counter_file = fopen(working_loc, "w");
-    fputc((char)0, page_counter_file);
+    fwrite(&page_count, sizeof(unsigned int), 1, page_counter_file);
     // 12 is length of `"page_counter"`
     working_loc[strlen(working_loc) - 12] = '\0';
 
@@ -105,15 +107,15 @@ char *get_file_contents(char *loc) {
 	return file_contents;
 }
 
-void set_page_count(char count) {
+void set_page_count(unsigned int count) {
     FILE *file = fopen(get_page_counter_loc(), "w");
-    fputc(count, file);
+    fwrite(&count, sizeof(unsigned int), 1, file);
     fclose(file);
 }
-char get_page_count() {
+unsigned int get_page_count() {
     FILE *file = fopen(get_page_counter_loc(), "r");
-	char count;
-    count = fgetc(file);
+	unsigned int count;
+    fread(&count, sizeof(unsigned int), 1, file);
     fclose(file);
 
     return count;
@@ -122,16 +124,17 @@ char get_page_count() {
 void make_new_page() {
     char *working_loc = NULL;
     FILE *new_page_file = NULL;
-    char page_count = get_page_count();
-
-    set_page_count(page_count + 1);
+    
+    page_count = get_page_count();
+    page_count = page_count + 1;
+    set_page_count(page_count);
 
     working_loc = loc_malloc();
     strcpy(working_loc, get_diary_dir());
     // Use '13' string instead of unicode 13 char
-	strcat(working_loc, convert_to_char_array((int)get_page_count()));
+	strcat(working_loc, convert_to_char_array(page_count));
 	new_page_file = fopen(working_loc, "w");
-	fprintf(new_page_file, "** Page %d **\n", get_page_count());
+	fprintf(new_page_file, "** Page %d **\n", page_count);
 	fprintf(new_page_file, "%s\n", get_current_time());
 
     free(working_loc);
@@ -140,13 +143,14 @@ void make_new_page() {
 
 void remove_newest_page() {
     char *working_loc = NULL;
+    page_count = get_page_count();
     
     working_loc = loc_malloc();
 	strcpy(working_loc, get_diary_dir());
-	strcat(working_loc, convert_to_char_array((int)get_page_count()));
+	strcat(working_loc, convert_to_char_array((page_count)));
 	remove(working_loc); // remove file
 	
-    set_page_count(get_page_count() - 1);
+    set_page_count(page_count - 1);
 
     free(working_loc);
 }

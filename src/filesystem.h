@@ -25,8 +25,8 @@ char *get_diary_dir();
 char *get_page_counter_loc();
 char *get_file_contents(char *loc);
 // Use first char as the counter
-void set_page_count(char count);
-char get_page_count();
+void set_page_count(unsigned int count);
+unsigned int get_page_count();
 
 void make_new_page();
 void remove_newest_page();

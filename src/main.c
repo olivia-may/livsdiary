@@ -67,16 +67,16 @@ void view(char *page_num_str) {
     free(page_loc);
 }
 void list_pages() {
-    char page_count = get_page_count();
-    for (int i = 0; i <= (int)page_count; i++)
+    unsigned int page_count = get_page_count();
+    for (int i = 0; i <= page_count; i++)
     view(convert_to_char_array(i));
 }
 
 int main(int argc, char **argv) {
 	if (access(get_page_counter_loc(), F_OK) != 0) initialize_diary();
-    char newest_page_num = get_page_count();
+    unsigned int newest_page_num = get_page_count();
 
-	if (argc == 1) edit(convert_to_char_array((int)newest_page_num));
+	if (argc == 1) edit(convert_to_char_array(newest_page_num));
 	else {
 		if (strncmp(argv[1], "-h", 3) == 0 ||
 		strncmp(argv[1], "--help", 7) == 0) help();
@@ -85,12 +85,12 @@ int main(int argc, char **argv) {
 		strncmp(argv[1], "--version", 10) == 0) version();
 
 		else if (strncmp(argv[1], "-e", 3) == 0) {
-			if (argc == 2) edit(convert_to_char_array((int)newest_page_num));
+			if (argc == 2) edit(convert_to_char_array(newest_page_num));
 
 			else {
 				if (check_input_is_int(argv[2]) == true) {
 					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= (int)newest_page_num
+					if (argv2_int <= newest_page_num
 					&& argv2_int >= 0) edit(argv[2]);
 					else printf("error: found no page with number '%s'\n", argv[2]);
 				}
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
 			else {
 				if (check_input_is_int(argv[2]) == true) {
 					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= (int)newest_page_num
+					if (argv2_int <= newest_page_num
 					&& argv2_int >= 0) view(argv[2]);
 					else printf("error: found no page with number '%s'\n", argv[2]);
 				}
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
 
 		else if (strncmp(argv[1], "-r", 3) == 0 ||
 		strncmp(argv[1], "--remove", 9) == 0) {
-			if ((int)newest_page_num == 0) 
+			if (newest_page_num == 0) 
 			printf("error: refusing to remove Table of Contents!\n");
 			else remove_newest_page();
 		}
