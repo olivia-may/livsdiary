@@ -22,7 +22,8 @@
 char *loc_malloc();
 void initialize_diary();
 char *get_diary_dir();
-char *get_page_counter_loc();
+char *get_page_count_loc();
+char *get_page_loc(char *page_num_str);
 char *get_file_contents(char *loc);
 // Use first char as the counter
 void set_page_count(unsigned int count);

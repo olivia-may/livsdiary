@@ -151,17 +151,12 @@ CoordYX editor_command_mode() {
 }
 
 void editor_open_page(char *page_num_str) {
-#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(page_loc); free(editor_buffer);
-#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
+#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(get_page_loc(page_num_str)); free(editor_buffer);
+#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(get_page_loc(page_num_str), "w"); fprintf(page_file, editor_buffer); fclose(page_file);
     
-    char *page_loc = NULL;
     FILE *page_file = NULL;
 
-    page_loc = loc_malloc();
-    strcpy(page_loc, get_diary_dir());
-    strcat(page_loc, page_num_str);
-
-    editor_buffer = get_file_contents(page_loc);
+    editor_buffer = get_file_contents(get_page_loc(page_num_str));
     printw(editor_buffer);
 
     while (true) {

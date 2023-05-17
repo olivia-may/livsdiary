@@ -59,12 +59,9 @@ void edit(char *page_num_str) {
     editor_exit();
 }
 void view(char *page_num_str) {
-	char *page_loc = NULL; page_loc = loc_malloc();
-    strcpy(page_loc, get_diary_dir());
-	strcat(page_loc, page_num_str);
-	printf("%s\n", get_file_contents(page_loc));
+	printf("%s\n", get_file_contents(get_page_loc(page_num_str)));
 
-    free(page_loc);
+    free(get_page_loc(page_num_str));
 }
 void list_pages() {
     unsigned int page_count = get_page_count();
@@ -73,7 +70,7 @@ void list_pages() {
 }
 
 int main(int argc, char **argv) {
-	if (access(get_page_counter_loc(), F_OK) != 0) initialize_diary();
+	if (access(get_page_count_loc(), F_OK) != 0) initialize_diary();
     unsigned int newest_page_num = get_page_count();
 
 	if (argc == 1) edit(convert_to_char_array(newest_page_num));
