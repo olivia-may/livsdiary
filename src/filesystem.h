@@ -19,8 +19,6 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
-#define DIR_BUFFER 48
-
 char *loc_malloc();
 void initialize_diary();
 char *get_diary_dir();

@@ -28,15 +28,17 @@
 
 char *loc_malloc() {
     return (char *)malloc(
-        (strlen(getenv("HOME")) + DIR_BUFFER) * sizeof(char)
+        // `48` is a buffer
+        (strlen(getenv("HOME")) + 48) * sizeof(char)
     );
 }
 
 void initialize_diary() {
-    char *working_loc = NULL; working_loc = loc_malloc();
+    char *working_loc = NULL;
     FILE *page_counter_file = NULL;
     FILE *table_of_contents_file = NULL;
 
+    working_loc = loc_malloc();
     strcat(working_loc, getenv("HOME"));
     strcat(working_loc, "/.local/");
     mkdir(working_loc, 0777); // permissions are weird
@@ -65,7 +67,9 @@ void initialize_diary() {
 }
 
 char *get_diary_dir() {
-    char *dir = NULL; dir = loc_malloc();
+    char *dir = NULL;
+
+    dir = loc_malloc();
 	strcpy(dir, getenv("HOME"));
 	strcat(dir, "/.local/share/livsdiary/");
 
@@ -116,12 +120,13 @@ char get_page_count() {
 }
 
 void make_new_page() {
-    char *working_loc = NULL; working_loc = loc_malloc();
+    char *working_loc = NULL;
     FILE *new_page_file = NULL;
     char page_count = get_page_count();
 
     set_page_count(page_count + 1);
-	
+
+    working_loc = loc_malloc();
     strcpy(working_loc, get_diary_dir());
     // Use '13' string instead of unicode 13 char
 	strcat(working_loc, convert_to_char_array((int)get_page_count()));
@@ -134,8 +139,9 @@ void make_new_page() {
 }
 
 void remove_newest_page() {
-    char *working_loc = NULL; working_loc = loc_malloc();
-
+    char *working_loc = NULL;
+    
+    working_loc = loc_malloc();
 	strcpy(working_loc, get_diary_dir());
 	strcat(working_loc, convert_to_char_array((int)get_page_count()));
 	remove(working_loc); // remove file
