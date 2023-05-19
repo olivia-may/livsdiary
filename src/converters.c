@@ -67,7 +67,7 @@ char *convert_to_char_array(int number) {
 	return converted_int;
 }
 
-int convert_to_int(char *str) {
+int convert_to_unsigned_int(char *str) {
 	int number = 0;
 	int len = strlen(str);
 	for (int i = 0; i < len; i++) {

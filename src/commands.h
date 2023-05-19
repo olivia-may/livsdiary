@@ -36,7 +36,7 @@ enum {
 char *get_page_not_found_str(char *arg);
 char *get_invalid_page_str(char *arg);
 char *get_invalid_arg_str(char *arg, int mode);
-bool check_input_is_int(char *input);
+bool check_input_is_unsigned_int(char *input);
 int is_page_num_found(char *page_num_str);
 void convert_to_equals_sign_arg();
 

@@ -136,8 +136,8 @@ CoordYX editor_command_mode() {
             if (command_str[i + 1] == ' ') offset+=1;
             else arg_str[i - offset] = command_str[i + 1];
         }
-        if (check_input_is_int(arg_str)) {
-			int arg_int = convert_to_int(arg_str);		
+        if (check_input_is_unsigned_int(arg_str)) {
+			int arg_int = convert_to_unsigned_int(arg_str);		
             if (arg_int <= (int)get_page_count()
             && arg_int >= 0) retval.x = arg_int;
 		    else retval.x = get_page_count();
