@@ -1,6 +1,7 @@
 project('livsdiary', 'c', version : '3.2.1')
 
 srcs = [
+    'src/commands.c',
     'src/converters.c',
     'src/editor.c',
     'src/filesystem.c',

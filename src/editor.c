@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "commands.h"
 #include "converters.h"
 #include "editor.h"
 #include "filesystem.h"

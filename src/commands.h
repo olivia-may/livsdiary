@@ -16,12 +16,28 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CONVERTERS_H
-#define CONVERTERS_H
+#ifndef COMMANDS_H
+#define COMMANDS_H
 
 #include <stdbool.h>
 
-char *convert_to_char_array(int number);
-int convert_to_int(char *str);
+enum {
+    PAGE_FOUND = 0,
+    NO_PAGE_FOUND,
+    INVALID_INPUT
+};
+
+// modes
+enum {
+    COMMAND_LINE = 0,
+    EDITOR
+};
+
+char *get_page_not_found_str(char *arg);
+char *get_invalid_page_str(char *arg);
+char *get_invalid_arg_str(char *arg, int mode);
+bool check_input_is_int(char *input);
+int is_page_num_found(char *page_num_str);
+void convert_to_equals_sign_arg();
 
 #endif

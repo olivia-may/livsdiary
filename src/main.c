@@ -22,15 +22,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "commands.h"
 #include "converters.h"
 #include "editor.h"
 #include "filesystem.h"
 #include "config.h"
 
 /* The command-line options */
-void invalid(char *argv) {
-	printf("Invalid argument: '%s', try '--help'\n", argv);
-}
 void version() {
 	printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", VERSION);
 	printf("Copyright (C) 2022 Olivia May.\n");
@@ -54,6 +52,8 @@ void edit(char *page_num_str) {
 	printf("This is free software, and you are welcome to\n");
 	printf("redistribute it under certain conditions.\n\n");
 	*/
+
+
     editor_enter();
     editor_open_page(page_num_str);
     editor_exit();
@@ -83,61 +83,50 @@ int main(int argc, char **argv) {
 
 		else if (strncmp(argv[1], "-e", 3) == 0) {
 			if (argc == 2) edit(convert_to_char_array(newest_page_num));
-
 			else {
-				if (check_input_is_int(argv[2]) == true) {
-					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= (int)newest_page_num
-					&& argv2_int >= 0) edit(argv[2]);
-					else printf("error: found no page with number '%s'\n", argv[2]);
-				}
-				else invalid(argv[2]);
+			    switch (is_page_num_found(argv[2])) {
+                    case PAGE_FOUND: edit(argv[2]); break;
+                    case NO_PAGE_FOUND:
+                    printf("%s\n", get_page_not_found_str(argv[2])); break;
+                    case INVALID_INPUT:
+                    printf("%s\n", get_invalid_page_str(argv[2])); break;
+                }
 			}
 		}
 		else if (strncmp(argv[1], "-v", 3) == 0) {
 			if (argc == 2) view(convert_to_char_array(newest_page_num));
 			else {
-				if (check_input_is_int(argv[2]) == true) {
-					int argv2_int = convert_to_int(argv[2]);
-					if (argv2_int <= (int)newest_page_num
-					&& argv2_int >= 0) view(argv[2]);
-					else printf("error: found no page with number '%s'\n", argv[2]);
-				}
-				else invalid(argv[2]);
+			    switch (is_page_num_found(argv[2])) {
+                    case PAGE_FOUND: view(argv[2]); break;
+                    case NO_PAGE_FOUND:
+                    printf("%s\n", get_page_not_found_str(argv[2])); break;
+                    case INVALID_INPUT:
+                    printf("%s\n", get_invalid_page_str(argv[2])); break;
+                }
 			}
 		}
 
 		// 7 because not checking for null char at the end
 		else if (strncmp(argv[1], "--edit=", 7) == 0) {
-			int i;
-			for (i = 7; i < (int)strlen(argv[1]); i++)
-            argv[1][i - 7] = argv[1][i];
-			argv[1][i - 7] = '\0';
-			
-			if (argv[1][0] == '\0') invalid(argv[1]);
-			else if (check_input_is_int(argv[1]) == true) {
-				int argv2_int = convert_to_int(argv[1]);
-				if (argv2_int <= convert_to_int(convert_to_char_array(newest_page_num))
-				&& argv2_int >= 0) edit(argv[1]);
-				else printf("error: found no page with number '%s'\n", argv[1]);
-			}
-			else invalid(argv[1]);
-		}
+			convert_to_equals_sign_arg(argv[1], 7); 
+			switch (is_page_num_found(argv[1])) {
+                case PAGE_FOUND: edit(argv[1]); break;
+                case NO_PAGE_FOUND:
+                printf("%s\n", get_page_not_found_str(argv[1])); break;
+                case INVALID_INPUT:
+                printf("%s\n", get_invalid_page_str(argv[1])); break;
+            }
+        }
 
 		else if (strncmp(argv[1], "--view=", 7) == 0) {
-			int i;
-			for (i = 7; i < (int)strlen(argv[1]); i++)
-			argv[1][i - 7] = argv[1][i];
-			argv[1][i - 7] = '\0';
-			
-			if (argv[1][0] == '\0') invalid(argv[1]);
-			else if (check_input_is_int(argv[1]) == true) {
-				int argv2_int = convert_to_int(argv[1]);
-				if (argv2_int <= convert_to_int(convert_to_char_array(newest_page_num))
-				&& argv2_int >= 0) view(argv[1]);
-				else printf("error: found no page with number '%s'\n", argv[1]);
-			}
-			else invalid(argv[1]);
+			convert_to_equals_sign_arg(argv[1], 7); 
+			switch (is_page_num_found(argv[1])) {
+                case PAGE_FOUND: view(argv[1]); break;
+                case NO_PAGE_FOUND:
+                printf("%s\n", get_page_not_found_str(argv[1])); break;
+                case INVALID_INPUT:
+                printf("%s\n", get_invalid_page_str(argv[1])); break;
+            }
 		}
 
 		else if (strncmp(argv[1], "-n", 3) == 0 ||
@@ -152,7 +141,7 @@ int main(int argc, char **argv) {
 		else if (strncmp(argv[1], "-l", 3) == 0 ||
 		strncmp(argv[1], "--list", 7) == 0) list_pages();
 
-		else invalid(argv[1]);
+		else printf("%s\n", get_invalid_arg_str(argv[1], COMMAND_LINE));
 	}
 
 	return 0;
