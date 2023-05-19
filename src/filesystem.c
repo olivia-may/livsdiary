@@ -26,6 +26,8 @@
 #include "filesystem.h"
 #include "time.h"
 
+char *diary_dir = NULL;
+char *page_count_loc = NULL;
 unsigned int page_count = 0;
 
 char *loc_malloc() {
@@ -68,31 +70,20 @@ void initialize_diary() {
     fclose(table_of_contents_file);
 }
 
-char *get_diary_dir() {
-    char *dir = NULL;
-
-    dir = loc_malloc();
-    strcpy(dir, getenv("HOME"));
-    strcat(dir, "/.local/share/livsdiary/");
-
-    return dir;
-}
-
-char *get_page_count_loc() {
-    char *loc = NULL; 
-
-    loc = loc_malloc();
-    strcpy(loc, get_diary_dir());
-    strcat(loc, "page_count.dat\0");
-
-    return loc;
+void initialize_locs() {
+    diary_dir = loc_malloc();
+    strcpy(diary_dir, getenv("HOME"));
+    strcat(diary_dir, "/.local/share/livsdiary/");
+    page_count_loc = loc_malloc();
+    strcpy(page_count_loc, diary_dir);
+    strcat(page_count_loc, "page_count.dat\0");
 }
 
 char *get_page_loc(char *page_num_str) {
     char *loc = NULL;
 
     loc = loc_malloc();
-    strcpy(loc, get_diary_dir());
+    strcpy(loc, diary_dir);
     strcat(loc, page_num_str);
     strcat(loc, ".txt");
 
@@ -121,12 +112,12 @@ char *get_file_contents(char *loc) {
 }
 
 void set_page_count(unsigned int count) {
-    FILE *file = fopen(get_page_count_loc(), "w");
+    FILE *file = fopen(page_count_loc, "w");
     fwrite(&count, sizeof(unsigned int), 1, file);
     fclose(file);
 }
 unsigned int get_page_count() {
-    FILE *file = fopen(get_page_count_loc(), "r");
+    FILE *file = fopen(page_count_loc, "r");
     unsigned int count;
     fread(&count, sizeof(unsigned int), 1, file);
     fclose(file);
@@ -158,4 +149,9 @@ void remove_newest_page() {
     set_page_count(page_count - 1);
 
     free(get_page_loc(convert_to_char_array(page_count)));
+}
+
+void free_locs() {
+    free(page_count_loc);
+    free(diary_dir);
 }

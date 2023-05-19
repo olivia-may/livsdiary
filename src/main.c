@@ -58,21 +58,41 @@ void edit(char *page_num_str) {
     editor_exit();
 }
 void view(char *page_num_str) {
-    printf("%s\n", get_file_contents(get_page_loc(page_num_str)));
+    char *page_loc = NULL;
+    char *page_contents = NULL;
 
-    free(get_page_loc(page_num_str));
+    page_loc = get_page_loc(page_num_str);
+    page_contents = get_file_contents(page_loc);
+    printf("%s\n", page_contents);
+
+    free(page_loc);
+    free(page_contents);
 }
 void list_pages() {
     unsigned int page_count = get_page_count();
-    for (unsigned int i = 0; i <= page_count; i++)
-    view(convert_to_char_array(i));
+    char *i_str = NULL;
+    for (unsigned int i = 0; i <= page_count; i++) {
+        i_str = convert_to_char_array(i);
+        view(i_str);
+        free(i_str);
+    }
+}
+
+void print(char *str) {
+    printf("%s\n", str);
+    free(str);
 }
 
 int main(int argc, char **argv) {
-    if (access(get_page_count_loc(), F_OK) != 0) initialize_diary();
-    unsigned int newest_page_num = get_page_count();
+    unsigned int newest_page_num;
+    char *newest_page_num_str = NULL;
 
-    if (argc == 1) edit(convert_to_char_array(newest_page_num));
+    initialize_locs();
+    if (access(page_count_loc, F_OK) != 0) initialize_diary();
+    newest_page_num = get_page_count();
+    newest_page_num_str = convert_to_char_array(newest_page_num);
+
+    if (argc == 1) edit(newest_page_num_str);
     else {
     if (strncmp(argv[1], "-h", 3) == 0
     || strncmp(argv[1], "--help", 7) == 0) help();
@@ -80,23 +100,23 @@ int main(int argc, char **argv) {
     || strncmp(argv[1], "--version", 10) == 0) version();
 
     else if (strncmp(argv[1], "-e", 3) == 0) {
-        if (argc == 2) edit(convert_to_char_array(newest_page_num));
+        if (argc == 2) edit(newest_page_num_str);
         else switch (is_page_num_found(argv[2])) {
             case PAGE_FOUND: edit(argv[2]); break;
             case NO_PAGE_FOUND:
-            printf("%s\n", get_page_not_found_str(argv[2])); break;
+            print(get_page_not_found_str(argv[2])); break;
             case INVALID_INPUT:
-            printf("%s\n", get_invalid_page_str(argv[2])); break;
+            print(get_invalid_page_str(argv[2])); break;
         }
     }
     else if (strncmp(argv[1], "-v", 3) == 0) {
-        if (argc == 2) view(convert_to_char_array(newest_page_num));
+        if (argc == 2) view(newest_page_num_str);
         else switch (is_page_num_found(argv[2])) {
             case PAGE_FOUND: view(argv[2]); break;
             case NO_PAGE_FOUND:
-            printf("%s\n", get_page_not_found_str(argv[2])); break;
+            print(get_page_not_found_str(argv[2])); break;
             case INVALID_INPUT:
-            printf("%s\n", get_invalid_page_str(argv[2])); break;
+            print(get_invalid_page_str(argv[2])); break;
         }
     }
 
@@ -106,9 +126,9 @@ int main(int argc, char **argv) {
         switch (is_page_num_found(argv[1])) {
             case PAGE_FOUND: edit(argv[1]); break;
             case NO_PAGE_FOUND:
-            printf("%s\n", get_page_not_found_str(argv[1])); break;
+            print(get_page_not_found_str(argv[1])); break;
             case INVALID_INPUT:
-            printf("%s\n", get_invalid_page_str(argv[1])); break;
+            print(get_invalid_page_str(argv[1])); break;
         }
     }
     else if (strncmp(argv[1], "--view=", 7) == 0) {
@@ -116,9 +136,9 @@ int main(int argc, char **argv) {
         switch (is_page_num_found(argv[1])) {
             case PAGE_FOUND: view(argv[1]); break;
             case NO_PAGE_FOUND:
-            printf("%s\n", get_page_not_found_str(argv[1])); break;
+            print(get_page_not_found_str(argv[1])); break;
             case INVALID_INPUT:
-            printf("%s\n", get_invalid_page_str(argv[1])); break;
+            print(get_invalid_page_str(argv[1])); break;
         }
     }
 
@@ -132,8 +152,10 @@ int main(int argc, char **argv) {
     }
     else if (strncmp(argv[1], "-l", 3) == 0
     || strncmp(argv[1], "--list", 7) == 0) list_pages();
-    else printf("%s\n", get_invalid_arg_str(argv[1], COMMAND_LINE));
+    else print(get_invalid_arg_str(argv[1], COMMAND_LINE));
     }
 
+    free(newest_page_num_str);
+    free_locs();
     return 0;
 }

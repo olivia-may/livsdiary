@@ -19,15 +19,18 @@
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
+extern char *diary_dir;
+extern char *page_count_loc;
+
 char *loc_malloc();
 void initialize_diary();
-char *get_diary_dir();
-char *get_page_count_loc();
+void initialize_locs();
 char *get_page_loc(char *page_num_str);
 char *get_file_contents(char *loc);
 // Use first char as the counter
 void set_page_count(unsigned int count);
 unsigned int get_page_count();
+void free_locs();
 
 void make_new_page();
 void remove_newest_page();

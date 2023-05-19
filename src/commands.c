@@ -36,14 +36,17 @@ char *get_page_not_found_str(char *arg) {
 
 char *get_invalid_page_str(char *arg) {
     char *str = NULL;
+    char *page_count_str = NULL;
 
+    page_count_str = convert_to_char_array(get_page_count());
     str = malloc(64 * sizeof(char));
     strcpy(str, "error: invalid page number: '");
     strcat(str, arg);
     strcat(str, "', newest page number is '");
-    strcat(str, convert_to_char_array(get_page_count()));
+    strcat(str, page_count_str);
     strcat(str, "'");
 
+    free(page_count_str);
     return str;
 }
 
