@@ -1,4 +1,4 @@
-project('livsdiary', 'c', version : '3.2.1')
+project('livsdiary', 'c', version : '3.2.2')
 
 srcs = [
     'src/commands.c',
