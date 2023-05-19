@@ -30,36 +30,35 @@
 
 /* The command-line options */
 void version() {
-	printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", VERSION);
-	printf("Copyright (C) 2022 Olivia May.\n");
-	printf("License GPLv3+, this is free software.\n\n");
-	printf("Written in C by Olivia May.\n");
+    printf("LIVSDiary %s - (LI)ghtweight (V)irtual (S)imple Diary\n", VERSION);
+    printf("Copyright (C) 2022 Olivia May.\n");
+    printf("License GPLv3+, this is free software.\n\n");
+    printf("Written in C by Olivia May.\n");
 }
 void help() {
-	printf("A command line virtual diary.\n");
-	printf("-e [page number],	--edit=NUMBER	edit page. No input assumes most recent page\n");
-	printf("-h,			--help		show this menu\n");
-	printf("-l,			--list		list all pages\n");
-	printf("-n,			--new		new page\n");
-	printf("-r			--remove	removes most recent page\n");
-	printf("-v [page number],	--view=NUMBER	view page\n");
-	printf("-V			--version	show version\n");
+    printf("A command line virtual diary.\n");
+    printf("-e [page number],	--edit=NUMBER	edit page. No input assumes most recent page\n");
+    printf("-h,			--help		show this menu\n");
+    printf("-l,			--list		list all pages\n");
+    printf("-n,			--new		new page\n");
+    printf("-r			--remove	removes most recent page\n");
+    printf("-v [page number],	--view=NUMBER	view page\n");
+    printf("-V			--version	show version\n");
 }
 void edit(char *page_num_str) {
-	/*
-	printf("** LIVSDiary %s **\n", PROGRAM_VERSION);
-	printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
-	printf("This is free software, and you are welcome to\n");
-	printf("redistribute it under certain conditions.\n\n");
-	*/
-
+    /*
+    printf("** LIVSDiary %s **\n", PROGRAM_VERSION);
+    printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
+    printf("This is free software, and you are welcome to\n");
+    printf("redistribute it under certain conditions.\n\n");
+    */
 
     editor_enter();
     editor_open_page(page_num_str);
     editor_exit();
 }
 void view(char *page_num_str) {
-	printf("%s\n", get_file_contents(get_page_loc(page_num_str)));
+    printf("%s\n", get_file_contents(get_page_loc(page_num_str)));
 
     free(get_page_loc(page_num_str));
 }
@@ -70,79 +69,71 @@ void list_pages() {
 }
 
 int main(int argc, char **argv) {
-	if (access(get_page_count_loc(), F_OK) != 0) initialize_diary();
+    if (access(get_page_count_loc(), F_OK) != 0) initialize_diary();
     unsigned int newest_page_num = get_page_count();
 
-	if (argc == 1) edit(convert_to_char_array(newest_page_num));
-	else {
-		if (strncmp(argv[1], "-h", 3) == 0 ||
-		strncmp(argv[1], "--help", 7) == 0) help();
+    if (argc == 1) edit(convert_to_char_array(newest_page_num));
+    else {
+    if (strncmp(argv[1], "-h", 3) == 0
+    || strncmp(argv[1], "--help", 7) == 0) help();
+    else if (strncmp(argv[1], "-V", 3) == 0
+    || strncmp(argv[1], "--version", 10) == 0) version();
 
-		else if (strncmp(argv[1], "-V", 3) == 0 ||
-		strncmp(argv[1], "--version", 10) == 0) version();
-
-		else if (strncmp(argv[1], "-e", 3) == 0) {
-			if (argc == 2) edit(convert_to_char_array(newest_page_num));
-			else {
-			    switch (is_page_num_found(argv[2])) {
-                    case PAGE_FOUND: edit(argv[2]); break;
-                    case NO_PAGE_FOUND:
-                    printf("%s\n", get_page_not_found_str(argv[2])); break;
-                    case INVALID_INPUT:
-                    printf("%s\n", get_invalid_page_str(argv[2])); break;
-                }
-			}
-		}
-		else if (strncmp(argv[1], "-v", 3) == 0) {
-			if (argc == 2) view(convert_to_char_array(newest_page_num));
-			else {
-			    switch (is_page_num_found(argv[2])) {
-                    case PAGE_FOUND: view(argv[2]); break;
-                    case NO_PAGE_FOUND:
-                    printf("%s\n", get_page_not_found_str(argv[2])); break;
-                    case INVALID_INPUT:
-                    printf("%s\n", get_invalid_page_str(argv[2])); break;
-                }
-			}
-		}
-
-		// 7 because not checking for null char at the end
-		else if (strncmp(argv[1], "--edit=", 7) == 0) {
-			convert_to_equals_sign_arg(argv[1], 7); 
-			switch (is_page_num_found(argv[1])) {
-                case PAGE_FOUND: edit(argv[1]); break;
-                case NO_PAGE_FOUND:
-                printf("%s\n", get_page_not_found_str(argv[1])); break;
-                case INVALID_INPUT:
-                printf("%s\n", get_invalid_page_str(argv[1])); break;
-            }
+    else if (strncmp(argv[1], "-e", 3) == 0) {
+        if (argc == 2) edit(convert_to_char_array(newest_page_num));
+        else switch (is_page_num_found(argv[2])) {
+            case PAGE_FOUND: edit(argv[2]); break;
+            case NO_PAGE_FOUND:
+            printf("%s\n", get_page_not_found_str(argv[2])); break;
+            case INVALID_INPUT:
+            printf("%s\n", get_invalid_page_str(argv[2])); break;
         }
+    }
+    else if (strncmp(argv[1], "-v", 3) == 0) {
+        if (argc == 2) view(convert_to_char_array(newest_page_num));
+        else switch (is_page_num_found(argv[2])) {
+            case PAGE_FOUND: view(argv[2]); break;
+            case NO_PAGE_FOUND:
+            printf("%s\n", get_page_not_found_str(argv[2])); break;
+            case INVALID_INPUT:
+            printf("%s\n", get_invalid_page_str(argv[2])); break;
+        }
+    }
 
-		else if (strncmp(argv[1], "--view=", 7) == 0) {
-			convert_to_equals_sign_arg(argv[1], 7); 
-			switch (is_page_num_found(argv[1])) {
-                case PAGE_FOUND: view(argv[1]); break;
-                case NO_PAGE_FOUND:
-                printf("%s\n", get_page_not_found_str(argv[1])); break;
-                case INVALID_INPUT:
-                printf("%s\n", get_invalid_page_str(argv[1])); break;
-            }
-		}
+    // 7 because not checking for null char at the end
+    else if (strncmp(argv[1], "--edit=", 7) == 0) {
+        convert_to_equals_sign_arg(argv[1], 7); 
+        switch (is_page_num_found(argv[1])) {
+            case PAGE_FOUND: edit(argv[1]); break;
+            case NO_PAGE_FOUND:
+            printf("%s\n", get_page_not_found_str(argv[1])); break;
+            case INVALID_INPUT:
+            printf("%s\n", get_invalid_page_str(argv[1])); break;
+        }
+    }
+    else if (strncmp(argv[1], "--view=", 7) == 0) {
+        convert_to_equals_sign_arg(argv[1], 7); 
+        switch (is_page_num_found(argv[1])) {
+            case PAGE_FOUND: view(argv[1]); break;
+            case NO_PAGE_FOUND:
+            printf("%s\n", get_page_not_found_str(argv[1])); break;
+            case INVALID_INPUT:
+            printf("%s\n", get_invalid_page_str(argv[1])); break;
+        }
+    }
 
-		else if (strncmp(argv[1], "-n", 3) == 0 ||
-		strncmp(argv[1], "--new", 6) == 0) make_new_page();
+    else if (strncmp(argv[1], "-n", 3) == 0
+    || strncmp(argv[1], "--new", 6) == 0) make_new_page();
+    else if (strncmp(argv[1], "-r", 3) == 0
+    || strncmp(argv[1], "--remove", 9) == 0) {
+        if (newest_page_num == 0) 
+        printf("error: refusing to remove Table of Contents!\n");
+        else remove_newest_page();
+    }
+    else if (strncmp(argv[1], "-l", 3) == 0
+    || strncmp(argv[1], "--list", 7) == 0) list_pages();
+    else printf("%s\n", get_invalid_arg_str(argv[1], COMMAND_LINE));
+    }
 
-		else if (strncmp(argv[1], "-r", 3) == 0 ||
-		strncmp(argv[1], "--remove", 9) == 0) {
-			if (newest_page_num == 0) 
-			printf("error: refusing to remove Table of Contents!\n");
-			else remove_newest_page();
-		}
-		else if (strncmp(argv[1], "-l", 3) == 0 ||
-		strncmp(argv[1], "--list", 7) == 0) list_pages();
-
-		else printf("%s\n", get_invalid_arg_str(argv[1], COMMAND_LINE));
-	}
-
-	return 0;
+    return 0;
 }

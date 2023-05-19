@@ -35,7 +35,7 @@ char *get_page_not_found_str(char *arg) {
 }
 
 char *get_invalid_page_str(char *arg) {
-	char *str = NULL;
+    char *str = NULL;
 
     str = malloc(64 * sizeof(char));
     strcpy(str, "error: invalid page number: '");
@@ -48,7 +48,7 @@ char *get_invalid_page_str(char *arg) {
 }
 
 char *get_invalid_arg_str(char *arg, int mode) {
-   	char *str = NULL;
+    char *str = NULL;
 
     str = malloc(64 * sizeof(char));
     strcpy(str, "error: invalid argument '");
@@ -62,22 +62,22 @@ char *get_invalid_arg_str(char *arg, int mode) {
 }
 
 bool check_input_is_unsigned_int(char *input) {
-	if (input[0] == '\0') return false;
-	for (int i = 0; i < (int)strlen(input); i++) {				
-		if (input[i] == '0' ||
-		input[i] == '1' ||
-		input[i] == '2' ||
-		input[i] == '3' ||
-		input[i] == '4' ||
-		input[i] == '5' ||
-		input[i] == '6' ||
-		input[i] == '7' ||
-		input[i] == '8' ||
-		input[i] == '9') continue;
-		else return false;
-	}
+    if (input[0] == '\0') return false;
+    for (int i = 0; i < (int)strlen(input); i++) {
+        if (input[i] == '0' 
+        || input[i] == '1'
+        || input[i] == '2'
+        || input[i] == '3'
+        || input[i] == '4'
+        || input[i] == '5'
+        || input[i] == '6'
+        || input[i] == '7'
+        || input[i] == '8'
+        || input[i] == '9') continue;
+        else return false;
+    }
 
-	return true;
+    return true;
 }
 
 int is_page_num_found(char *page_num_str) {
@@ -86,19 +86,19 @@ int is_page_num_found(char *page_num_str) {
 	    
     if (check_input_is_unsigned_int(page_num_str) == true) {
         page_num_str_unsigned_int = convert_to_unsigned_int(page_num_str);
-		if (page_num_str_unsigned_int <= (int)newest_page_num
-		&& page_num_str_unsigned_int >= 0) return PAGE_FOUND;
-		else return NO_PAGE_FOUND;
-	}
-	
+        if (page_num_str_unsigned_int <= (int)newest_page_num
+        && page_num_str_unsigned_int >= 0) return PAGE_FOUND;
+        else return NO_PAGE_FOUND;
+    }
+
     return INVALID_INPUT;
 }
 
-void convert_to_equals_sign_arg(char *arg, const int arg_len_at_equals_sign) {
+void convert_to_equals_sign_arg(char *arg, 
+const int arg_len_at_equals_sign) {
     int i;
 
-	for (i = arg_len_at_equals_sign;
-    i < (int)strlen(arg); i++) 
-    arg[i - arg_len_at_equals_sign] = arg[i];
-	arg[i - arg_len_at_equals_sign] = '\0';
+    for (i = arg_len_at_equals_sign;
+    i < (int)strlen(arg); i++) arg[i - arg_len_at_equals_sign] = arg[i];
+    arg[i - arg_len_at_equals_sign] = '\0';
 }

@@ -72,20 +72,20 @@ char *get_diary_dir() {
     char *dir = NULL;
 
     dir = loc_malloc();
-	strcpy(dir, getenv("HOME"));
-	strcat(dir, "/.local/share/livsdiary/");
+    strcpy(dir, getenv("HOME"));
+    strcat(dir, "/.local/share/livsdiary/");
 
     return dir;
 }
 
 char *get_page_count_loc() {
-	char *loc = NULL; 
+    char *loc = NULL; 
 
     loc = loc_malloc();
     strcpy(loc, get_diary_dir());
     strcat(loc, "page_count.dat\0");
 
-	return loc;
+    return loc;
 }
 
 char *get_page_loc(char *page_num_str) {
@@ -100,24 +100,24 @@ char *get_page_loc(char *page_num_str) {
 }
 
 char *get_file_contents(char *loc) {
-	FILE *file = fopen(loc, "r");
-	char *file_contents = NULL;
-	// 2 because null char
-	file_contents = (char *)malloc(2 * sizeof(char));
-	int i = 0;
-	int ch;
-	while (true) {
-		ch = fgetc(file);
-		if (ch < 0) break;
-		file_contents[i] = ch;
-		i++;
-		file_contents = 
+    FILE *file = fopen(loc, "r");
+    char *file_contents = NULL;
+    // 2 because null char
+    file_contents = (char *)malloc(2 * sizeof(char));
+    int i = 0;
+    int ch;
+    while (true) {
+        ch = fgetc(file);
+        if (ch < 0) break;
+        file_contents[i] = ch;
+        i++;
+        file_contents = 
         (char *)realloc(file_contents, (i + 2) * sizeof(char));
-	}
-	file_contents[i] = '\0';
-	fclose(file);
+    }
+    file_contents[i] = '\0';
+    fclose(file);
 
-	return file_contents;
+    return file_contents;
 }
 
 void set_page_count(unsigned int count) {
@@ -127,7 +127,7 @@ void set_page_count(unsigned int count) {
 }
 unsigned int get_page_count() {
     FILE *file = fopen(get_page_count_loc(), "r");
-	unsigned int count;
+    unsigned int count;
     fread(&count, sizeof(unsigned int), 1, file);
     fclose(file);
 
@@ -141,9 +141,11 @@ void make_new_page() {
     page_count = page_count + 1;
     set_page_count(page_count);
 
-	new_page_file = fopen(get_page_loc(convert_to_char_array(page_count)), "w");
-	fprintf(new_page_file, "** Page %d **\n", page_count);
-	fprintf(new_page_file, "%s\n", get_current_time());
+    new_page_file = fopen(
+    get_page_loc(convert_to_char_array(page_count)), "w"
+    );
+    fprintf(new_page_file, "** Page %d **\n", page_count);
+    fprintf(new_page_file, "%s\n", get_current_time());
 
     free(get_page_loc(convert_to_char_array(page_count)));
     fclose(new_page_file);
@@ -151,7 +153,8 @@ void make_new_page() {
 
 void remove_newest_page() {
     page_count = get_page_count();
-	remove(get_page_loc(convert_to_char_array(page_count))); // remove file
+    // remove file
+    remove(get_page_loc(convert_to_char_array(page_count)));
     set_page_count(page_count - 1);
 
     free(get_page_loc(convert_to_char_array(page_count)));
