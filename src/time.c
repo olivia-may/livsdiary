@@ -19,13 +19,12 @@
 #include <time.h>
 #include <string.h>
 
-char * get_current_time()
-{
-	time_t now = time(0);
-	struct tm *lt = localtime(&now);
-	char *current_time = asctime(lt);
-	current_time[strlen(current_time) - 1] = ' ';
-	strcat(current_time, lt->tm_zone);
+char *get_current_time() {
+    time_t now = time(0);
+    struct tm *lt = localtime(&now);
+    char *current_time = asctime(lt);
+    current_time[strlen(current_time) - 1] = ' ';
+    strcat(current_time, lt->tm_zone);
 	
-	return current_time;
+    return current_time;
 }
