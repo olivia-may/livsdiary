@@ -30,6 +30,7 @@
 char current_char;
 int editor_buffer_len;
 CoordYX cursoryx;
+CoordYX stdscr_maxyx;
 char *editor_buffer = NULL;
 
 #define UPDATE_CURSORYX getyx(stdscr, cursoryx.y, cursoryx.x);
@@ -50,17 +51,8 @@ void editor_help() {
     clear();
 }
 
-CoordYX *get_stdscr_maxyx() {
-    CoordYX *stdscr_maxyx = NULL;
-
-    stdscr_maxyx = malloc(2 * sizeof(int));
-    getmaxyx(stdscr, stdscr_maxyx->y, stdscr_maxyx->x);
-
-    return stdscr_maxyx;
-}
-
 void editor_draw_command_line() {
-    move(get_stdscr_maxyx()->y - 1, 0);
+    move(stdscr_maxyx.y - 1, 0);
     addch(':');
 }
 
@@ -69,6 +61,7 @@ void editor_enter() {
     cbreak();
     echo();
 
+    getmaxyx(stdscr, stdscr_maxyx.y, stdscr_maxyx.x);
     editor_draw_command_line();
     move(0, 0);
 }
@@ -89,15 +82,15 @@ CoordYX editor_command_mode() {
     char command_str[8];
     
     UPDATE_CURSORYX
-    move(get_stdscr_maxyx()->y - 1, 1);
+    move(stdscr_maxyx.y - 1, 1);
 
     i = 0;
     while (true) {
         current_char = getch();
         if (current_char == '\n') {
             command_str[i] = '\0';
-            move(get_stdscr_maxyx()->y - 1, 1);
-            for (i = 1; i < get_stdscr_maxyx()->x; i++) addch(' ');
+            move(stdscr_maxyx.y - 1, 1);
+            for (i = 1; i < stdscr_maxyx.x; i++) addch(' ');
             move(cursoryx.y, cursoryx.x);
             break;
         }
@@ -151,12 +144,14 @@ CoordYX editor_command_mode() {
 }
 
 void editor_open_page(char *page_num_str) {
-#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(get_page_loc(page_num_str)); free(editor_buffer);
+#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(get_page_loc(page_num_str)); free(editor_buffer); free(page_loc);
 #define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(get_page_loc(page_num_str), "w"); fprintf(page_file, editor_buffer); fclose(page_file);
     
     FILE *page_file = NULL;
+    char *page_loc = NULL;
 
-    editor_buffer = get_file_contents(get_page_loc(page_num_str));
+    page_loc = get_page_loc(page_num_str);
+    editor_buffer = get_file_contents(page_loc);
     printw(editor_buffer);
 
     while (true) {
