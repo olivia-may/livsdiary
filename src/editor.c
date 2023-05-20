@@ -41,13 +41,13 @@ void editor_help() {
     printw(":e [number]<enter>          open page [number]\n");
     printw(":h<enter>   :help<enter>    show this menu\n");
     printw(":n<enter>                   make new page\n");
-    printw(":q<enter>                   quit editor\n");
+    printw(":q<enter>                   save and quit editor\n");
     printw(":r<enter>                   remove newest page\n");
-    printw(":w<enter>                   save changes\n");
-    printw(":wq<enter>                  save and quit\n");
     printw("\n");
+    printw("Your current page will save when left.\n");
     printw("Type '\\' to use as an escape character. Ex: will let you\n");
     printw("type ':' without going into command mode.\n");
+    printw("\n");
     printw("Press any key to go back to editing.\n");
     getch();
     clear();
@@ -120,12 +120,6 @@ CoordYX editor_command_mode() {
     if (strncmp(command_str, "q", 2) == 0) {
         retval.y = QUIT; retval.x = 0; RETURN
     }
-    if (strncmp(command_str, "w", 2) == 0) {
-        retval.y = WRITE; retval.x = 0; RETURN
-    }
-    if (strncmp(command_str, "wq", 3) == 0) {
-        retval.y = WRITE_QUIT; retval.x = 0; RETURN
-    }
     if (strncmp(command_str, "h", 2) == 0
     || strncmp(command_str, "help", 5) == 0) {
         retval.y = HELP; retval.x = 0; RETURN
@@ -159,7 +153,7 @@ CoordYX editor_command_mode() {
 }
 
 void editor_open_page(char *page_num_str) {
-#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(editor_buffer); free(page_loc);
+#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(editor_buffer); free(page_loc); free(page_num_str);
 #define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
     
     FILE *page_file = NULL;
@@ -201,13 +195,11 @@ void editor_open_page(char *page_num_str) {
             printw("\b \b"); // dont show ':'
             CoordYX command_retval = editor_command_mode();
             switch (command_retval.y) {
-                case QUIT: { editor_exit(); exit(0); } break;
-                case WRITE: {
+                case QUIT: {
                     WRITE_PAGE
-                } break;
-                case WRITE_QUIT: {
-                    WRITE_PAGE
-                    editor_exit(); return;
+                    CLOSE_PAGE
+                    editor_exit();
+                    exit(0);
                 } break;
                 case HELP: {
                     editor_help();
@@ -219,19 +211,25 @@ void editor_open_page(char *page_num_str) {
                     make_new_page();
                     WRITE_PAGE
                     CLOSE_PAGE
+                    page_num_str = // gets free'd by `CLOSE_PAGE`
+                    convert_to_char_array(get_page_count());
                     // recursion B)
-                    editor_open_page(convert_to_char_array(get_page_count()));
+                    editor_open_page(page_num_str);
                 } break;
                 case REMOVE_PAGE: {
                     WRITE_PAGE
                     remove_newest_page();
                     CLOSE_PAGE
-                    editor_open_page(convert_to_char_array(get_page_count()));
+                    page_num_str = 
+                    convert_to_char_array(get_page_count());
+                    editor_open_page(page_num_str);
                 } break;
                 case OPEN: {
                     WRITE_PAGE
                     CLOSE_PAGE
-                    editor_open_page(convert_to_char_array(command_retval.x));
+                    page_num_str = 
+                    convert_to_char_array(command_retval.x);
+                    editor_open_page(page_num_str);
                 } break;
             }
         }
