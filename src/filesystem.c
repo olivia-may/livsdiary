@@ -127,28 +127,37 @@ unsigned int get_page_count() {
 
 void make_new_page() {
     FILE *new_page_file = NULL;
+    char *page_count_str = NULL;
+    char *page_loc = NULL;
     
     page_count = get_page_count();
     page_count = page_count + 1;
     set_page_count(page_count);
 
-    new_page_file = fopen(
-    get_page_loc(convert_to_char_array(page_count)), "w"
-    );
-    fprintf(new_page_file, "** Page %d **\n", page_count);
+    page_count_str = convert_to_char_array(page_count);
+    page_loc = get_page_loc(page_count_str);
+    new_page_file = fopen(page_loc, "w");
+    fprintf(new_page_file, "** Page %s **\n", page_count_str);
     fprintf(new_page_file, "%s\n", get_current_time());
 
-    free(get_page_loc(convert_to_char_array(page_count)));
+    free(page_loc);
+    free(page_count_str);
     fclose(new_page_file);
 }
 
 void remove_newest_page() {
+    char *page_count_str = NULL;
+    char *page_loc = NULL;
+
     page_count = get_page_count();
+    page_count_str = convert_to_char_array(page_count);
+    page_loc = get_page_loc(page_count_str);
     // remove file
-    remove(get_page_loc(convert_to_char_array(page_count)));
+    remove(page_loc);
     set_page_count(page_count - 1);
 
-    free(get_page_loc(convert_to_char_array(page_count)));
+    free(page_count_str);
+    free(page_loc);
 }
 
 void free_locs() {
