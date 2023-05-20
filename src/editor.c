@@ -46,6 +46,8 @@ void editor_help() {
     printw(":w<enter>                   save changes\n");
     printw(":wq<enter>                  save and quit\n");
     printw("\n");
+    printw("Type '\\' to use as an escape character. Ex: will let you\n");
+    printw("type ':' without going into command mode.\n");
     printw("Press any key to go back to editing.\n");
     getch();
     clear();
@@ -79,11 +81,12 @@ void editor_backspace(char *buffer, int buffer_len) {
 // CoordYX so it can pass ':e 2' for example
 CoordYX editor_command_mode() {
     int i;
-    char command_str[8];
+    char *command_str = NULL;
     
     UPDATE_CURSORYX
     move(stdscr_maxyx.y - 1, 1);
 
+    command_str = (char *)malloc(2 * sizeof(char));
     i = 0;
     while (true) {
         current_char = getch();
@@ -94,32 +97,44 @@ CoordYX editor_command_mode() {
             move(cursoryx.y, cursoryx.x);
             break;
         }
-        if (current_char == '\x7F') // backspace char "^?"
-        editor_backspace(command_str, strlen(command_str));
-        command_str[i] = current_char;
-
-        if (i != 7) i++;
+        else if (current_char == '\x7F') {// backspace char "^?"
+            editor_backspace(command_str, strlen(command_str));
+            command_str = 
+            (char *)realloc(command_str,( strlen(command_str) + 2) * sizeof(char));
+            i--;
+        }
+        else {
+            command_str[i] = current_char;
+            command_str[i + 1] = '\0';
+            command_str = 
+            (char *)realloc(command_str, (strlen(command_str) + 2) * sizeof(char));
+            i++;
+        }
     }
 
     CoordYX retval;
     retval.y = -1; retval.x = 0;
     
+#define RETURN free(command_str); return retval;
+
     if (strncmp(command_str, "q", 2) == 0) {
-        retval.y = QUIT; retval.x = 0; return retval;
+        retval.y = QUIT; retval.x = 0; RETURN
     }
     if (strncmp(command_str, "w", 2) == 0) {
-        retval.y = WRITE; retval.x = 0; return retval;
+        retval.y = WRITE; retval.x = 0; RETURN
     }
     if (strncmp(command_str, "wq", 3) == 0) {
-        retval.y = WRITE_QUIT; retval.x = 0; return retval;
+        retval.y = WRITE_QUIT; retval.x = 0; RETURN
     }
-    if (strncmp(command_str, "h", 2) == 0 ||
-    strncmp(command_str, "help", 5) == 0) { retval.y = HELP; retval.x = 0; return retval;
+    if (strncmp(command_str, "h", 2) == 0
+    || strncmp(command_str, "help", 5) == 0) {
+        retval.y = HELP; retval.x = 0; RETURN
     }
-    if (strncmp(command_str, "n", 2) == 0) { retval.y = NEW_PAGE; retval.x = 0; return retval; 
+    if (strncmp(command_str, "n", 2) == 0) {
+        retval.y = NEW_PAGE; retval.x = 0; RETURN
     }
     if (strncmp(command_str, "r", 2) == 0) {
-        retval.y = REMOVE_PAGE; retval.x = 0; return retval;
+        retval.y = REMOVE_PAGE; retval.x = 0; RETURN
     }
     if (strncmp(command_str, "e", 1) == 0) { 
         retval.y = OPEN;
@@ -137,15 +152,15 @@ CoordYX editor_command_mode() {
         }
         else retval.x = get_page_count();
         
-        return retval;
+        RETURN
     }
     
-    return retval;
+    RETURN
 }
 
 void editor_open_page(char *page_num_str) {
-#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(get_page_loc(page_num_str)); free(editor_buffer); free(page_loc);
-#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(get_page_loc(page_num_str), "w"); fprintf(page_file, editor_buffer); fclose(page_file);
+#define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(editor_buffer); free(page_loc);
+#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
     
     FILE *page_file = NULL;
     char *page_loc = NULL;
@@ -172,6 +187,15 @@ void editor_open_page(char *page_num_str) {
             UPDATE_CURSORYX
             editor_draw_command_line();
             move(cursoryx.y, cursoryx.x);
+        }
+        // escape char
+        if (current_char == '\\') {
+            UPDATE_CURSORYX
+            move(cursoryx.y, cursoryx.x - 1);
+            current_char = getch();
+            editor_buffer[editor_buffer_len] = current_char;
+            editor_buffer[editor_buffer_len + 1] = '\0';
+            continue;
         }
         if (current_char == ':') {
             printw("\b \b"); // dont show ':'
