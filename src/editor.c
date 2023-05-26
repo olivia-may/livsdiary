@@ -90,6 +90,9 @@ CoordYX editor_command_mode() {
     i = 0;
     while (true) {
         current_char = getch();
+        command_str = (char *)realloc(command_str,( strlen(command_str) + 2)
+        * sizeof(char));
+        
         if (current_char == '\n') {
             command_str[i] = '\0';
             move(stdscr_maxyx.y - 1, 1);
@@ -99,15 +102,11 @@ CoordYX editor_command_mode() {
         }
         else if (current_char == '\x7F') {// backspace char "^?"
             editor_backspace(command_str, strlen(command_str));
-            command_str = 
-            (char *)realloc(command_str,( strlen(command_str) + 2) * sizeof(char));
             i--;
         }
         else {
             command_str[i] = current_char;
             command_str[i + 1] = '\0';
-            command_str = 
-            (char *)realloc(command_str, (strlen(command_str) + 2) * sizeof(char));
             i++;
         }
     }
