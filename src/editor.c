@@ -181,7 +181,7 @@ void editor_open_page(char *page_num_str) {
             editor_draw_command_line();
             move(cursoryx.y, cursoryx.x);
         }
-        // escape char
+        // livsdiary escape char
         if (current_char == '\\') {
             UPDATE_CURSORYX
             move(cursoryx.y, cursoryx.x - 1);
@@ -189,6 +189,17 @@ void editor_open_page(char *page_num_str) {
             editor_buffer[editor_buffer_len] = current_char;
             editor_buffer[editor_buffer_len + 1] = '\0';
             continue;
+        }
+        // ascii escape char
+        if (current_char == '\x1B') {
+            getch();
+            current_char = getch();
+            printw("\b \b\b \b\b \b\b \b");
+            UPDATE_CURSORYX
+            if (current_char == 'D') move(cursoryx.y, cursoryx.x - 1);
+            if (current_char == 'C') move(cursoryx.y, cursoryx.x + 1);
+            if (current_char == 'A') move(cursoryx.y - 1, cursoryx.x);
+            if (current_char == 'B') move(cursoryx.y + 1, cursoryx.x);
         }
         if (current_char == ':') {
             printw("\b \b"); // dont show ':'
