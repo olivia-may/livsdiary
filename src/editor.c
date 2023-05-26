@@ -61,20 +61,21 @@ void editor_draw_command_line() {
 void editor_enter() {
     initscr();
     cbreak();
-    echo();
+    noecho();
 
     getmaxyx(stdscr, stdscr_maxyx.y, stdscr_maxyx.x);
     editor_draw_command_line();
     move(0, 0);
 }
 void editor_exit() {
+    echo();
     endwin();
 }
 
 void editor_backspace(char *buffer, int buffer_len) {
-    printw("\b \b\b \b\b \b");
     if (buffer[0] != '\0') { 
         buffer[buffer_len - 1] = '\0';
+        printw("\b \b");
     }
 }
 
@@ -107,6 +108,7 @@ CoordYX editor_command_mode() {
         else {
             command_str[i] = current_char;
             command_str[i + 1] = '\0';
+            printw("%c", current_char);
             i++;
         }
     }
@@ -168,41 +170,35 @@ void editor_open_page(char *page_num_str) {
         editor_buffer = realloc(editor_buffer,
         (editor_buffer_len + 2) * sizeof(char));
 
-        if (current_char == '\n') {
-            UPDATE_CURSORYX
-            move(cursoryx.y + 1, 0);
-        }
-        
-        if (current_char == '\x7F') { 
+        switch (current_char) {
+        case '\x7F': { 
             editor_backspace(editor_buffer, editor_buffer_len);
             clear();
-            printw(editor_buffer);
-            UPDATE_CURSORYX
             editor_draw_command_line();
-            move(cursoryx.y, cursoryx.x);
-        }
+            move(0, 0);
+            printw(editor_buffer);
+        } break;
         // livsdiary escape char
-        if (current_char == '\\') {
+        case '\\': {
             UPDATE_CURSORYX
             move(cursoryx.y, cursoryx.x - 1);
             current_char = getch();
             editor_buffer[editor_buffer_len] = current_char;
             editor_buffer[editor_buffer_len + 1] = '\0';
             continue;
-        }
+        } break;
         // ascii escape char
-        if (current_char == '\x1B') {
-            getch();
+        case '\x1B': {
             current_char = getch();
-            printw("\b \b\b \b\b \b\b \b");
+            if (current_char != '[') continue;
+            current_char = getch();
             UPDATE_CURSORYX
             if (current_char == 'D') move(cursoryx.y, cursoryx.x - 1);
             if (current_char == 'C') move(cursoryx.y, cursoryx.x + 1);
             if (current_char == 'A') move(cursoryx.y - 1, cursoryx.x);
             if (current_char == 'B') move(cursoryx.y + 1, cursoryx.x);
-        }
-        if (current_char == ':') {
-            printw("\b \b"); // dont show ':'
+        } break;
+        case ':': {
             CoordYX command_retval = editor_command_mode();
             switch (command_retval.y) {
                 case QUIT: {
@@ -242,10 +238,12 @@ void editor_open_page(char *page_num_str) {
                     editor_open_page(page_num_str);
                 } break;
             }
-        }
-        else {
+        } break;
+        default: {
             editor_buffer[editor_buffer_len] = current_char;
             editor_buffer[editor_buffer_len + 1] = '\0';
+            printw("%c", current_char);
+        } break;
         }
     }
 }
