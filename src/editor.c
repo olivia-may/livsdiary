@@ -185,9 +185,11 @@ void editor_open_page(char *page_num_str) {
         } break;
         // livsdiary escape char
         case '\\': {
+            addch('\\');
             UPDATE_CURSORYX
             move(cursoryx.y, cursoryx.x - 1);
             current_char = getch();
+            addch(current_char);
             editor_buffer[editor_buffer_len] = current_char;
             editor_buffer[editor_buffer_len + 1] = '\0';
             continue;
