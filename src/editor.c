@@ -64,7 +64,8 @@ void editor_enter() {
     noecho();
 
     getmaxyx(stdscr, stdscr_maxyx.y, stdscr_maxyx.x);
-    editor_draw_command_line();
+    move(stdscr_maxyx.y - 1, 0);
+    printw("Type ':help<enter>' for help");
     move(0, 0);
 }
 void editor_exit() {
@@ -85,7 +86,11 @@ CoordYX editor_command_mode() {
     char *command_str = NULL;
     
     UPDATE_CURSORYX
-    move(stdscr_maxyx.y - 1, 1);
+    move(stdscr_maxyx.y - 1, 0);
+    // remove help message from `editor_enter()`
+    for (i = 0; i < stdscr_maxyx.x; i++) addch(' ');
+    move(stdscr_maxyx.y - 1, 0);
+    addch(':');
 
     command_str = (char *)malloc(2 * sizeof(char));
     i = 0;
