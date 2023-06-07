@@ -80,17 +80,9 @@ void editor_backspace(char *buffer, int buffer_len) {
     }
 }
 
-// CoordYX so it can pass ':e 2' for example
-CoordYX editor_command_mode() {
+char *get_command_str() {
     int i;
     char *command_str = NULL;
-    
-    UPDATE_CURSORYX
-    move(stdscr_maxyx.y - 1, 0);
-    // remove help message from `editor_enter()`
-    for (i = 0; i < stdscr_maxyx.x; i++) addch(' ');
-    move(stdscr_maxyx.y - 1, 0);
-    addch(':');
 
     command_str = (char *)malloc(2 * sizeof(char));
     i = 0;
@@ -99,48 +91,69 @@ CoordYX editor_command_mode() {
         command_str = (char *)realloc(command_str,( strlen(command_str) + 2)
         * sizeof(char));
         
-        if (current_char == '\n') {
+        switch (current_char) {
+        case '\n': {
             command_str[i] = '\0';
             move(stdscr_maxyx.y - 1, 1);
             for (i = 1; i < stdscr_maxyx.x; i++) addch(' ');
             move(cursoryx.y, cursoryx.x);
-            break;
+            return command_str;
         }
-        else if (current_char == '\x7F') {// backspace char "^?"
+        case '\x7F': { // backspace char "^?"
             editor_backspace(command_str, strlen(command_str));
-            i--;
+            if (i != 0) i--;
+        } break;
+        case '\x1B': { // if 'ESC' pressed leave command mode
+            free(command_str); command_str = NULL; return command_str;
         }
-        else {
+        default: {
             command_str[i] = current_char;
             command_str[i + 1] = '\0';
             printw("%c", current_char);
             i++;
-        }
+        } break;
     }
+    }
+}
 
-    CoordYX retval;
-    retval.y = -1; retval.x = 0;
-    
+// CoordYX so it can pass ':e 2' for example
+CoordYX editor_command_mode() {
 #define RETURN free(command_str); return retval;
+    
+    int i;
+    char *command_str = NULL;
+    CoordYX retval;
+    
+    UPDATE_CURSORYX
+    move(stdscr_maxyx.y - 1, 0);
+    // remove help message from `editor_enter()`
+    for (i = 0; i < stdscr_maxyx.x; i++) addch(' ');
+    move(stdscr_maxyx.y - 1, 0);
+    addch(':');
 
-    if (strncmp(command_str, "q", 2) == 0) {
+    retval.y = DO_NOTHING; retval.x = 0; 
+
+    command_str = get_command_str();
+    if (command_str == NULL) return retval;
+    
+    switch (command_str[0]) {
+    case 'q': {
         retval.y = QUIT; retval.x = 0; RETURN
-    }
-    if (strncmp(command_str, "h", 2) == 0
-    || strncmp(command_str, "help", 5) == 0) {
+    } break;
+    case 'h': {
         retval.y = HELP; retval.x = 0; RETURN
-    }
-    if (strncmp(command_str, "n", 2) == 0) {
+    } break;
+    case 'n': {
         retval.y = NEW_PAGE; retval.x = 0; RETURN
-    }
-    if (strncmp(command_str, "r", 2) == 0) {
+    } break;
+    case 'r': {
         retval.y = REMOVE_PAGE; retval.x = 0; RETURN
-    }
-    if (strncmp(command_str, "e", 1) == 0) { 
+    } break;
+    case 'e': {
         retval.y = OPEN;
         char arg_str[7];
         int offset = 0;
-        for (int i = 0; i < 7; i++) {
+        for (i = 0; i < 7; i++) {
             if (command_str[i + 1] == ' ') offset+=1;
             else arg_str[i - offset] = command_str[i + 1];
         }
@@ -153,6 +166,7 @@ CoordYX editor_command_mode() {
         else retval.x = get_page_count();
         
         RETURN
+    } break;
     }
     
     RETURN
@@ -208,6 +222,13 @@ void editor_open_page(char *page_num_str) {
         case ':': {
             CoordYX command_retval = editor_command_mode();
             switch (command_retval.y) {
+                case DO_NOTHING: {
+                    move(stdscr_maxyx.y - 1, 0);
+                    for (int i = 0; i < stdscr_maxyx.x; i++) addch(' ');
+                    editor_draw_command_line();
+                    move(0, 0);
+                    printw(editor_buffer);
+                } break;
                 case QUIT: {
                     WRITE_PAGE
                     CLOSE_PAGE

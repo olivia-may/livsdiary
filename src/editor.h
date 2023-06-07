@@ -25,6 +25,7 @@ typedef struct {
 } CoordYX;
 
 enum {
+    DO_NOTHING = -1,
     QUIT = 0,
     WRITE,
     WRITE_QUIT,
