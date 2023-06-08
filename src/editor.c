@@ -73,10 +73,22 @@ void editor_exit() {
     endwin();
 }
 
-void editor_backspace(char *buffer, int buffer_len) {
+void insert_char(char *buffer, int buffer_len, char ch, int index) {
+    int i;
+    // move everything right to make space for inserting the char
+    for (i = buffer_len + 1; i >= index; i--) {
+        buffer[i] = buffer[i - 1];
+    }
+    buffer[index] = ch;
+}
+
+void insert_backspace(char *buffer, int buffer_len, int index) {
+    int i;
+    // move everything right into the index, we dont care about it!
     if (buffer[0] != '\0') { 
-        buffer[buffer_len - 1] = '\0';
-        printw("\b \b");
+        for (i = index - 1; i < buffer_len; i++) {
+            buffer[i] = buffer[i + 1];
+        }
     }
 }
 
@@ -100,7 +112,7 @@ char *get_command_str() {
             return command_str;
         }
         case '\x7F': { // backspace char "^?"
-            editor_backspace(command_str, strlen(command_str));
+            insert_backspace(command_str, strlen(command_str), strlen(command_str) - 1);
             if (i != 0) i--;
         } break;
         case '\x1B': { // if 'ESC' pressed leave command mode
@@ -172,12 +184,46 @@ CoordYX editor_command_mode() {
     RETURN
 }
 
+// so the user can insert and delete chars anywhere the cursor is
+int get_buffer_index_from_cursoryx() {
+    int buffer_index;
+    CoordYX buffer_index_position;
+
+    buffer_index = 0;
+    buffer_index_position.y = 0;
+    buffer_index_position.x = 0;
+    while (true) {
+        if (buffer_index_position.x == cursoryx.x
+        && buffer_index_position.y == cursoryx.y) break;
+
+        if (editor_buffer[buffer_index] == '\0'
+        || editor_buffer_len == buffer_index + 1) {
+            buffer_index++; break;
+        }
+
+        if (editor_buffer[buffer_index] == '\n'
+        || buffer_index_position.x == stdscr_maxyx.x - 1) {
+            buffer_index_position.x = 0;
+            buffer_index_position.y++;
+            buffer_index++;
+            continue;
+        }
+
+        buffer_index++;
+        buffer_index_position.x++;
+    }
+
+    return buffer_index;
+}
+
 void editor_open_page(char *page_num_str) {
 #define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(editor_buffer); free(page_loc); free(page_num_str);
 #define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
+#define CLEAR_SCREEN  clear(); editor_draw_command_line(); move(0, 0);
     
     FILE *page_file = NULL;
     char *page_loc = NULL;
+    int buffer_index;
 
     page_loc = get_page_loc(page_num_str);
     editor_buffer = get_file_contents(page_loc);
@@ -187,18 +233,19 @@ void editor_open_page(char *page_num_str) {
         current_char = getch();
         editor_buffer_len = strlen(editor_buffer);
         editor_buffer = realloc(editor_buffer,
-        (editor_buffer_len + 2) * sizeof(char));
+        (editor_buffer_len + 3) * sizeof(char));
 
         switch (current_char) {
-        case '\x7F': { 
-            editor_backspace(editor_buffer, editor_buffer_len);
-            clear();
-            editor_draw_command_line();
-            move(0, 0);
+        case '\x7F': { // backspace
+            UPDATE_CURSORYX
+            buffer_index = get_buffer_index_from_cursoryx();
+            
+            insert_backspace(editor_buffer, editor_buffer_len, buffer_index);
+            CLEAR_SCREEN
             printw(editor_buffer);
+            move(cursoryx.y, cursoryx.x - 1);
         } break;
-        // livsdiary escape char
-        case '\\': {
+        case '\\': { // livsdiary escape char
             addch('\\');
             UPDATE_CURSORYX
             move(cursoryx.y, cursoryx.x - 1);
@@ -208,8 +255,7 @@ void editor_open_page(char *page_num_str) {
             editor_buffer[editor_buffer_len + 1] = '\0';
             continue;
         } break;
-        // ascii escape char
-        case '\x1B': {
+        case '\x1B': { // ascii escape char
             current_char = getch();
             if (current_char != '[') continue;
             current_char = getch();
@@ -219,58 +265,73 @@ void editor_open_page(char *page_num_str) {
             if (current_char == 'A') move(cursoryx.y - 1, cursoryx.x);
             if (current_char == 'B') move(cursoryx.y + 1, cursoryx.x);
         } break;
+        case '\n': {
+            UPDATE_CURSORYX
+            buffer_index = get_buffer_index_from_cursoryx();
+            
+            insert_char(editor_buffer, editor_buffer_len, 
+            current_char, buffer_index);
+            CLEAR_SCREEN
+            printw(editor_buffer);
+            move(cursoryx.y + 1, 0);
+        } break;
         case ':': {
             CoordYX command_retval = editor_command_mode();
             switch (command_retval.y) {
-                case DO_NOTHING: {
-                    move(stdscr_maxyx.y - 1, 0);
-                    for (int i = 0; i < stdscr_maxyx.x; i++) addch(' ');
-                    editor_draw_command_line();
-                    move(0, 0);
-                    printw(editor_buffer);
-                } break;
-                case QUIT: {
-                    WRITE_PAGE
-                    CLOSE_PAGE
-                    editor_exit();
-                    exit(0);
-                } break;
-                case HELP: {
-                    editor_help();
-                    editor_draw_command_line();
-                    move(0, 0);
-                    printw(editor_buffer);
-                } break;
-                case NEW_PAGE: {
-                    make_new_page();
-                    WRITE_PAGE
-                    CLOSE_PAGE
-                    page_num_str = // gets free'd by `CLOSE_PAGE`
-                    convert_to_char_array(get_page_count());
-                    // recursion B)
-                    editor_open_page(page_num_str);
-                } break;
-                case REMOVE_PAGE: {
-                    WRITE_PAGE
-                    remove_newest_page();
-                    CLOSE_PAGE
-                    page_num_str = 
-                    convert_to_char_array(get_page_count());
-                    editor_open_page(page_num_str);
-                } break;
-                case OPEN: {
-                    WRITE_PAGE
-                    CLOSE_PAGE
-                    page_num_str = 
-                    convert_to_char_array(command_retval.x);
-                    editor_open_page(page_num_str);
-                } break;
+            case DO_NOTHING: {
+                move(stdscr_maxyx.y - 1, 0);
+                for (int i = 0; i < stdscr_maxyx.x; i++) addch(' ');
+                editor_draw_command_line();
+                move(0, 0);
+                printw(editor_buffer);
+            } break;
+            case QUIT: {
+                WRITE_PAGE
+                CLOSE_PAGE
+                editor_exit();
+                exit(0);
+            } break;
+            case HELP: {
+                editor_help();
+                editor_draw_command_line();
+                move(0, 0);
+                printw(editor_buffer);
+            } break;
+            case NEW_PAGE: {
+                make_new_page();
+                WRITE_PAGE
+                CLOSE_PAGE
+                page_num_str = // gets free'd by `CLOSE_PAGE`
+                convert_to_char_array(get_page_count());
+                // recursion B)
+                editor_open_page(page_num_str);
+            } break;
+            case REMOVE_PAGE: {
+                WRITE_PAGE
+                remove_newest_page();
+                CLOSE_PAGE
+                page_num_str = 
+                convert_to_char_array(get_page_count());
+                editor_open_page(page_num_str);
+            } break;
+            case OPEN: {
+                WRITE_PAGE
+                CLOSE_PAGE
+                page_num_str = 
+                convert_to_char_array(command_retval.x);
+                editor_open_page(page_num_str);
+            } break;
             }
         } break;
         default: {
-            editor_buffer[editor_buffer_len] = current_char;
-            editor_buffer[editor_buffer_len + 1] = '\0';
-            printw("%c", current_char);
+            UPDATE_CURSORYX
+            buffer_index = get_buffer_index_from_cursoryx();
+
+            insert_char(editor_buffer, editor_buffer_len, 
+            current_char, buffer_index);
+            CLEAR_SCREEN
+            printw(editor_buffer);
+            move(cursoryx.y, cursoryx.x + 1);
         } break;
         }
     }
