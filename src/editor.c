@@ -86,7 +86,7 @@ void insert_backspace(char *buffer, int buffer_len, int index) {
     int i;
     // move everything right into the index, we dont care about it!
     if (buffer[0] != '\0') { 
-        for (i = index - 1; i < buffer_len; i++) {
+        for (i = index - 1; i < buffer_len + 1; i++) {
             buffer[i] = buffer[i + 1];
         }
     }
@@ -246,13 +246,23 @@ void editor_open_page(char *page_num_str) {
             move(cursoryx.y, cursoryx.x - 1);
         } break;
         case '\\': { // livsdiary escape char
-            addch('\\');
             UPDATE_CURSORYX
-            move(cursoryx.y, cursoryx.x - 1);
+            buffer_index = get_buffer_index_from_cursoryx();
+
+            insert_char(editor_buffer, editor_buffer_len,
+            current_char, buffer_index);
+            CLEAR_SCREEN
+            printw(editor_buffer);
+            move(cursoryx.y, cursoryx.x);
+
             current_char = getch();
-            addch(current_char);
-            editor_buffer[editor_buffer_len] = current_char;
-            editor_buffer[editor_buffer_len + 1] = '\0';
+            insert_backspace(editor_buffer, editor_buffer_len,
+            buffer_index + 1);
+            insert_char(editor_buffer, editor_buffer_len,
+            current_char, buffer_index);
+            CLEAR_SCREEN
+            printw(editor_buffer);
+            move(cursoryx.y, cursoryx.x + 1);
             continue;
         } break;
         case '\x1B': { // ascii escape char
