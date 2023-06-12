@@ -330,6 +330,7 @@ void editor_open_page(char *page_num_str) {
                 move(0, 0);
                 free(editor_buffer);
                 free(page_loc);
+                CLEAR_SCREEN
                 if (command_retval.x != -1) {
                 free(page_num_str);
                 page_num_str =
