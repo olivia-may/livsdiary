@@ -173,9 +173,9 @@ CoordYX editor_command_mode() {
             int arg_int = convert_to_unsigned_int(arg_str);		
             if (arg_int <= (int)get_page_count()
             && arg_int >= 0) retval.x = arg_int;
-            else retval.x = get_page_count();
+            else retval.x = -1;
         }
-        else retval.x = get_page_count();
+        else retval.x = -1; // re-open current page
         
         RETURN
     } break;
@@ -316,9 +316,15 @@ void editor_open_page(char *page_num_str) {
             } break;
             case OPEN: {
                 WRITE_PAGE
-                CLOSE_PAGE
-                page_num_str = 
+                editor_draw_command_line();
+                move(0, 0);
+                free(editor_buffer);
+                free(page_loc);
+                if (command_retval.x != -1) {
+                free(page_num_str);
+                page_num_str =
                 convert_to_char_array(command_retval.x);
+                }
                 editor_open_page(page_num_str);
             } break;
             }
