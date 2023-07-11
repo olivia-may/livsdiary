@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
 
     // 7 because not checking for null char at the end
     else if (strncmp(argv[1], "--edit=", 7) == 0) {
-        convert_to_equals_sign_arg(argv[1], 7); 
+        convert_to_second_arg(argv[1], 7); 
         switch (is_page_num_found(argv[1])) {
             case PAGE_FOUND: edit(argv[1]); break;
             case NO_PAGE_FOUND:
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
         }
     }
     else if (strncmp(argv[1], "--view=", 7) == 0) {
-        convert_to_equals_sign_arg(argv[1], 7); 
+        convert_to_second_arg(argv[1], 7); 
         switch (is_page_num_found(argv[1])) {
             case PAGE_FOUND: view(argv[1]); break;
             case NO_PAGE_FOUND:

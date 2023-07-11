@@ -150,29 +150,33 @@ CoordYX editor_command_mode() {
     
     switch (command_str[0]) {
     case 'q': {
-        retval.y = QUIT; retval.x = 0; RETURN
+        retval.y = QUIT; RETURN
     } break;
     case 'h': {
-        retval.y = HELP; retval.x = 0; RETURN
+        retval.y = HELP; RETURN
     } break;
     case 'n': {
-        retval.y = NEW_PAGE; retval.x = 0; RETURN
+        retval.y = NEW_PAGE; RETURN
     } break;
     case 'r': {
-        retval.y = REMOVE_PAGE; retval.x = 0; RETURN
+        retval.y = REMOVE_PAGE; RETURN
     } break;
     case 'e': {
+        int first_arg_len = 0;
+
         retval.y = OPEN;
-        char arg_str[7];
-        int offset = 0;
-        for (i = 0; i < 7; i++) {
-            if (command_str[i + 1] == ' ') offset+=1;
-            else arg_str[i - offset] = command_str[i + 1];
+
+        for (i = 0; i < (int)strlen(command_str); i++) {
+            if (check_input_is_unsigned_int(&command_str[i])) {
+                first_arg_len = i - 1; break;
+            }
         }
-        if (check_input_is_unsigned_int(arg_str)) {
-            int arg_int = convert_to_unsigned_int(arg_str);		
-            if (arg_int <= (int)get_page_count()
-            && arg_int >= 0) retval.x = arg_int;
+        convert_to_second_arg(command_str, first_arg_len);
+
+        if (check_input_is_unsigned_int(command_str)) {
+            int command_int = convert_to_unsigned_int(command_str);		
+            if (command_int <= (int)get_page_count()
+            && command_int >= 0) retval.x = command_int;
             else retval.x = -1;
         }
         else retval.x = -1; // re-open current page

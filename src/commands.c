@@ -97,11 +97,12 @@ int is_page_num_found(char *page_num_str) {
     return INVALID_INPUT;
 }
 
-void convert_to_equals_sign_arg(char *arg, 
-const int arg_len_at_equals_sign) {
+// ex: for --edit=42 or :e 42
+void convert_to_second_arg(char *arg, const int first_arg_len) {
     int i;
 
-    for (i = arg_len_at_equals_sign;
-    i < (int)strlen(arg); i++) arg[i - arg_len_at_equals_sign] = arg[i];
-    arg[i - arg_len_at_equals_sign] = '\0';
+    for (i = first_arg_len; i < (int)strlen(arg); i++)
+    arg[i - first_arg_len] = arg[i];
+    
+    arg[i - first_arg_len] = '\0';
 }
