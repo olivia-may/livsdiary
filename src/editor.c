@@ -231,7 +231,7 @@ void editor_open_page(char *page_num_str) {
 
     page_loc = get_page_loc(page_num_str);
     editor_buffer = get_file_contents(page_loc);
-    printw(editor_buffer);
+    printw("%s", editor_buffer);
 
     while (true) {
         current_char = getch();
@@ -246,7 +246,7 @@ void editor_open_page(char *page_num_str) {
             
             insert_backspace(editor_buffer, editor_buffer_len, buffer_index);
             CLEAR_SCREEN
-            printw(editor_buffer);
+            printw("%s", editor_buffer);
             move(cursoryx.y, cursoryx.x - 1);
         } break;
         case '\\': { // livsdiary escape char
@@ -256,7 +256,7 @@ void editor_open_page(char *page_num_str) {
             insert_char(editor_buffer, editor_buffer_len,
             current_char, buffer_index);
             CLEAR_SCREEN
-            printw(editor_buffer);
+            printw("%s", editor_buffer);
             move(cursoryx.y, cursoryx.x);
 
             current_char = getch();
@@ -265,7 +265,7 @@ void editor_open_page(char *page_num_str) {
             insert_char(editor_buffer, editor_buffer_len,
             current_char, buffer_index);
             CLEAR_SCREEN
-            printw(editor_buffer);
+            printw("%s", editor_buffer);
             move(cursoryx.y, cursoryx.x + 1);
             continue;
         } break;
@@ -286,7 +286,7 @@ void editor_open_page(char *page_num_str) {
             insert_char(editor_buffer, editor_buffer_len, 
             current_char, buffer_index);
             CLEAR_SCREEN
-            printw(editor_buffer);
+            printw("%s", editor_buffer);
             move(cursoryx.y + 1, 0);
         } break;
         case ':': {
@@ -297,7 +297,7 @@ void editor_open_page(char *page_num_str) {
                 for (int i = 0; i < stdscr_maxyx.x; i++) addch(' ');
                 editor_draw_command_line();
                 move(0, 0);
-                printw(editor_buffer);
+                printw("%s", editor_buffer);
             } break;
             case QUIT: {
                 WRITE_PAGE
@@ -309,7 +309,7 @@ void editor_open_page(char *page_num_str) {
                 editor_help();
                 editor_draw_command_line();
                 move(0, 0);
-                printw(editor_buffer);
+                printw("%s", editor_buffer);
             } break;
             case NEW_PAGE: {
                 make_new_page();
@@ -351,7 +351,7 @@ void editor_open_page(char *page_num_str) {
             insert_char(editor_buffer, editor_buffer_len, 
             current_char, buffer_index);
             CLEAR_SCREEN
-            printw(editor_buffer);
+            printw("%s", editor_buffer);
             move(cursoryx.y, cursoryx.x + 1);
         } break;
         }
