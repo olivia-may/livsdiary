@@ -222,7 +222,7 @@ int get_buffer_index_from_cursoryx() {
 
 void editor_open_page(char *page_num_str) {
 #define CLOSE_PAGE clear(); editor_draw_command_line(); move(0, 0); free(editor_buffer); free(page_loc); free(page_num_str);
-#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, editor_buffer); fclose(page_file);
+#define WRITE_PAGE editor_buffer[editor_buffer_len] = '\0'; page_file = fopen(page_loc, "w"); fprintf(page_file, "%s", editor_buffer); fclose(page_file);
 #define CLEAR_SCREEN  clear(); editor_draw_command_line(); move(0, 0);
     
     FILE *page_file = NULL;
