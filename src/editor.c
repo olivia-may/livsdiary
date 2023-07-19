@@ -83,7 +83,7 @@ void insert_char(char *buffer, int buffer_len, char ch, int index) {
 void insert_backspace(char *buffer, int buffer_len, int index) {
     int i;
     // move everything right into the index, we dont care about it!
-    if (buffer[0] != '\0') { 
+    if (buffer_len < 1) { 
         for (i = index - 1; i < buffer_len + 1; i++) {
             buffer[i] = buffer[i + 1];
         }
@@ -111,7 +111,10 @@ char *get_command_str() {
         }
         case '\x7F': { // backspace char "^?"
             insert_backspace(command_str, strlen(command_str), strlen(command_str) - 1);
-            if (i != 0) i--;
+            for (i = 1; i < stdscr_maxyx.x; i++) addch(' ');
+            move(stdscr_maxyx.y - 1, 1);
+            printw(command_str);
+            
         } break;
         case '\x1B': { // if 'ESC' pressed leave command mode
             free(command_str); command_str = NULL; return command_str;
