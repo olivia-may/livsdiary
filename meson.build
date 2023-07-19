@@ -6,33 +6,23 @@ srcs = [
     'src/filesystem.c',
     'src/main.c',
 ]
+
 deps = [
+    dependency('curses'),
     dependency('threads')
 ]
-inc = [
-    include_directories('.'),
-]
 
-linker_flags = [
-    '-lncurses',
+link_args = [
     '-lm'
 ]
 
-conf_data = configuration_data()
-conf_data.set('version', meson.project_version())
-configure_file(
-    input : 'config.h.in',
-    output : 'config.h',
-    configuration: conf_data
-)
-
-add_global_arguments(linker_flags, language : 'c')
+subdir('src/')
 
 executable(
     'livsdiary', 
     srcs, 
-    link_args : linker_flags,
+    link_args : link_args,
     dependencies : deps, 
-    include_directories: inc,
+    include_directories: 'src/',
     install : true
 )
