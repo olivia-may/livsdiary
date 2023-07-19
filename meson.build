@@ -2,11 +2,9 @@ project('livsdiary', 'c', version : '3.3.0')
 
 srcs = [
     'src/commands.c',
-    'src/converters.c',
     'src/editor.c',
     'src/filesystem.c',
     'src/main.c',
-    'src/time.c'
 ]
 deps = [
     dependency('threads')

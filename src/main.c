@@ -23,10 +23,9 @@
 #include <unistd.h>
 
 #include "commands.h"
-#include "converters.h"
+#include "config.h"
 #include "editor.h"
 #include "filesystem.h"
-#include "config.h"
 
 /* The command-line options */
 void version() {

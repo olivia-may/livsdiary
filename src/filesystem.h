@@ -22,6 +22,8 @@
 extern char *diary_dir;
 extern char *page_count_loc;
 
+char *convert_to_char_array(int number);
+int convert_to_unsigned_int(char *str);
 char *loc_malloc();
 void initialize_diary();
 void initialize_locs();
@@ -31,8 +33,8 @@ char *get_file_contents(char *loc);
 void set_page_count(unsigned int count);
 unsigned int get_page_count();
 void free_locs();
-
 void make_new_page();
 void remove_newest_page();
+char *get_current_time();
 
 #endif

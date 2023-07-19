@@ -21,7 +21,6 @@
 
 #include "commands.h"
 #include "filesystem.h"
-#include "converters.h"
 
 char *get_page_not_found_str(char *arg) {
     char *str = NULL;

@@ -16,19 +16,85 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
-#include "converters.h"
 #include "filesystem.h"
-#include "time.h"
 
 char *diary_dir = NULL;
 char *page_count_loc = NULL;
 unsigned int page_count = 0;
+
+// i tried, and it feels weird doing this, but i cant find anything for this, so i dont know what else to do
+char *convert_to_char_array(int number) {
+    char *converted_int = NULL;
+    converted_int = (char *)malloc(2 * sizeof(int));
+
+    if (number == 0) {
+        converted_int[0] = '0';
+        converted_int[1] = '\0';
+        return converted_int;
+    }
+
+    int i = 0;
+    while (true) {
+        if (number == 0) break;
+        else i++;
+
+        if (number % 10 == 0) converted_int[i] = '0';
+        if (number % 10 == 1) converted_int[i] = '1';
+        if (number % 10 == 2) converted_int[i] = '2';
+        if (number % 10 == 3) converted_int[i] = '3';
+        if (number % 10 == 4) converted_int[i] = '4';
+        if (number % 10 == 5) converted_int[i] = '5';
+        if (number % 10 == 6) converted_int[i] = '6';
+        if (number % 10 == 7) converted_int[i] = '7';
+        if (number % 10 == 8) converted_int[i] = '8';
+        if (number % 10 == 9) converted_int[i] = '9';
+		
+        converted_int = (char *)realloc(converted_int, (i + 2) * sizeof(int));
+        number = number / 10;
+    }
+
+    // reverse array
+    int halfway_point = i/ 2;
+    char ch;
+    for (int j = 0; j <= halfway_point; j++) {
+        ch = converted_int[j];
+        int last = i - j;
+        converted_int[j] = converted_int[last];
+        converted_int[last] = ch;
+    }
+    converted_int[i] = '\0';
+
+    return converted_int;
+}
+
+int convert_to_unsigned_int(char *str) {
+    int number = 0;
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        int digit_slot = pow(10, len - i - 1);
+
+        if (str[i] == '0') number = number + 0 * digit_slot;
+        if (str[i] == '1') number = number + 1 * digit_slot;
+        if (str[i] == '2') number = number + 2 * digit_slot;
+        if (str[i] == '3') number = number + 3 * digit_slot;
+        if (str[i] == '4') number = number + 4 * digit_slot;
+        if (str[i] == '5') number = number + 5 * digit_slot;
+        if (str[i] == '6') number = number + 6 * digit_slot;
+        if (str[i] == '7') number = number + 7 * digit_slot;
+        if (str[i] == '8') number = number + 8 * digit_slot;
+        if (str[i] == '9') number = number + 9 * digit_slot;
+    }
+
+    return number;
+}
 
 char *loc_malloc() {
     return (char *)malloc(
@@ -125,6 +191,16 @@ unsigned int get_page_count() {
     return count;
 }
 
+char *get_current_time() {
+    time_t now = time(0);
+    struct tm *lt = localtime(&now);
+    char *current_time = asctime(lt);
+    current_time[strlen(current_time) - 1] = ' ';
+    strcat(current_time, lt->tm_zone);
+	
+    return current_time;
+}
+
 void make_new_page() {
     FILE *new_page_file = NULL;
     char *page_count_str = NULL;
@@ -164,3 +240,4 @@ void free_locs() {
     free(page_count_loc);
     free(diary_dir);
 }
+
