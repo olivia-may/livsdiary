@@ -278,7 +278,8 @@ void editor_open_page(char *page_num_str) {
             buffer_index = get_buffer_index_from_cursoryx();
             //printw("%c", editor_buffer[buffer_index]);
             if (current_char == 'D' && cursoryx.x != 0) move(cursoryx.y, cursoryx.x - 1);
-            if (current_char == 'C' && editor_buffer[buffer_index] != '\n')
+            if (current_char == 'C' && !(editor_buffer[buffer_index] == '\n'
+            || editor_buffer[buffer_index] == '\0'))
             move(cursoryx.y, cursoryx.x + 1);
             if (current_char == 'A' && cursoryx.y != 0) move(cursoryx.y - 1, cursoryx.x);
             if (current_char == 'B' && editor_buffer[buffer_index] != '\0')
