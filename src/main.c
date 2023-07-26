@@ -35,23 +35,17 @@ void version() {
     printf("Written in C by Olivia May.\n");
 }
 void help() {
-    printf("A command line virtual diary.\n");
-    printf("-e [page number],	--edit=NUMBER	edit page. No input assumes most recent page\n");
-    printf("-h,			--help		show this menu\n");
-    printf("-l,			--list		list all pages\n");
-    printf("-n,			--new		new page\n");
-    printf("-r			--remove	removes most recent page\n");
-    printf("-v [page number],	--view=NUMBER	view page\n");
-    printf("-V			--version	show version\n");
+    printf("A command line and interactive virtual diary.\n");
+    printf("[no arguments]                                      edit newest page\n");
+    printf("-e [page number],           --edit=NUMBER           edit page. No input assumes most recent page\n");
+    printf("-h,                         --help                  show this menu\n");
+    printf("-l,                         --list                  list all pages\n");
+    printf("-n,                         --new                   new page\n");
+    printf("-r                          --remove                removes most recent page\n");
+    printf("-v [page number],           --view=NUMBER           view page\n");
+    printf("-V                          --version               show version\n");
 }
 void edit(char *page_num_str) {
-    /*
-    printf("** LIVSDiary %s **\n", PROGRAM_VERSION);
-    printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
-    printf("This is free software, and you are welcome to\n");
-    printf("redistribute it under certain conditions.\n\n");
-    */
-
     // so it can be free'd
     char *page_num_str_clone = NULL; 
     page_num_str_clone = malloc(sizeof(char) * (strlen(page_num_str) + 1));
@@ -78,6 +72,7 @@ void list_pages() {
     for (unsigned int i = 0; i <= page_count; i++) {
         i_str = convert_to_char_array(i);
         view(i_str);
+        printf("\n");
         free(i_str);
     }
 }

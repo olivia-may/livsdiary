@@ -27,12 +27,11 @@ typedef struct {
 enum {
     DO_NOTHING = -1,
     QUIT = 0,
-    WRITE,
-    WRITE_QUIT,
     HELP,
     NEW_PAGE,
     REMOVE_PAGE,
-    OPEN
+    OPEN,
+    LICENSE
 };
 
 void editor_enter();

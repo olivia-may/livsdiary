@@ -32,23 +32,7 @@ CoordYX cursoryx;
 CoordYX stdscr_maxyx;
 char *editor_buffer = NULL;
 
-void editor_help() {
-    clear();
-    printw("** LIVSDiary %s Editor Help **\n", VERSION);
-    printw(":e [number]<enter>                          open page [number]\n");
-    printw(":h<enter>               :help<enter>        show this menu\n");
-    printw(":n<enter>                                   make new page\n");
-    printw(":q<enter>                                   save and quit editor\n");
-    printw(":r<enter>                                   remove newest page\n");
-    printw("\n");
-    printw("Your current page will save when left. Type '\\' to use as an\n");
-    printw("escape character. Ex: will let you type ':' without going into\n");
-    printw("command mode.\n");
-    printw("\n");
-    printw("Press any key to go back to editing.\n");
-    getch();
-    clear();
-}
+
 
 void editor_draw_command_line() {
     move(stdscr_maxyx.y - 1, 0);
@@ -133,9 +117,7 @@ char *get_command_str() {
 }
 
 // CoordYX so it can pass ':e 2' for example
-CoordYX editor_command_mode() {
-#define RETURN free(command_str); return retval;
-    
+CoordYX editor_command_mode() { 
     int i;
     char *command_str = NULL;
     CoordYX retval;
@@ -154,19 +136,21 @@ CoordYX editor_command_mode() {
     
     switch (command_str[0]) {
     case 'q': {
-        retval.y = QUIT; RETURN
+        retval.y = QUIT;
     } break;
     case 'h': {
-        retval.y = HELP; RETURN
+        retval.y = HELP;
+    } break;
+    case 'l': {
+        retval.y = LICENSE;
     } break;
     case 'n': {
-        retval.y = NEW_PAGE; RETURN
+        retval.y = NEW_PAGE;
     } break;
     case 'r': {
-        retval.y = REMOVE_PAGE; RETURN
+        retval.y = REMOVE_PAGE;
     } break;
     case 'e': {
-        int second_arg_index = 0;
         unsigned int command_int = 0;
 
         retval.y = OPEN;
@@ -180,12 +164,11 @@ CoordYX editor_command_mode() {
 
         if (command_int <= get_page_count()) retval.x = command_int;
         else retval.x = -1; // re-open current page
-        
-        RETURN
     } break;
     }
     
-    RETURN
+    free(command_str);
+    return retval;
 }
 
 // so the user can insert and delete chars anywhere the cursor is
@@ -276,7 +259,6 @@ void editor_open_page(char *page_num_str) {
             current_char = getch();
             getyx(stdscr, cursoryx.y, cursoryx.x);
             buffer_index = get_buffer_index_from_cursoryx();
-            //printw("%c", editor_buffer[buffer_index]);
             if (current_char == 'D' && cursoryx.x != 0) move(cursoryx.y, cursoryx.x - 1);
             if (current_char == 'C' && !(editor_buffer[buffer_index] == '\n'
             || editor_buffer[buffer_index] == '\0'))
@@ -312,7 +294,59 @@ void editor_open_page(char *page_num_str) {
                 exit(0);
             } break;
             case HELP: {
-                editor_help();
+                clear();
+                printw("** LIVSDiary %s Editor Help **\n", VERSION);
+                printw(":e [number]<enter>                          open page [number]\n");
+                printw(":h<enter>               :help<enter>        show this menu\n");
+                printw(":l<enter>               :license<enter>     view GPLv3+ license info\n");
+                printw(":n<enter>                                   make new page\n");
+                printw(":q<enter>                                   save and quit editor\n");
+                printw(":r<enter>                                   remove newest page\n");
+                printw("\n");
+                printw("Your current page will save when left. Type '\\' to use as an\n");
+                printw("escape character. Ex: will let you type ':' without going into\n");
+                printw("command mode.\n");
+                printw("\n");
+                printw("Press any key to go back to editing.\n");
+                getch();
+                clear();
+
+                editor_draw_command_line();
+                move(0, 0);
+                printw("%s", editor_buffer);
+            } break;
+            case LICENSE: {
+                clear();
+                printw("LIVSDiary %s Copyright (C) 2022 Olivia May\n", VERSION);
+                printw("This program comes with ABSOLUTELY NO WARRANTY; for details type 'w'\n");
+                printw("This is free software, and you are welcome to\n");
+                printw("redistribute it under certain conditions; type 'c' for details\n");
+                printw("\n");
+                printw("Press 'w' to view disclaimer of warranty, 'c' to view redistribution\nconditions, or any other key to go back to editing.\n");
+
+                current_char = getch();
+                clear();
+
+                if (current_char == 'w') {
+                printw("----------------------------------------------------------------\n");
+                printw("  15. Disclaimer of Warranty.\n\n  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY\nAPPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT\nHOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM \"AS IS\" WITHOUT WARRANTY\nOF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,\nTHE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR\nPURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM\nIS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF\nALL NECESSARY SERVICING, REPAIR OR CORRECTION.\n");
+                printw("----------------------------------------------------------------\n");
+                printw("\n");
+                printw("Press any key to go back to editing.\n");
+                getch();
+                clear();
+                }
+                else if (current_char == 'c') {
+                printw("----------------------------------------------------------------\n");
+                printw("  2. Basic Permissions.\n  All rights granted under this License are granted for the term of\ncopyright on the Program, and are irrevocable provided the stated\nconditions are met.  This License explicitly affirms your unlimited\npermission to run the unmodified Program.  The output from running a\ncovered work is covered by this License only if the output, given its\ncontent, constitutes a covered work.  This License acknowledges your\nrights of fair use or other equivalent, as provided by copyright law.\n\n  You may make, run and propagate covered works that you do not\nconvey, without conditions so long as your license otherwise remains\nin force.  You may convey covered works to others for the sole purpose\nof having them make modifications exclusively for you, or provide you\nwith facilities for running those works, provided that you comply with\nthe terms of this License in conveying all material for which you do\nnot control copyright.  Those thus making or running the covered works\nfor you must do so exclusively on your behalf, under your direction\nand control, on terms that prohibit them from making any copies of\nyour copyrighted material outside their relationship with you.\n\n  Conveying under any other circumstances is permitted solely under\nthe conditions stated below.  Sublicensing is not allowed; section 10\nmakes it unnecessary.\n");
+
+                printw("----------------------------------------------------------------\n");
+                printw("\n");
+                printw("Press any key to go back to editing.\n");
+                getch();
+                clear();
+                }
+
                 editor_draw_command_line();
                 move(0, 0);
                 printw("%s", editor_buffer);
