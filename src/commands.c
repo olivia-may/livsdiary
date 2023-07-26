@@ -88,7 +88,7 @@ bool check_input_is_unsigned_int(char *input) {
 }
 
 int is_page_num_found(char *page_num_str) {
-    int page_num_str_unsigned_int;
+    unsigned int page_num_str_unsigned_int;
     unsigned int newest_page_num = get_page_count();
 	    
     if (check_input_is_unsigned_int(page_num_str) == true) {

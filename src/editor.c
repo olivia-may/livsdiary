@@ -118,7 +118,7 @@ char *get_command_str() {
 }
 
 void editor_print(char *str) {
-    printw(str);
+    printw("%s", str);
     free(str);
 }
 
