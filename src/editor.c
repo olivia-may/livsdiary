@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "commands.h"
 #include "editor.h"
 #include "filesystem.h"
 
@@ -30,8 +31,6 @@ int editor_buffer_len;
 CoordYX cursoryx;
 CoordYX stdscr_maxyx;
 char *editor_buffer = NULL;
-
-#define UPDATE_CURSORYX getyx(stdscr, cursoryx.y, cursoryx.x);
 
 void editor_help() {
     clear();
@@ -83,8 +82,8 @@ void insert_char(char *buffer, int buffer_len, char ch, int index) {
 void insert_backspace(char *buffer, int buffer_len, int index) {
     int i;
     // move everything right into the index, we dont care about it!
-    if (buffer_len < 1) { 
-        for (i = index - 1; i < buffer_len + 1; i++) {
+    if (buffer_len >= 1 && index != 0) { 
+        for (i = index - 1; i <= buffer_len; i++) {
             buffer[i] = buffer[i + 1];
         }
     }
@@ -137,7 +136,7 @@ CoordYX editor_command_mode() {
     char *command_str = NULL;
     CoordYX retval;
     
-    UPDATE_CURSORYX
+    getyx(stdscr, cursoryx.y, cursoryx.x);
     move(stdscr_maxyx.y - 1, 0);
     // remove help message from `editor_enter()`
     for (i = 0; i < stdscr_maxyx.x; i++) addch(' ');
@@ -202,12 +201,13 @@ int get_buffer_index_from_cursoryx() {
         && buffer_index_position.y == cursoryx.y) break;
 
         if (editor_buffer[buffer_index] == '\0'
-        || editor_buffer_len == buffer_index + 1) {
-            buffer_index++; break;
-        }
-
+        || editor_buffer_len == buffer_index) break;
+        
         if (editor_buffer[buffer_index] == '\n'
         || buffer_index_position.x == stdscr_maxyx.x - 1) {
+            if (cursoryx.y == buffer_index_position.y
+            && cursoryx.x != buffer_index_position.x) break;
+
             buffer_index_position.x = 0;
             buffer_index_position.y++;
             buffer_index++;
@@ -242,16 +242,16 @@ void editor_open_page(char *page_num_str) {
 
         switch (current_char) {
         case '\x7F': { // backspace
-            UPDATE_CURSORYX
+            getyx(stdscr, cursoryx.y, cursoryx.x);
             buffer_index = get_buffer_index_from_cursoryx();
-            
             insert_backspace(editor_buffer, editor_buffer_len, buffer_index);
             CLEAR_SCREEN
             printw("%s", editor_buffer);
+
             move(cursoryx.y, cursoryx.x - 1);
         } break;
         case '\\': { // livsdiary escape char
-            UPDATE_CURSORYX
+            getyx(stdscr, cursoryx.y, cursoryx.x);
             buffer_index = get_buffer_index_from_cursoryx();
 
             insert_char(editor_buffer, editor_buffer_len,
@@ -274,14 +274,18 @@ void editor_open_page(char *page_num_str) {
             current_char = getch();
             if (current_char != '[') continue;
             current_char = getch();
-            UPDATE_CURSORYX
-            if (current_char == 'D') move(cursoryx.y, cursoryx.x - 1);
-            if (current_char == 'C') move(cursoryx.y, cursoryx.x + 1);
-            if (current_char == 'A') move(cursoryx.y - 1, cursoryx.x);
-            if (current_char == 'B') move(cursoryx.y + 1, cursoryx.x);
+            getyx(stdscr, cursoryx.y, cursoryx.x);
+            buffer_index = get_buffer_index_from_cursoryx();
+            //printw("%c", editor_buffer[buffer_index]);
+            if (current_char == 'D' && cursoryx.x != 0) move(cursoryx.y, cursoryx.x - 1);
+            if (current_char == 'C' && editor_buffer[buffer_index] != '\n')
+            move(cursoryx.y, cursoryx.x + 1);
+            if (current_char == 'A' && cursoryx.y != 0) move(cursoryx.y - 1, cursoryx.x);
+            if (current_char == 'B' && editor_buffer[buffer_index] != '\0')
+            move(cursoryx.y + 1, cursoryx.x);
         } break;
         case '\n': {
-            UPDATE_CURSORYX
+            getyx(stdscr, cursoryx.y, cursoryx.x);
             buffer_index = get_buffer_index_from_cursoryx();
             
             insert_char(editor_buffer, editor_buffer_len, 
@@ -346,7 +350,7 @@ void editor_open_page(char *page_num_str) {
             }
         } break;
         default: {
-            UPDATE_CURSORYX
+            getyx(stdscr, cursoryx.y, cursoryx.x);
             buffer_index = get_buffer_index_from_cursoryx();
 
             insert_char(editor_buffer, editor_buffer_len, 
