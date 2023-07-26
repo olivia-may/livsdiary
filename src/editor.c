@@ -17,6 +17,7 @@
  */
 
 #include <ncurses.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,6 +117,11 @@ char *get_command_str() {
     }
 }
 
+void editor_print(char *str) {
+    printw(str);
+    free(str);
+}
+
 // CoordYX so it can pass ':e 2' for example
 CoordYX editor_command_mode() { 
     int i;
@@ -151,19 +157,40 @@ CoordYX editor_command_mode() {
         retval.y = REMOVE_PAGE;
     } break;
     case 'e': {
-        unsigned int command_int = 0;
+        int command_int = -1;
+        bool is_page_num_arg_empty = true;
 
-        retval.y = OPEN;
-
-        for (i = 0; i < (int)strlen(command_str); i++) {
-            if (check_input_is_unsigned_int(&command_str[i])) {
-                command_int = convert_to_unsigned_int(&command_str[i]);
+        for (i = 1; i < (int)strlen(command_str); i++) {
+            if (command_str[i] != ' ') {
+                is_page_num_arg_empty = false;
                 break;
             }
         }
 
-        if (command_int <= get_page_count()) retval.x = command_int;
-        else retval.x = -1; // re-open current page
+        // re-open current page
+        if (is_page_num_arg_empty) {
+            retval.y = OPEN;
+            retval.x = command_int;
+            free(command_str);
+            return retval;
+        }
+
+        switch (is_page_num_found(&command_str[i])) {
+        case PAGE_FOUND: {
+            retval.y = OPEN;
+            retval.x = command_int;
+        } break;
+        case NO_PAGE_FOUND: {
+            retval.y = DO_NOTHING;
+            move(stdscr_maxyx.y - 1, 0);
+            editor_print(get_page_not_found_str(&command_str[i]));
+        } break;
+        case INVALID_INPUT: {
+            retval.y = DO_NOTHING;
+            move(stdscr_maxyx.y - 1, 0);
+            editor_print(get_invalid_page_str(&command_str[i]));
+        }
+        }
     } break;
     }
     
@@ -281,11 +308,7 @@ void editor_open_page(char *page_num_str) {
             CoordYX command_retval = editor_command_mode();
             switch (command_retval.y) {
             case DO_NOTHING: {
-                move(stdscr_maxyx.y - 1, 0);
-                for (int i = 0; i < stdscr_maxyx.x; i++) addch(' ');
-                editor_draw_command_line();
-                move(0, 0);
-                printw("%s", editor_buffer);
+                move(cursoryx.y, cursoryx.x);
             } break;
             case QUIT: {
                 WRITE_PAGE

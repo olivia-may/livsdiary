@@ -24,10 +24,15 @@
 
 char *get_page_not_found_str(char *arg) {
     char *str = NULL;
-    
+    char *page_count_str = NULL;
+
+    page_count_str = convert_to_char_array(get_page_count());    
     str = malloc(64 * sizeof(char));
     strcpy(str, "error: found no page with number '");
     strcat(str, arg);
+    strcat(str, "'");
+    strcat(str, ", newest page number is '");
+    strcat(str, page_count_str);
     strcat(str, "'");
     
     return str;
@@ -88,8 +93,7 @@ int is_page_num_found(char *page_num_str) {
 	    
     if (check_input_is_unsigned_int(page_num_str) == true) {
         page_num_str_unsigned_int = convert_to_unsigned_int(page_num_str);
-        if (page_num_str_unsigned_int <= (int)newest_page_num
-        && page_num_str_unsigned_int >= 0) return PAGE_FOUND;
+        if (page_num_str_unsigned_int <= newest_page_num) return PAGE_FOUND;
         else return NO_PAGE_FOUND;
     }
 
