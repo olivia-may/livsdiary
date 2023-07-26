@@ -109,15 +109,19 @@ char *get_command_str() {
             return command_str;
         }
         case '\x7F': { // backspace char "^?"
-            insert_backspace(command_str, strlen(command_str), strlen(command_str) - 1);
-            for (i = 1; i < stdscr_maxyx.x; i++) addch(' ');
-            move(stdscr_maxyx.y - 1, 1);
-            printw(command_str);
+            i--;
+            command_str[i] = '\0';
+            getyx(stdscr, cursoryx.y, cursoryx.x); 
+            move(cursoryx.y, cursoryx.x - 1);
+            addch(' ');
+            move(cursoryx.y, cursoryx.x - 1);
             
         } break;
+        /* FIXME arrow keys exit command mode and write in the diary
         case '\x1B': { // if 'ESC' pressed leave command mode
             free(command_str); command_str = NULL; return command_str;
-        }
+        } break;
+        */
         default: {
             command_str[i] = current_char;
             command_str[i + 1] = '\0';
@@ -162,23 +166,19 @@ CoordYX editor_command_mode() {
         retval.y = REMOVE_PAGE; RETURN
     } break;
     case 'e': {
-        int first_arg_len = 0;
+        int second_arg_index = 0;
+        unsigned int command_int = 0;
 
         retval.y = OPEN;
 
         for (i = 0; i < (int)strlen(command_str); i++) {
             if (check_input_is_unsigned_int(&command_str[i])) {
-                first_arg_len = i - 1; break;
+                command_int = convert_to_unsigned_int(&command_str[i]);
+                break;
             }
         }
-        convert_to_second_arg(command_str, first_arg_len);
 
-        if (check_input_is_unsigned_int(command_str)) {
-            int command_int = convert_to_unsigned_int(command_str);		
-            if (command_int <= (int)get_page_count()
-            && command_int >= 0) retval.x = command_int;
-            else retval.x = -1;
-        }
+        if (command_int <= get_page_count()) retval.x = command_int;
         else retval.x = -1; // re-open current page
         
         RETURN
@@ -336,8 +336,6 @@ void editor_open_page(char *page_num_str) {
             } break;
             case OPEN: {
                 WRITE_PAGE
-                editor_draw_command_line();
-                move(0, 0);
                 free(editor_buffer);
                 free(page_loc);
                 CLEAR_SCREEN

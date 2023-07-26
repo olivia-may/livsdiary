@@ -52,8 +52,13 @@ void edit(char *page_num_str) {
     printf("redistribute it under certain conditions.\n\n");
     */
 
+    // so it can be free'd
+    char *page_num_str_clone = NULL; 
+    page_num_str_clone = malloc(sizeof(char) * (strlen(page_num_str) + 1));
+    strcpy(page_num_str_clone, page_num_str);
+
     editor_enter();
-    editor_open_page(page_num_str);
+    editor_open_page(page_num_str_clone);
     editor_exit();
 }
 void view(char *page_num_str) {
@@ -121,23 +126,21 @@ int main(int argc, char **argv) {
 
     // 7 because not checking for null char at the end
     else if (strncmp(argv[1], "--edit=", 7) == 0) {
-        convert_to_second_arg(argv[1], 7); 
-        switch (is_page_num_found(argv[1])) {
-            case PAGE_FOUND: edit(argv[1]); break;
+        switch (is_page_num_found(&argv[1][7])) {
+            case PAGE_FOUND: edit(&argv[1][7]); break;
             case NO_PAGE_FOUND:
-            print(get_page_not_found_str(argv[1])); break;
+            print(get_page_not_found_str(&argv[1][7])); break;
             case INVALID_INPUT:
-            print(get_invalid_page_str(argv[1])); break;
+            print(get_invalid_page_str(&argv[1][7])); break;
         }
     }
     else if (strncmp(argv[1], "--view=", 7) == 0) {
-        convert_to_second_arg(argv[1], 7); 
-        switch (is_page_num_found(argv[1])) {
-            case PAGE_FOUND: view(argv[1]); break;
+        switch (is_page_num_found(&argv[1][7])) {
+            case PAGE_FOUND: view(&argv[1][7]); break;
             case NO_PAGE_FOUND:
-            print(get_page_not_found_str(argv[1])); break;
+            print(get_page_not_found_str(&argv[1][7])); break;
             case INVALID_INPUT:
-            print(get_invalid_page_str(argv[1])); break;
+            print(get_invalid_page_str(&argv[1][7])); break;
         }
     }
 
