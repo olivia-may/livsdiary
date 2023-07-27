@@ -177,6 +177,7 @@ CoordYX editor_command_mode() {
 
         switch (is_page_num_found(&command_str[i])) {
         case PAGE_FOUND: {
+            command_int = convert_to_unsigned_int(&command_str[i]);
             retval.y = OPEN;
             retval.x = command_int;
         } break;
