@@ -27,7 +27,7 @@ char *get_page_not_found_str(char *arg) {
     char *page_count_str = NULL;
 
     page_count_str = convert_to_char_array(get_page_count());    
-    str = malloc(64 * sizeof(char));
+    str = malloc((64 + strlen(arg)) * sizeof(char));
     strcpy(str, "error: found no page with number '");
     strcat(str, arg);
     strcat(str, "'");
@@ -43,7 +43,7 @@ char *get_invalid_page_str(char *arg) {
     char *page_count_str = NULL;
 
     page_count_str = convert_to_char_array(get_page_count());
-    str = malloc(64 * sizeof(char));
+    str = malloc((64 + strlen(arg)) * sizeof(char));
     strcpy(str, "error: invalid page number: '");
     strcat(str, arg);
     strcat(str, "', newest page number is '");
@@ -57,7 +57,7 @@ char *get_invalid_page_str(char *arg) {
 char *get_invalid_arg_str(char *arg, int mode) {
     char *str = NULL;
 
-    str = malloc(64 * sizeof(char));
+    str = malloc((64 + strlen(arg)) * sizeof(char));
     strcpy(str, "error: invalid argument '");
     strcat(str, arg);
     strcat(str, "', try '");

@@ -79,6 +79,7 @@ char *get_command_str() {
     char *command_str = NULL;
 
     command_str = (char *)malloc(2 * sizeof(char));
+    command_str[0] = '\0';
     i = 0;
     while (true) {
         current_char = getch();
